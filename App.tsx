@@ -9,18 +9,60 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from 'react-native';
 import { useState } from 'react';
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState<'login' | 'forgot'>('login');
+  const [currentScreen, setCurrentScreen] = useState<'login' | 'forgot' | 'reset'>('login');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  
+  // Reset password fields
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Validation: Check if username and password are not empty
+  const isFormValid = username.trim().length > 0 && password.trim().length > 0;
+  
+  // Forgot password validation  
+  const isForgotFormValid = email.trim().length > 0 && email.includes('@');
+  
+  // Reset password validation
+  const isResetFormValid = newPassword.trim().length > 0 && 
+                          confirmPassword.trim().length > 0 && 
+                          newPassword === confirmPassword &&
+                          newPassword.length >= 8;
 
   const handleSignIn = () => {
-    console.log('Sign in pressed');
+    if (!isFormValid) {
+      Alert.alert(
+        'Validation Error',
+        'Please enter both username and password.',
+        [
+          {
+            text: 'OK',
+            style: 'default',
+          },
+        ]
+      );
+      return;
+    }
+
+    Alert.alert(
+      'Sign In',
+      `Welcome ${username}! Sign in was successful.`,
+      [
+        {
+          text: 'OK',
+          style: 'default',
+        },
+      ]
+    );
   };
 
   const handleForgotPassword = () => {
@@ -32,7 +74,58 @@ export default function App() {
   };
 
   const handleSendResetLink = () => {
-    console.log('Send reset link pressed');
+    if (!isForgotFormValid) {
+      Alert.alert(
+        'Validation Error',
+        'Please enter a valid email address.',
+        [{ text: 'OK', style: 'default' }]
+      );
+      return;
+    }
+
+    Alert.alert(
+      'Reset Link Sent',
+      `A password reset link has been sent to ${email}. Please check your email and follow the instructions.`,
+      [
+        { 
+          text: 'OK', 
+          style: 'default',
+          onPress: () => setCurrentScreen('reset') // Simulate going to reset page
+        }
+      ]
+    );
+  };
+
+  const handleResetPassword = () => {
+    if (!isResetFormValid) {
+      let errorMessage = '';
+      if (newPassword.trim().length === 0 || confirmPassword.trim().length === 0) {
+        errorMessage = 'Please fill in both password fields.';
+      } else if (newPassword.length < 8) {
+        errorMessage = 'Password must be at least 8 characters long.';
+      } else if (newPassword !== confirmPassword) {
+        errorMessage = 'Passwords do not match.';
+      }
+      
+      Alert.alert(
+        'Validation Error',
+        errorMessage,
+        [{ text: 'OK', style: 'default' }]
+      );
+      return;
+    }
+
+    Alert.alert(
+      'Password Reset',
+      'Your password has been reset successfully!',
+      [
+        { 
+          text: 'OK', 
+          style: 'default',
+          onPress: () => setCurrentScreen('login')
+        }
+      ]
+    );
   };
 
   const renderLoginScreen = () => (
@@ -98,8 +191,20 @@ export default function App() {
         </View>
 
         {/* Sign In Button */}
-        <TouchableOpacity style={styles.signInButton} onPress={handleSignIn}>
-          <Text style={styles.signInButtonText}>Sign In</Text>
+        <TouchableOpacity 
+          style={[
+            styles.signInButton, 
+            !isFormValid && styles.signInButtonDisabled
+          ]} 
+          onPress={handleSignIn}
+          disabled={!isFormValid}
+        >
+          <Text style={[
+            styles.signInButtonText,
+            !isFormValid && styles.signInButtonTextDisabled
+          ]}>
+            Sign In
+          </Text>
         </TouchableOpacity>
 
         {/* Forgot Password Link */}
@@ -136,13 +241,133 @@ export default function App() {
         </View>
 
         {/* Send Reset Link Button */}
-        <TouchableOpacity style={styles.signInButton} onPress={handleSendResetLink}>
-          <Text style={styles.signInButtonText}>Send Reset Link</Text>
+        <TouchableOpacity 
+          style={[
+            styles.signInButton, 
+            !isForgotFormValid && styles.signInButtonDisabled
+          ]} 
+          onPress={handleSendResetLink}
+          disabled={!isForgotFormValid}
+        >
+          <Text style={[
+            styles.signInButtonText,
+            !isForgotFormValid && styles.signInButtonTextDisabled
+          ]}>
+            Send Reset Link
+          </Text>
         </TouchableOpacity>
 
         {/* Back to Login Link */}
         <TouchableOpacity onPress={handleBackToLogin}>
           <Text style={styles.forgotPasswordText}>Remember your password? Log in</Text>
+        </TouchableOpacity>
+      </View>
+    </>
+  );
+
+  const renderResetPasswordScreen = () => (
+    <>
+      {/* Title Section */}
+      <View style={styles.titleSection}>
+        <Text style={styles.title}>Reset Your Password</Text>
+        <Text style={styles.subtitle}>Create a new password for your account</Text>
+      </View>
+
+      {/* Form Section */}
+      <View style={styles.formContainer}>
+        {/* New Password Field */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.inputLabel}>New Password</Text>
+          <View style={styles.passwordContainer}>
+            <TextInput
+              style={styles.passwordInput}
+              placeholder="Enter new password"
+              placeholderTextColor="#6B7280"
+              value={newPassword}
+              onChangeText={setNewPassword}
+              secureTextEntry={!showNewPassword}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <TouchableOpacity 
+              style={styles.eyeIcon}
+              onPress={() => setShowNewPassword(!showNewPassword)}
+            >
+              <View style={styles.eyeIconContainer}>
+                {showNewPassword ? (
+                  <View style={styles.eyeWrapper}>
+                    <View style={styles.eyeOutline} />
+                    <View style={styles.eyeDot} />
+                    <View style={styles.slashLine} />
+                  </View>
+                ) : (
+                  <View style={styles.eyeWrapper}>
+                    <View style={styles.eyeOutline} />
+                    <View style={styles.eyeDot} />
+                  </View>
+                )}
+              </View>
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.passwordHint}>Min. 8 characters</Text>
+        </View>
+
+        {/* Confirm Password Field */}
+        <View style={styles.inputContainer}>
+          <Text style={styles.inputLabel}>Confirm Password</Text>
+          <View style={styles.passwordContainer}>
+            <TextInput
+              style={styles.passwordInput}
+              placeholder="Confirm your password"
+              placeholderTextColor="#6B7280"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry={!showConfirmPassword}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <TouchableOpacity 
+              style={styles.eyeIcon}
+              onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+            >
+              <View style={styles.eyeIconContainer}>
+                {showConfirmPassword ? (
+                  <View style={styles.eyeWrapper}>
+                    <View style={styles.eyeOutline} />
+                    <View style={styles.eyeDot} />
+                    <View style={styles.slashLine} />
+                  </View>
+                ) : (
+                  <View style={styles.eyeWrapper}>
+                    <View style={styles.eyeOutline} />
+                    <View style={styles.eyeDot} />
+                  </View>
+                )}
+              </View>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Reset Password Button */}
+        <TouchableOpacity 
+          style={[
+            styles.signInButton, 
+            !isResetFormValid && styles.signInButtonDisabled
+          ]} 
+          onPress={handleResetPassword}
+          disabled={!isResetFormValid}
+        >
+          <Text style={[
+            styles.signInButtonText,
+            !isResetFormValid && styles.signInButtonTextDisabled
+          ]}>
+            Reset Password
+          </Text>
+        </TouchableOpacity>
+
+        {/* Back to Login Link */}
+        <TouchableOpacity onPress={handleBackToLogin}>
+          <Text style={styles.forgotPasswordText}>Back to Login</Text>
         </TouchableOpacity>
       </View>
     </>
@@ -170,7 +395,9 @@ export default function App() {
             </View>
           </View>
 
-          {currentScreen === 'login' ? renderLoginScreen() : renderForgotPasswordScreen()}
+          {currentScreen === 'login' && renderLoginScreen()}
+          {currentScreen === 'forgot' && renderForgotPasswordScreen()}
+          {currentScreen === 'reset' && renderResetPasswordScreen()}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -270,6 +497,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#4B5563',
   },
+  passwordHint: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginTop: 4,
+  },
   eyeIcon: {
     position: 'absolute',
     right: 16,
@@ -321,10 +553,17 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 24,
   },
+  signInButtonDisabled: {
+    backgroundColor: '#6B7280',
+    opacity: 0.6,
+  },
   signInButtonText: {
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
+  },
+  signInButtonTextDisabled: {
+    color: '#D1D5DB',
   },
   forgotPasswordText: {
     fontSize: 14,
