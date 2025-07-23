@@ -9,9 +9,9 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Alert,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import CrossPlatformAlert from '../utils/CrossPlatformAlert';
 
 interface LoginScreenProps {
   onSignInSuccess: () => void;
@@ -28,7 +28,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSignInSuccess, onForgotPass
 
   const handleSignIn = () => {
     if (!isFormValid) {
-      Alert.alert(
+      CrossPlatformAlert.alert(
         'Validation Error',
         'Please enter both username and password.',
         [
@@ -41,7 +41,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSignInSuccess, onForgotPass
       return;
     }
 
-    Alert.alert(
+    CrossPlatformAlert.alert(
       'Sign In',
       `Welcome ${username}! Sign in was successful.`,
       [

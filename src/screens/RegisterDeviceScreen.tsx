@@ -9,9 +9,10 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Alert,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import CrossPlatformAlert from '../utils/CrossPlatformAlert';
+import CrossPlatformDropdown from '../components/CrossPlatformDropdown';
 
 interface RegisterDeviceScreenProps {
   onBack: () => void;
@@ -28,11 +29,6 @@ const RegisterDeviceScreen: React.FC<RegisterDeviceScreenProps> = ({ onBack, onR
   const [serialNumber, setSerialNumber] = useState('');
   const [selectedDeviceType, setSelectedDeviceType] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('Active');
-  
-  // Dropdown states
-  const [showDealerDropdown, setShowDealerDropdown] = useState(false);
-  const [showDeviceTypeDropdown, setShowDeviceTypeDropdown] = useState(false);
-  const [showStatusDropdown, setShowStatusDropdown] = useState(false);
 
   const dealerOptions: DropdownOption[] = [
     { label: 'TechSolutions Inc.', value: 'tech-solutions' },
@@ -77,7 +73,7 @@ const RegisterDeviceScreen: React.FC<RegisterDeviceScreenProps> = ({ onBack, onR
 
   const handleRegisterDevice = () => {
     if (!isFormValid) {
-      Alert.alert(
+      CrossPlatformAlert.alert(
         'Validation Error',
         'Please fill in all required fields.',
         [{ text: 'OK', style: 'default' }]
@@ -85,7 +81,7 @@ const RegisterDeviceScreen: React.FC<RegisterDeviceScreenProps> = ({ onBack, onR
       return;
     }
 
-    Alert.alert(
+    CrossPlatformAlert.alert(
       'Device Registered',
       `Device ${serialNumber} has been successfully registered!`,
       [
@@ -97,46 +93,6 @@ const RegisterDeviceScreen: React.FC<RegisterDeviceScreenProps> = ({ onBack, onR
       ]
     );
   };
-
-  const renderDropdown = (
-    options: DropdownOption[],
-    selectedValue: string,
-    onSelect: (value: string) => void,
-    placeholder: string,
-    isVisible: boolean,
-    onToggle: () => void
-  ) => (
-    <View style={styles.dropdownContainer}>
-      <TouchableOpacity style={styles.dropdownButton} onPress={onToggle}>
-        <Text style={[styles.dropdownText, !selectedValue && styles.placeholderText]}>
-          {selectedValue ? options.find(opt => opt.value === selectedValue)?.label : placeholder}
-        </Text>
-        <Text style={styles.dropdownArrow}>▼</Text>
-      </TouchableOpacity>
-      
-      {isVisible && (
-        <View style={styles.dropdownList}>
-          {options.map((option) => (
-            <TouchableOpacity
-              key={option.value}
-              style={styles.dropdownItem}
-              onPress={() => {
-                onSelect(option.value);
-                onToggle();
-              }}
-            >
-              <View style={styles.checkboxContainer}>
-                <View style={[styles.checkbox, selectedValue === option.value && styles.checkboxSelected]}>
-                  {selectedValue === option.value && <Text style={styles.checkmark}>●</Text>}
-                </View>
-                <Text style={styles.dropdownItemText}>{option.label}</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
-      )}
-    </View>
-  );
 
   const getCurrentDateTime = () => {
     const now = new Date();
@@ -181,14 +137,12 @@ const RegisterDeviceScreen: React.FC<RegisterDeviceScreenProps> = ({ onBack, onR
             {/* Dealer Dropdown */}
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Dealer *</Text>
-              {renderDropdown(
-                dealerOptions,
-                selectedDealer,
-                setSelectedDealer,
-                'Select dealers',
-                showDealerDropdown,
-                () => setShowDealerDropdown(!showDealerDropdown)
-              )}
+              <CrossPlatformDropdown
+                options={dealerOptions}
+                selectedValue={selectedDealer}
+                onSelect={setSelectedDealer}
+                placeholder="Select dealers"
+              />
             </View>
 
             {/* Serial Number */}
@@ -210,27 +164,23 @@ const RegisterDeviceScreen: React.FC<RegisterDeviceScreenProps> = ({ onBack, onR
             {/* Device Type Dropdown */}
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Device Type *</Text>
-              {renderDropdown(
-                deviceTypeOptions,
-                selectedDeviceType,
-                setSelectedDeviceType,
-                'Select device type',
-                showDeviceTypeDropdown,
-                () => setShowDeviceTypeDropdown(!showDeviceTypeDropdown)
-              )}
+              <CrossPlatformDropdown
+                options={deviceTypeOptions}
+                selectedValue={selectedDeviceType}
+                onSelect={setSelectedDeviceType}
+                placeholder="Select device type"
+              />
             </View>
 
             {/* Status Dropdown */}
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Status *</Text>
-              {renderDropdown(
-                statusOptions,
-                selectedStatus,
-                setSelectedStatus,
-                'Select status',
-                showStatusDropdown,
-                () => setShowStatusDropdown(!showStatusDropdown)
-              )}
+              <CrossPlatformDropdown
+                options={statusOptions}
+                selectedValue={selectedStatus}
+                onSelect={setSelectedStatus}
+                placeholder="Select status"
+              />
             </View>
           </View>
 
@@ -350,78 +300,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#9CA3AF',
     marginTop: 4,
-  },
-  dropdownContainer: {
-    position: 'relative',
-  },
-  dropdownButton: {
-    backgroundColor: '#374151',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderWidth: 1,
-    borderColor: '#4B5563',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  dropdownText: {
-    fontSize: 16,
-    color: '#FFFFFF',
-    flex: 1,
-  },
-  placeholderText: {
-    color: '#6B7280',
-  },
-  dropdownArrow: {
-    fontSize: 12,
-    color: '#9CA3AF',
-  },
-  dropdownList: {
-    position: 'absolute',
-    top: '100%',
-    left: 0,
-    right: 0,
-    backgroundColor: '#374151',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#4B5563',
-    marginTop: 4,
-    maxHeight: 200,
-    zIndex: 1000,
-  },
-  dropdownItem: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#4B5563',
-  },
-  checkboxContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  checkbox: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    borderWidth: 2,
-    borderColor: '#6B7280',
-    marginRight: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  checkboxSelected: {
-    borderColor: '#3B82F6',
-    backgroundColor: '#3B82F6',
-  },
-  checkmark: {
-    color: '#FFFFFF',
-    fontSize: 8,
-  },
-  dropdownItemText: {
-    fontSize: 14,
-    color: '#FFFFFF',
-    flex: 1,
   },
   systemInfoContainer: {
     backgroundColor: '#374151',

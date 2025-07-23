@@ -9,9 +9,9 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
-  Alert,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import CrossPlatformAlert from '../utils/CrossPlatformAlert';
 
 interface ResetPasswordScreenProps {
   onBackToLogin: () => void;
@@ -41,7 +41,7 @@ const ResetPasswordScreen: React.FC<ResetPasswordScreenProps> = ({ onBackToLogin
         errorMessage = 'Passwords do not match.';
       }
       
-      Alert.alert(
+      CrossPlatformAlert.alert(
         'Validation Error',
         errorMessage,
         [{ text: 'OK', style: 'default' }]
@@ -49,7 +49,7 @@ const ResetPasswordScreen: React.FC<ResetPasswordScreenProps> = ({ onBackToLogin
       return;
     }
 
-    Alert.alert(
+    CrossPlatformAlert.alert(
       'Password Reset',
       'Your password has been reset successfully!',
       [
