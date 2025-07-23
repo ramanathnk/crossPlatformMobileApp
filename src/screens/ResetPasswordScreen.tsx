@@ -13,49 +13,53 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 
-interface LoginScreenProps {
-  onSignInSuccess: () => void;
-  onForgotPassword: () => void;
+interface ResetPasswordScreenProps {
+  onBackToLogin: () => void;
+  onResetSuccess: () => void;
 }
 
-const LoginScreen: React.FC<LoginScreenProps> = ({ onSignInSuccess, onForgotPassword }) => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+const ResetPasswordScreen: React.FC<ResetPasswordScreenProps> = ({ onBackToLogin, onResetSuccess }) => {
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  // Validation: Check if username and password are not empty
-  const isFormValid = username.trim().length > 0 && password.trim().length > 0;
+  // Reset password validation
+  const isResetFormValid = newPassword.trim().length > 0 && 
+                          confirmPassword.trim().length > 0 && 
+                          newPassword === confirmPassword &&
+                          newPassword.length >= 8;
 
-  const handleSignIn = () => {
-    if (!isFormValid) {
+  const handleResetPassword = () => {
+    if (!isResetFormValid) {
+      let errorMessage = '';
+      if (newPassword.trim().length === 0 || confirmPassword.trim().length === 0) {
+        errorMessage = 'Please fill in both password fields.';
+      } else if (newPassword.length < 8) {
+        errorMessage = 'Password must be at least 8 characters long.';
+      } else if (newPassword !== confirmPassword) {
+        errorMessage = 'Passwords do not match.';
+      }
+      
       Alert.alert(
         'Validation Error',
-        'Please enter both username and password.',
-        [
-          {
-            text: 'OK',
-            style: 'default',
-          },
-        ]
+        errorMessage,
+        [{ text: 'OK', style: 'default' }]
       );
       return;
     }
 
     Alert.alert(
-      'Sign In',
-      `Welcome ${username}! Sign in was successful.`,
+      'Password Reset',
+      'Your password has been reset successfully!',
       [
-        {
-          text: 'OK',
+        { 
+          text: 'OK', 
           style: 'default',
-          onPress: onSignInSuccess
-        },
+          onPress: onResetSuccess
+        }
       ]
     );
-  };
-
-  const handleForgotPassword = () => {
-    onForgotPassword();
   };
 
   return (
@@ -82,57 +86,78 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSignInSuccess, onForgotPass
 
           {/* Title Section */}
           <View style={styles.titleSection}>
-            <Text style={styles.title}>Admin Registration Portal</Text>
-            <Text style={styles.subtitle}>Sign in to manage device registrations</Text>
+            <Text style={styles.title}>Reset Your Password</Text>
+            <Text style={styles.subtitle}>Create a new password for your account</Text>
           </View>
 
           {/* Form Section */}
           <View style={styles.formContainer}>
-            {/* Username Field */}
+            {/* New Password Field */}
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Username</Text>
-              <TextInput
-                style={styles.textInput}
-                placeholder="Enter your username"
-                placeholderTextColor="#6B7280"
-                value={username}
-                onChangeText={setUsername}
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-            </View>
-
-            {/* Password Field */}
-            <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Password</Text>
+              <Text style={styles.inputLabel}>New Password</Text>
               <View style={styles.passwordContainer}>
                 <TextInput
                   style={styles.passwordInput}
-                  placeholder="Enter your password"
+                  placeholder="Enter new password"
                   placeholderTextColor="#6B7280"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry={!showPassword}
+                  value={newPassword}
+                  onChangeText={setNewPassword}
+                  secureTextEntry={!showNewPassword}
                   autoCapitalize="none"
                   autoCorrect={false}
                 />
                 <TouchableOpacity 
                   style={styles.eyeIcon}
-                  onPress={() => setShowPassword(!showPassword)}
+                  onPress={() => setShowNewPassword(!showNewPassword)}
                 >
                   <View style={styles.eyeIconContainer}>
-                    {showPassword ? (
-                      // Eye with slash (hidden)
+                    {showNewPassword ? (
                       <View style={styles.eyeWrapper}>
-                        <View style={styles.eyeBase} />
-                        <View style={styles.eyePupil} />
-                        <View style={styles.eyeSlash} />
+                        <View style={styles.eyeOutline} />
+                        <View style={styles.eyeDot} />
+                        <View style={styles.slashLine} />
                       </View>
                     ) : (
-                      // Normal eye (visible)
                       <View style={styles.eyeWrapper}>
-                        <View style={styles.eyeBase} />
-                        <View style={styles.eyePupil} />
+                        <View style={styles.eyeOutline} />
+                        <View style={styles.eyeDot} />
+                      </View>
+                    )}
+                  </View>
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.passwordHint}>Min. 8 characters</Text>
+            </View>
+
+            {/* Confirm Password Field */}
+            <View style={styles.inputContainer}>
+              <Text style={styles.inputLabel}>Confirm Password</Text>
+              <View style={styles.passwordContainer}>
+                <TextInput
+                  style={styles.passwordInput}
+                  placeholder="Confirm your password"
+                  placeholderTextColor="#6B7280"
+                  value={confirmPassword}
+                  onChangeText={setConfirmPassword}
+                  secureTextEntry={!showConfirmPassword}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+                <TouchableOpacity 
+                  style={styles.eyeIcon}
+                  onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  <View style={styles.eyeIconContainer}>
+                    {showConfirmPassword ? (
+                      <View style={styles.eyeWrapper}>
+                        <View style={styles.eyeOutline} />
+                        <View style={styles.eyeDot} />
+                        <View style={styles.slashLine} />
+                      </View>
+                    ) : (
+                      <View style={styles.eyeWrapper}>
+                        <View style={styles.eyeOutline} />
+                        <View style={styles.eyeDot} />
                       </View>
                     )}
                   </View>
@@ -140,26 +165,26 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSignInSuccess, onForgotPass
               </View>
             </View>
 
-            {/* Sign In Button */}
+            {/* Reset Password Button */}
             <TouchableOpacity 
               style={[
-                styles.signInButton, 
-                !isFormValid && styles.signInButtonDisabled
+                styles.resetButton, 
+                !isResetFormValid && styles.resetButtonDisabled
               ]} 
-              onPress={handleSignIn}
-              disabled={!isFormValid}
+              onPress={handleResetPassword}
+              disabled={!isResetFormValid}
             >
               <Text style={[
-                styles.signInButtonText,
-                !isFormValid && styles.signInButtonTextDisabled
+                styles.resetButtonText,
+                !isResetFormValid && styles.resetButtonTextDisabled
               ]}>
-                Sign In
+                Reset Password
               </Text>
             </TouchableOpacity>
 
-            {/* Forgot Password Link */}
-            <TouchableOpacity onPress={handleForgotPassword}>
-              <Text style={styles.forgotPasswordText}>Forgot password?</Text>
+            {/* Back to Login Link */}
+            <TouchableOpacity onPress={onBackToLogin}>
+              <Text style={styles.backToLoginText}>Back to Login</Text>
             </TouchableOpacity>
           </View>
         </ScrollView>
@@ -237,16 +262,6 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     fontWeight: '500',
   },
-  textInput: {
-    backgroundColor: '#374151',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    color: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#4B5563',
-  },
   passwordContainer: {
     position: 'relative',
   },
@@ -260,6 +275,11 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     borderWidth: 1,
     borderColor: '#4B5563',
+  },
+  passwordHint: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginTop: 4,
   },
   eyeIcon: {
     position: 'absolute',
@@ -277,34 +297,34 @@ const styles = StyleSheet.create({
     position: 'relative',
     width: 18,
     height: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  eyeBase: {
+  eyeOutline: {
     width: 18,
     height: 12,
     borderRadius: 9,
     borderWidth: 1.5,
     borderColor: '#9CA3AF',
     backgroundColor: 'transparent',
-  },
-  eyePupil: {
     position: 'absolute',
-    top: 3,
-    left: 6,
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+  },
+  eyeDot: {
+    width: 4,
+    height: 4,
+    borderRadius: 2,
     backgroundColor: '#9CA3AF',
-  },
-  eyeSlash: {
     position: 'absolute',
-    top: -2,
-    left: -2,
-    width: 22,
+  },
+  slashLine: {
+    position: 'absolute',
+    width: 20,
     height: 1.5,
     backgroundColor: '#9CA3AF',
+    borderRadius: 1,
     transform: [{ rotate: '45deg' }],
   },
-  signInButton: {
+  resetButton: {
     backgroundColor: '#3B82F6',
     borderRadius: 8,
     paddingVertical: 16,
@@ -312,19 +332,19 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 24,
   },
-  signInButtonDisabled: {
+  resetButtonDisabled: {
     backgroundColor: '#6B7280',
     opacity: 0.6,
   },
-  signInButtonText: {
+  resetButtonText: {
     fontSize: 16,
     fontWeight: '600',
     color: '#FFFFFF',
   },
-  signInButtonTextDisabled: {
+  resetButtonTextDisabled: {
     color: '#D1D5DB',
   },
-  forgotPasswordText: {
+  backToLoginText: {
     fontSize: 14,
     color: '#3B82F6',
     textAlign: 'center',
@@ -332,4 +352,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default LoginScreen;
+export default ResetPasswordScreen;

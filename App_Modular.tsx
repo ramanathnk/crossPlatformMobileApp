@@ -4,9 +4,8 @@ import LoginScreen from './src/screens/LoginScreen';
 import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen';
 import ResetPasswordScreen from './src/screens/ResetPasswordScreen';
 import DashboardScreen from './src/screens/DashboardScreen';
-import RegisterDeviceScreen from './src/screens/RegisterDeviceScreen';
 
-export type ScreenType = 'login' | 'forgot' | 'reset' | 'dashboard' | 'register-device';
+export type ScreenType = 'login' | 'forgot' | 'reset' | 'dashboard';
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<ScreenType>('login');
@@ -41,15 +40,6 @@ export default function App() {
         return (
           <DashboardScreen 
             onLogout={() => setCurrentScreen('login')}
-            onNavigateToRegister={() => setCurrentScreen('register-device')}
-          />
-        );
-      
-      case 'register-device':
-        return (
-          <RegisterDeviceScreen 
-            onBack={() => setCurrentScreen('dashboard')}
-            onRegisterSuccess={() => setCurrentScreen('dashboard')}
           />
         );
       

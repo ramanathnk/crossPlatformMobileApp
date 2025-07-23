@@ -11,23 +11,24 @@ import {
   Platform,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { useNavigation } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList } from '../../App';
 
-type ForgotPasswordScreenNavigationProp = StackNavigationProp<RootStackParamList, 'ForgotPassword'>;
+interface ForgotPasswordScreenProps {
+  onBackToLogin: () => void;
+  onNavigateToReset: () => void;
+}
 
-const ForgotPasswordScreen: React.FC = () => {
-  const navigation = useNavigation<ForgotPasswordScreenNavigationProp>();
+const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ onBackToLogin, onNavigateToReset }) => {
   const [email, setEmail] = useState('');
 
   const handleSendResetLink = () => {
     // Handle send reset link logic here
     console.log('Send reset link pressed');
+    // Navigate to reset password screen
+    onNavigateToReset();
   };
 
   const handleBackToLogin = () => {
-    navigation.goBack();
+    onBackToLogin();
   };
 
   return (
