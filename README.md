@@ -32,6 +32,28 @@ To start the development server:
 npm start
 ```
 
+### Debug Build
+
+To build an apk to deploy on Android devices (need a dev server running):
+- Navigate to the android folder
+   cd android
+
+- run gradle build
+   .\gradlew.bat assembleDebug
+
+### Release Build
+
+To build an apk to deploy on Android devices (no dev server needed):
+- Navigate to the android folder
+   cd android
+
+- run gradle build
+   .\gradlew.bat assembleRelease
+
+
+
+-Navigate to the android folder
+
 This will start the Expo development server. You can then:
 
 - Press `a` to open on Android device/emulator

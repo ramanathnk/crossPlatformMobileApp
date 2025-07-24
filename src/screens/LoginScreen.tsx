@@ -11,6 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import Icon from 'react-native-vector-icons/Feather';
 import CrossPlatformAlert from '../utils/CrossPlatformAlert';
 
 interface LoginScreenProps {
@@ -116,26 +117,15 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSignInSuccess, onForgotPass
                   autoCapitalize="none"
                   autoCorrect={false}
                 />
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.eyeIcon}
                   onPress={() => setShowPassword(!showPassword)}
                 >
-                  <View style={styles.eyeIconContainer}>
-                    {showPassword ? (
-                      // Eye with slash (hidden)
-                      <View style={styles.eyeWrapper}>
-                        <View style={styles.eyeBase} />
-                        <View style={styles.eyePupil} />
-                        <View style={styles.eyeSlash} />
-                      </View>
-                    ) : (
-                      // Normal eye (visible)
-                      <View style={styles.eyeWrapper}>
-                        <View style={styles.eyeBase} />
-                        <View style={styles.eyePupil} />
-                      </View>
-                    )}
-                  </View>
+                  <Icon 
+                    name={showPassword ? "eye-off" : "eye"} 
+                    size={20} 
+                    color="#9CA3AF" 
+                  />
                 </TouchableOpacity>
               </View>
             </View>
@@ -180,7 +170,8 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: 24,
     paddingTop: 60,
-    paddingBottom: 40,
+    paddingBottom: 60,
+    minHeight: '100%',
   },
   headerContainer: {
     alignItems: 'center',
@@ -226,7 +217,8 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   formContainer: {
-    flex: 1,
+    flex: 0,
+    minHeight: 200,
   },
   inputContainer: {
     marginBottom: 20,
@@ -266,43 +258,8 @@ const styles = StyleSheet.create({
     right: 16,
     top: 14,
     padding: 4,
-  },
-  eyeIconContainer: {
-    width: 20,
-    height: 20,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  eyeWrapper: {
-    position: 'relative',
-    width: 18,
-    height: 12,
-  },
-  eyeBase: {
-    width: 18,
-    height: 12,
-    borderRadius: 9,
-    borderWidth: 1.5,
-    borderColor: '#9CA3AF',
-    backgroundColor: 'transparent',
-  },
-  eyePupil: {
-    position: 'absolute',
-    top: 3,
-    left: 6,
-    width: 6,
-    height: 6,
-    borderRadius: 3,
-    backgroundColor: '#9CA3AF',
-  },
-  eyeSlash: {
-    position: 'absolute',
-    top: -2,
-    left: -2,
-    width: 22,
-    height: 1.5,
-    backgroundColor: '#9CA3AF',
-    transform: [{ rotate: '45deg' }],
   },
   signInButton: {
     backgroundColor: '#3B82F6',
@@ -310,7 +267,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 8,
-    marginBottom: 24,
+    marginBottom: 32,
   },
   signInButtonDisabled: {
     backgroundColor: '#6B7280',
@@ -329,6 +286,7 @@ const styles = StyleSheet.create({
     color: '#3B82F6',
     textAlign: 'center',
     textDecorationLine: 'underline',
+    paddingVertical: 8,
   },
 });
 

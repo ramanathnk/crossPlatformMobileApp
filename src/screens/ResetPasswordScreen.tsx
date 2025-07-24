@@ -11,6 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import Icon from 'react-native-vector-icons/Feather';
 import CrossPlatformAlert from '../utils/CrossPlatformAlert';
 
 interface ResetPasswordScreenProps {
@@ -110,20 +111,11 @@ const ResetPasswordScreen: React.FC<ResetPasswordScreenProps> = ({ onBackToLogin
                   style={styles.eyeIcon}
                   onPress={() => setShowNewPassword(!showNewPassword)}
                 >
-                  <View style={styles.eyeIconContainer}>
-                    {showNewPassword ? (
-                      <View style={styles.eyeWrapper}>
-                        <View style={styles.eyeOutline} />
-                        <View style={styles.eyeDot} />
-                        <View style={styles.slashLine} />
-                      </View>
-                    ) : (
-                      <View style={styles.eyeWrapper}>
-                        <View style={styles.eyeOutline} />
-                        <View style={styles.eyeDot} />
-                      </View>
-                    )}
-                  </View>
+                  <Icon 
+                    name={showNewPassword ? "eye-off" : "eye"} 
+                    size={20} 
+                    color="#9CA3AF" 
+                  />
                 </TouchableOpacity>
               </View>
               <Text style={styles.passwordHint}>Min. 8 characters</Text>
@@ -147,20 +139,11 @@ const ResetPasswordScreen: React.FC<ResetPasswordScreenProps> = ({ onBackToLogin
                   style={styles.eyeIcon}
                   onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                 >
-                  <View style={styles.eyeIconContainer}>
-                    {showConfirmPassword ? (
-                      <View style={styles.eyeWrapper}>
-                        <View style={styles.eyeOutline} />
-                        <View style={styles.eyeDot} />
-                        <View style={styles.slashLine} />
-                      </View>
-                    ) : (
-                      <View style={styles.eyeWrapper}>
-                        <View style={styles.eyeOutline} />
-                        <View style={styles.eyeDot} />
-                      </View>
-                    )}
-                  </View>
+                  <Icon 
+                    name={showConfirmPassword ? "eye-off" : "eye"} 
+                    size={20} 
+                    color="#9CA3AF" 
+                  />
                 </TouchableOpacity>
               </View>
             </View>
@@ -286,43 +269,8 @@ const styles = StyleSheet.create({
     right: 16,
     top: 14,
     padding: 4,
-  },
-  eyeIconContainer: {
-    width: 20,
-    height: 20,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  eyeWrapper: {
-    position: 'relative',
-    width: 18,
-    height: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  eyeOutline: {
-    width: 18,
-    height: 12,
-    borderRadius: 9,
-    borderWidth: 1.5,
-    borderColor: '#9CA3AF',
-    backgroundColor: 'transparent',
-    position: 'absolute',
-  },
-  eyeDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: '#9CA3AF',
-    position: 'absolute',
-  },
-  slashLine: {
-    position: 'absolute',
-    width: 20,
-    height: 1.5,
-    backgroundColor: '#9CA3AF',
-    borderRadius: 1,
-    transform: [{ rotate: '45deg' }],
   },
   resetButton: {
     backgroundColor: '#3B82F6',

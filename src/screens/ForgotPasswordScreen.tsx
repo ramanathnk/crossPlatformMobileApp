@@ -104,7 +104,8 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: 24,
     paddingTop: 60,
-    paddingBottom: 40,
+    paddingBottom: 60,
+    minHeight: '100%',
   },
   headerContainer: {
     alignItems: 'center',
@@ -150,7 +151,8 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   formContainer: {
-    flex: 1,
+    flex: 0,
+    minHeight: 200,
   },
   inputContainer: {
     marginBottom: 24,
@@ -176,7 +178,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingVertical: 16,
     alignItems: 'center',
-    marginBottom: 24,
+    marginBottom: 32,
+    marginTop: 8,
   },
   resetButtonText: {
     fontSize: 16,
@@ -188,6 +191,7 @@ const styles = StyleSheet.create({
     color: '#3B82F6',
     textAlign: 'center',
     textDecorationLine: 'underline',
+    paddingVertical: 8,
   },
 });
 
