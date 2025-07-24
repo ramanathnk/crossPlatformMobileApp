@@ -188,7 +188,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: 24,
     paddingTop: 60,
-    paddingBottom: 40,
+    paddingBottom: 60, // Consistent with other login screens
   },
   headerContainer: {
     alignItems: 'center',
@@ -297,6 +297,7 @@ const styles = StyleSheet.create({
     color: '#3B82F6',
     textAlign: 'center',
     textDecorationLine: 'underline',
+    marginTop: 16, // Added margin to ensure proper spacing from reset button
   },
 });
 

@@ -238,7 +238,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: 24,
     paddingTop: 20,
-    paddingBottom: 100, // Increased bottom padding to ensure button is always visible
+    paddingBottom: 60, // Consistent with other screens
   },
   header: {
     flexDirection: 'row',
