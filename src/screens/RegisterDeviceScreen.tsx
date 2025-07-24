@@ -202,22 +202,24 @@ const RegisterDeviceScreen: React.FC<RegisterDeviceScreenProps> = ({ onBack, onR
           </View>
 
           {/* Register Button */}
-          <TouchableOpacity 
-            style={[
-              styles.registerButton, 
-              !isFormValid && styles.registerButtonDisabled
-            ]} 
-            onPress={handleRegisterDevice}
-            disabled={!isFormValid}
-          >
-            <Text style={styles.registerButtonIcon}>+</Text>
-            <Text style={[
-              styles.registerButtonText,
-              !isFormValid && styles.registerButtonTextDisabled
-            ]}>
-              Register Device
-            </Text>
-          </TouchableOpacity>
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity 
+              style={[
+                styles.registerButton, 
+                !isFormValid && styles.registerButtonDisabled
+              ]} 
+              onPress={handleRegisterDevice}
+              disabled={!isFormValid}
+            >
+              <Text style={styles.registerButtonIcon}>+</Text>
+              <Text style={[
+                styles.registerButtonText,
+                !isFormValid && styles.registerButtonTextDisabled
+              ]}>
+                Register Device
+              </Text>
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -236,7 +238,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     paddingHorizontal: 24,
     paddingTop: 20,
-    paddingBottom: 40,
+    paddingBottom: 100, // Increased bottom padding to ensure button is always visible
   },
   header: {
     flexDirection: 'row',
@@ -319,6 +321,10 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '500',
   },
+  buttonContainer: {
+    marginTop: 24,
+    paddingTop: 16,
+  },
   registerButton: {
     backgroundColor: '#3B82F6',
     borderRadius: 12,
@@ -327,7 +333,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 'auto',
   },
   registerButtonDisabled: {
     backgroundColor: '#6B7280',
