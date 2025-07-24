@@ -187,7 +187,7 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
     paddingHorizontal: 24,
-    paddingTop: 60,
+    paddingTop: 40, // Reduced to account for large header section (logo + title)
     paddingBottom: 60, // Consistent with other login screens
   },
   headerContainer: {
