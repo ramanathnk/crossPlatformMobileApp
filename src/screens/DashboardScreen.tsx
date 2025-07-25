@@ -8,6 +8,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import SnaptrackerLogo from '../icons/SnapTrackerLogo'; 
 
 interface DashboardScreenProps {
   onLogout: () => void;
@@ -25,9 +26,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, onNavigateT
         {/* Logo and App Name */}
         <View style={styles.headerContainer}>
           <View style={styles.logoContainer}>
-            <View style={styles.logo}>
-              <Text style={styles.logoText}>📋</Text>
-            </View>
+            <SnaptrackerLogo width={120} height={50} />   
             <Text style={styles.appName}>SnapTracker</Text>
           </View>
         </View>

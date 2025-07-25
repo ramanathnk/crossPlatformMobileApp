@@ -13,6 +13,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import Icon from 'react-native-vector-icons/Feather';
 import CrossPlatformAlert from '../utils/CrossPlatformAlert';
+import SnaptrackerLogo from '../icons/SnapTrackerLogo';
 
 interface ResetPasswordScreenProps {
   onBackToLogin: () => void;
@@ -78,9 +79,7 @@ const ResetPasswordScreen: React.FC<ResetPasswordScreenProps> = ({ onBackToLogin
           {/* Logo and App Name */}
           <View style={styles.headerContainer}>
             <View style={styles.logoContainer}>
-              <View style={styles.logo}>
-                <Text style={styles.logoText}>📋</Text>
-              </View>
+              <SnaptrackerLogo width={120} height={50} />
               <Text style={styles.appName}>SnapTracker</Text>
             </View>
           </View>
