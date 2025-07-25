@@ -14,6 +14,8 @@ import { StatusBar } from 'expo-status-bar';
 import Icon from 'react-native-vector-icons/Feather';
 import CrossPlatformAlert from '../utils/CrossPlatformAlert';
 import SnaptrackerLogo from '../icons/SnapTrackerLogo';
+import EyeIcon from '../icons/EyeIcon';
+
 
 interface ResetPasswordScreenProps {
   onBackToLogin: () => void;
@@ -106,15 +108,11 @@ const ResetPasswordScreen: React.FC<ResetPasswordScreenProps> = ({ onBackToLogin
                   autoCapitalize="none"
                   autoCorrect={false}
                 />
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.eyeIcon}
                   onPress={() => setShowNewPassword(!showNewPassword)}
                 >
-                  <Icon 
-                    name={showNewPassword ? "eye-off" : "eye"} 
-                    size={20} 
-                    color="#9CA3AF" 
-                  />
+                  <EyeIcon visible={showNewPassword} size={20} color="#9CA3AF" />
                 </TouchableOpacity>
               </View>
               <Text style={styles.passwordHint}>Min. 8 characters</Text>
@@ -134,15 +132,11 @@ const ResetPasswordScreen: React.FC<ResetPasswordScreenProps> = ({ onBackToLogin
                   autoCapitalize="none"
                   autoCorrect={false}
                 />
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.eyeIcon}
                   onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                 >
-                  <Icon 
-                    name={showConfirmPassword ? "eye-off" : "eye"} 
-                    size={20} 
-                    color="#9CA3AF" 
-                  />
+                  <EyeIcon visible={showConfirmPassword} size={20} color="#9CA3AF" />
                 </TouchableOpacity>
               </View>
             </View>

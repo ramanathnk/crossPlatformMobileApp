@@ -11,9 +11,9 @@ import {
   Platform,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import Icon from 'react-native-vector-icons/Feather';
 import CrossPlatformAlert from '../utils/CrossPlatformAlert';
 import SnaptrackerLogo from '../icons/SnapTrackerLogo';
+import EyeIcon from '../icons/EyeIcon';
 
 
 interface LoginScreenProps {
@@ -121,11 +121,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSignInSuccess, onForgotPass
                   style={styles.eyeIcon}
                   onPress={() => setShowPassword(!showPassword)}
                 >
-                  <Icon 
-                    name={showPassword ? "eye-off" : "eye"} 
-                    size={20} 
-                    color="#9CA3AF" 
-                  />
+                  <EyeIcon visible={showPassword} size={20} color="#9CA3AF" />
                 </TouchableOpacity>
               </View>
             </View>
