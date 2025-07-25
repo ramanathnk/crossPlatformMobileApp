@@ -6,7 +6,8 @@
     "start": "cross-env NODE_ENV=development expo start",
     "android": "cross-env NODE_ENV=development expo run:android",
     "ios": "cross-env NODE_ENV=development expo run:ios",
-    "web": "cross-env NODE_ENV=development expo start --web"
+    "web": "cross-env NODE_ENV=development expo start --web",
+    "test": "jest"
   },
   "dependencies": {
     "@expo/metro-runtime": "~5.0.4",
@@ -30,10 +31,14 @@
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
+    "@babel/plugin-transform-flow-strip-types": "^7.27.1",
     "@testing-library/jest-native": "^5.4.3",
     "@testing-library/react-native": "^13.2.0",
+    "@types/jest": "^30.0.0",
     "@types/react": "~19.0.10",
+    "jest-expo": "^53.0.9",
     "react-native-svg-transformer": "^1.5.1",
+    "react-test-renderer": "^19.0.0",
     "typescript": "~5.8.3"
   },
   "private": true
