@@ -66,7 +66,7 @@ This will start the Expo development server. You can then:
 ## 🏗️ Project Structure
 
 ```
-├── App.tsx                 # Main app component
+├── App.tsx                # Main app component
 ├── app.json               # Expo configuration
 ├── assets/                # Static assets (images, fonts, etc.)
 ├── package.json           # Dependencies and scripts

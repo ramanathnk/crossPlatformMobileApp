@@ -9,12 +9,18 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import CrossPlatformAlert from '../utils/CrossPlatformAlert';
 import SnaptrackerLogo from '../icons/SnapTrackerLogo';
 import EyeIcon from '../icons/EyeIcon';
+import * as SecureStore from 'expo-secure-store';
+import { login } from '../api/userApi';
+//import * as userApi from '../api/userApi';
+//console.log('userApi:', userApi);
 
+console.log('login:', login);
 
 interface LoginScreenProps {
   onSignInSuccess: () => void;
@@ -25,11 +31,12 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSignInSuccess, onForgotPass
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   // Validation: Check if username and password are not empty
   const isFormValid = username.trim().length > 0 && password.trim().length > 0;
 
-  const handleSignIn = () => {
+  const handleSignIn = async () => {
     if (!isFormValid) {
       CrossPlatformAlert.alert(
         'Validation Error',
@@ -44,17 +51,17 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSignInSuccess, onForgotPass
       return;
     }
 
-    CrossPlatformAlert.alert(
-      'Sign In',
-      `Welcome ${username}! Sign in was successful.`,
-      [
-        {
-          text: 'OK',
-          style: 'default',
-          onPress: onSignInSuccess
-        },
-      ]
-    );
+    setLoading(true);
+    setError(null);
+    try {
+      const { token } = await login({ username, password });
+      await SecureStore.setItemAsync('authToken', token);
+      onSignInSuccess();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleForgotPassword = () => {
@@ -127,20 +134,27 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSignInSuccess, onForgotPass
             </View>
 
             {/* Sign In Button */}
-            <TouchableOpacity 
+            {error && <Text style={styles.error}>{error}</Text>}
+            <TouchableOpacity
               style={[
-                styles.signInButton, 
-                !isFormValid && styles.signInButtonDisabled
-              ]} 
+                styles.signInButton,
+                (!isFormValid || loading) && styles.signInButtonDisabled
+              ]}
               onPress={handleSignIn}
-              disabled={!isFormValid}
+              disabled={!isFormValid || loading}
             >
-              <Text style={[
-                styles.signInButtonText,
-                !isFormValid && styles.signInButtonTextDisabled
-              ]}>
-                Sign In
-              </Text>
+              {loading ? (
+                <ActivityIndicator color="#FFF" />
+              ) : (
+                <Text
+                  style={[
+                    styles.signInButtonText,
+                    (!isFormValid || loading) && styles.signInButtonTextDisabled
+                  ]}
+                >
+                  Sign In
+                </Text>
+              )}
             </TouchableOpacity>
 
             {/* Forgot Password Link */}
@@ -283,6 +297,12 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     textDecorationLine: 'underline',
     paddingVertical: 8,
+  },
+  error: {
+    color: '#FF3B30', // Bright red for high visibility
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 12,  
   },
 });
 
