@@ -7,7 +7,7 @@ A modern React Native application built with Expo and TypeScript.
 ### Prerequisites
 
 - Node.js (v18 or later)
-- npm or yarn
+- npm
 - Expo CLI (optional, but recommended)
 - Expo Go app on your mobile device for testing
 
