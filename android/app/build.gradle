@@ -95,6 +95,12 @@ android {
         versionCode 1
         versionName "1.0.0"
     }
+    applicationVariants.all { variant ->
+        variant.outputs.all { output ->
+            def newName = "IMDRA-${variant.name}-${variant.versionName}.apk"
+            outputFileName = newName
+        }
+    }
     signingConfigs {
         debug {
             storeFile file('debug.keystore')

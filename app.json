@@ -4,11 +4,11 @@
     "slug": "IMDRA",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./SnapTracker_logo_1024.png",
+    "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "splash": {
-      "image": "./SnapTracker_logo_1024.png",
+      "image": "./assets/splash.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -17,14 +17,14 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./SnapTracker_logo_1024.png",
+        "foregroundImage": "./assets/icon.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
       "package": "com.ramanathnk.IMDRA"
     },
     "web": {
-      "favicon": "./SnapTracker_logo_1024.png"
+      "favicon": "./assets/favicon.png"
     },
     "plugins": [
       [
