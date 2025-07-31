@@ -6,13 +6,14 @@ A modern React Native application built with Expo and TypeScript.
 
 ### Prerequisites
 
-- Node.js (v18 or later)
+- Node.js (v20.19.4)
 - npm
+- Android SDK(v36)
 - Expo CLI (optional, but recommended)
 - Expo Go app on your mobile device for testing
 
 ### Installation
-
+q
 1. Clone the repository:
    ```bash
    git clone <repository-url>
