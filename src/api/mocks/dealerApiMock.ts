@@ -1,4 +1,4 @@
-import { Dealer } from './types';
+import { Dealer } from '../types';
 
 // Mocked getAllDealers function for development
 export async function getAllDealers(token: string): Promise<Dealer[]> {

@@ -1,4 +1,4 @@
-import { DeviceType } from './types';
+import { DeviceType } from '../types';
 
 // Mocked getAllDeviceTypes function for development
 export async function getAllDeviceTypes(token: string): Promise<DeviceType[]> {

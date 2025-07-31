@@ -34,8 +34,8 @@ const RegisterDeviceScreen: React.FC<RegisterDeviceScreenProps> = ({ onBack, onR
   useEffect(() => {
     async function fetchDealersAndDeviceTypes() {
       // Import here to avoid circular dependency if any
-      const { getAllDealers } = await import('../api/dealerApiMock');
-      const { getAllDeviceTypes } = await import('../api/deviceTypeApiMock');
+      const { getAllDealers } = await import('../api/mocks/dealerApiMock');
+      const { getAllDeviceTypes } = await import('../api/mocks/deviceTypeApiMock');
       const [dealers, deviceTypes] = await Promise.all([
         getAllDealers(''),
         getAllDeviceTypes(''),

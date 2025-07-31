@@ -1,4 +1,4 @@
-import { LoginRequest, LoginResponse } from './types';
+import { LoginRequest, LoginResponse } from '../types';
 
 // Mocked login function for development
 export async function login(data: LoginRequest): Promise<LoginResponse> {

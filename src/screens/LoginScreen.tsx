@@ -16,7 +16,7 @@ import CrossPlatformAlert from '../utils/CrossPlatformAlert';
 import SnaptrackerLogo from '../icons/SnapTrackerLogo';
 import EyeIcon from '../icons/EyeIcon';
 import * as SecureStore from 'expo-secure-store';
-import { login } from '../api/authApiMock';
+import { login } from '../api/mocks/authApiMock';
 //import { login } from '../api/authApi';
 
 console.log('login:', login);
