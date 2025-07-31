@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   Text,
@@ -18,39 +18,46 @@ interface RegisterDeviceScreenProps {
   onBack: () => void;
   onRegisterSuccess: () => void;
 }
-
-interface DropdownOption {
+type DropdownOption = {
   label: string;
-  value: string;
-}
+  value: number;
+};
 
 const RegisterDeviceScreen: React.FC<RegisterDeviceScreenProps> = ({ onBack, onRegisterSuccess }) => {
-  const [selectedDealer, setSelectedDealer] = useState('');
+  const [selectedDealer, setSelectedDealer] = useState<number | null>(null);
   const [serialNumber, setSerialNumber] = useState('');
-  const [selectedDeviceType, setSelectedDeviceType] = useState('');
-  const [selectedStatus, setSelectedStatus] = useState('Active');
+  const [selectedDeviceType, setSelectedDeviceType] = useState<number | null>(null);
+  const [selectedStatus, setSelectedStatus] = useState<number| null>(1);
+  const [dealerOptions, setDealerOptions] = useState<DropdownOption[]>([]);
+  const [deviceTypeOptions, setDeviceTypeOptions] = useState<DropdownOption[]>([]);
 
-  const dealerOptions: DropdownOption[] = [
-    { label: 'TechSolutions Inc.', value: 'tech-solutions' },
-    { label: 'Global Trackers LLC', value: 'global-trackers' },
-    { label: 'SmartTrack Solutions', value: 'smarttrack' },
-    { label: 'EcoTrack Systems', value: 'ecotrack' },
-    { label: 'SafeGuard Monitoring', value: 'safeguard' },
-  ];
+  useEffect(() => {
+    async function fetchDealersAndDeviceTypes() {
+      // Import here to avoid circular dependency if any
+      const { getAllDealers } = await import('../api/dealerApiMock');
+      const { getAllDeviceTypes } = await import('../api/deviceTypeApiMock');
+      const [dealers, deviceTypes] = await Promise.all([
+        getAllDealers(''),
+        getAllDeviceTypes(''),
+      ]);
+      setDealerOptions(
+        dealers.map((dealer) => ({ label: dealer.name, value: dealer.id }))
+      );
+      setDeviceTypeOptions(
+        deviceTypes.map((type) => ({ label: type.name, value: type.id }))
+      );
+    }
+    fetchDealersAndDeviceTypes();
+  }, []);
 
-  const deviceTypeOptions: DropdownOption[] = [
-    { label: 'GPS Tracker', value: 'gps-tracker' },
-    { label: 'Fleet Monitor', value: 'fleet-monitor' },
-    { label: 'Asset Tracker', value: 'asset-tracker' },
-    { label: 'Vehicle Tracker', value: 'vehicle-tracker' },
-  ];
+  // deviceTypeOptions now comes from state and is set by useEffect
 
   const statusOptions: DropdownOption[] = [
-    { label: 'Active', value: 'active' },
-    { label: 'Inactive', value: 'inactive' },
+    { label: 'Active', value: 1 },
+    { label: 'Inactive', value: 0 },
   ];
 
-  const isFormValid = selectedDealer && serialNumber.trim().length > 0 && selectedDeviceType;
+  const isFormValid = selectedDealer !== null && serialNumber.trim().length > 0 && selectedDeviceType !== null && selectedStatus !== null;
 
   const formatSerialNumber = (text: string) => {
     // Remove any non-alphanumeric characters and convert to uppercase

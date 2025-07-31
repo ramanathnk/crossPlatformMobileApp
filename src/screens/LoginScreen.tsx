@@ -16,9 +16,8 @@ import CrossPlatformAlert from '../utils/CrossPlatformAlert';
 import SnaptrackerLogo from '../icons/SnapTrackerLogo';
 import EyeIcon from '../icons/EyeIcon';
 import * as SecureStore from 'expo-secure-store';
-import { login } from '../api/userApi';
-//import * as userApi from '../api/userApi';
-//console.log('userApi:', userApi);
+import { login } from '../api/authApiMock';
+//import { login } from '../api/authApi';
 
 console.log('login:', login);
 
@@ -54,8 +53,8 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSignInSuccess, onForgotPass
     setLoading(true);
     setError(null);
     try {
-      const { token } = await login({ username, password });
-      await SecureStore.setItemAsync('authToken', token);
+      const response = await login({ username, password });
+      await SecureStore.setItemAsync('authToken', response.accessToken);
       onSignInSuccess();
     } catch (err) {
       setError((err as Error).message);

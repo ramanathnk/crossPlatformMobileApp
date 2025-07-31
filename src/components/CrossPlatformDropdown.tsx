@@ -9,13 +9,13 @@ import {
 
 interface DropdownOption {
   label: string;
-  value: string;
+  value: number | null;
 }
 
 interface CrossPlatformDropdownProps {
   options: DropdownOption[];
-  selectedValue: string;
-  onSelect: (value: string) => void;
+  selectedValue: number| null;
+  onSelect: (value: number | null) => void;
   placeholder: string;
   style?: any;
 }
@@ -36,8 +36,8 @@ const CrossPlatformDropdown: React.FC<CrossPlatformDropdownProps> = ({
     return (
       <View style={[styles.container, style]}>
         <select
-          value={selectedValue}
-          onChange={(e) => onSelect(e.target.value)}
+          value={selectedValue ?? ""}
+          onChange={(e) => onSelect(Number(e.target.value))}
           style={{
             width: '100%',
             height: 50,
@@ -62,7 +62,7 @@ const CrossPlatformDropdown: React.FC<CrossPlatformDropdownProps> = ({
           {options.map((option) => (
             <option 
               key={option.value} 
-              value={option.value}
+              value={option.label}
               style={{ 
                 backgroundColor: '#374151',
                 color: '#FFFFFF'
