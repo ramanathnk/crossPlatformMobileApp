@@ -2,7 +2,7 @@ const BAD_REQUEST_ERROR = 'Bad Request: Invalid format or missing fields.';
 const UNAUTHORIZED_ERROR = 'Unauthorized: Invalid username or password.';
 const INTERNAL_SERVER_ERROR = 'Internal Server Error: An unexpected error occurred.';
 const NONSTANDARD_ERROR = 'An unexpected error occurred. Please try again later.';
-export const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'https://your-api.com';
+export const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'https://www46.kisp.com/SnapTrackerMobileSecurity';
 
 export async function apiRequest<T>(
   url: string,

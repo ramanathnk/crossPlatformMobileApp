@@ -13,7 +13,7 @@ A modern React Native application built with Expo and TypeScript.
 - Expo Go app on your mobile device for testing
 
 ### Installation
-q
+
 1. Clone the repository:
    ```bash
    git clone <repository-url>
