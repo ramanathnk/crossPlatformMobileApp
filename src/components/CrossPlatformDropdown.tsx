@@ -1,11 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   StyleSheet,
   Text,
   View,
   TouchableOpacity,
   Platform,
+  Dimensions,
+  UIManager,
+  findNodeHandle,
+  ScrollView,
 } from 'react-native';
+import { Portal } from 'react-native-paper';
 
 interface DropdownOption {
   label: string;
@@ -28,6 +33,8 @@ const CrossPlatformDropdown: React.FC<CrossPlatformDropdownProps> = ({
   style,
 }) => {
   const [isVisible, setIsVisible] = useState(false);
+  const [dropdownLayout, setDropdownLayout] = useState<{x: number, y: number, width: number, height: number} | null>(null);
+  const buttonRef = useRef<View>(null);
 
   const selectedOption = options.find(opt => opt.value === selectedValue);
 
@@ -77,38 +84,84 @@ const CrossPlatformDropdown: React.FC<CrossPlatformDropdownProps> = ({
   }
 
   // Use custom dropdown for mobile
+  const handleDropdownPress = () => {
+    if (!isVisible && buttonRef.current) {
+      // Measure button position for absolute menu
+      UIManager.measure(
+        findNodeHandle(buttonRef.current)!,
+        (x, y, width, height, pageX, pageY) => {
+          setDropdownLayout({ x: pageX, y: pageY, width, height });
+          setIsVisible(true);
+        }
+      );
+    } else {
+      setIsVisible(false);
+    }
+  };
+
+  const windowHeight = Dimensions.get('window').height;
+  const dropdownMaxHeight = windowHeight * 0.7;
+
   return (
     <View style={[styles.container, style]}>
-      <TouchableOpacity 
-        style={styles.dropdownButton} 
-        onPress={() => setIsVisible(!isVisible)}
+      <TouchableOpacity
+        ref={buttonRef}
+        style={styles.dropdownButton}
+        onPress={handleDropdownPress}
+        activeOpacity={0.8}
       >
         <Text style={[styles.dropdownText, !selectedValue && styles.placeholderText]}>
           {selectedOption ? selectedOption.label : placeholder}
         </Text>
         <Text style={styles.dropdownArrow}>▼</Text>
       </TouchableOpacity>
-      
-      {isVisible && (
-        <View style={styles.dropdownList}>
-          {options.map((option) => (
+
+      {isVisible && dropdownLayout && (
+        <Portal>
+          <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
+            {/* Overlay to darken background and close dropdown on press */}
             <TouchableOpacity
-              key={option.value}
-              style={styles.dropdownItem}
-              onPress={() => {
-                onSelect(option.value);
-                setIsVisible(false);
-              }}
+              style={styles.dropdownOverlay}
+              activeOpacity={1}
+              onPress={() => setIsVisible(false)}
+            />
+            {/* Dropdown menu */}
+            <View
+              style={[
+                styles.dropdownList,
+                {
+                  position: 'absolute',
+                  top: dropdownLayout.y + dropdownLayout.height,
+                  left: dropdownLayout.x,
+                  width: dropdownLayout.width,
+                  maxHeight: Math.min(dropdownMaxHeight, windowHeight - dropdownLayout.y - dropdownLayout.height - 16),
+                  zIndex: 9999,
+                  elevation: 10,
+                },
+              ]}
             >
-              <View style={styles.checkboxContainer}>
-                <View style={[styles.checkbox, selectedValue === option.value && styles.checkboxSelected]}>
-                  {selectedValue === option.value && <Text style={styles.checkmark}>●</Text>}
-                </View>
-                <Text style={styles.dropdownItemText}>{option.label}</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
-        </View>
+              <ScrollView>
+                {options.map((option) => (
+                  <TouchableOpacity
+                    key={option.value}
+                    style={styles.dropdownItem}
+                    onPress={() => {
+                      onSelect(option.value);
+                      setIsVisible(false);
+                    }}
+                  >
+                    <View style={styles.checkboxContainer}>
+                      <View style={[styles.checkbox, selectedValue === option.value && styles.checkboxSelected]}>
+                        {selectedValue === option.value && <Text style={styles.checkmark}>●</Text>}
+                      </View>
+                      <Text style={styles.dropdownItemText}>{option.label}</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          </View>
+        </Portal>
       )}
     </View>
   );
@@ -142,18 +195,19 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#9CA3AF',
   },
+  dropdownOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(31,41,55,0.8)', // dark overlay
+    zIndex: 9998,
+  },
   dropdownList: {
-    position: 'absolute',
-    top: '100%',
-    left: 0,
-    right: 0,
     backgroundColor: '#374151',
     borderRadius: 8,
     borderWidth: 1,
     borderColor: '#4B5563',
     marginTop: 4,
     maxHeight: 200,
-    zIndex: 1000,
+    zIndex: 9999,
     elevation: 5, // For Android shadow
   },
   dropdownItem: {
