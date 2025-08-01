@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import {
   StyleSheet,
@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   SafeAreaView,
   ScrollView,
+  // findNodeHandle, // removed as not used
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
@@ -37,6 +38,7 @@ type DropdownOption = {
 
 const RegisterDeviceScreen: React.FC = () => {
   const navigation = useNavigation<RegisterDeviceScreenNavigationProp>();
+  const scrollViewRef = useRef<ScrollView>(null);
   const [selectedDealer, setSelectedDealer] = useState<number | null>(null);
   const [serialNumber, setSerialNumber] = useState('');
   const [selectedDeviceType, setSelectedDeviceType] = useState<number | null>(null);
@@ -168,6 +170,8 @@ const RegisterDeviceScreen: React.FC = () => {
     return now.toLocaleDateString('en-US', options);
   };
 
+
+
   return (
     <PaperProvider>
       <SafeAreaView style={styles.container}>
@@ -177,6 +181,7 @@ const RegisterDeviceScreen: React.FC = () => {
           behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         >
           <ScrollView
+            ref={scrollViewRef}
             contentContainerStyle={styles.scrollContainer}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"

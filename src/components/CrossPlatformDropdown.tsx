@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { Keyboard } from 'react-native';
 import {
   StyleSheet,
   Text,
@@ -23,6 +24,7 @@ interface CrossPlatformDropdownProps {
   onSelect: (value: number | null) => void;
   placeholder: string;
   style?: any;
+  onOpen?: () => void;
 }
 
 const CrossPlatformDropdown: React.FC<CrossPlatformDropdownProps> = ({
@@ -31,6 +33,7 @@ const CrossPlatformDropdown: React.FC<CrossPlatformDropdownProps> = ({
   onSelect,
   placeholder,
   style,
+  onOpen,
 }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [dropdownLayout, setDropdownLayout] = useState<{x: number, y: number, width: number, height: number} | null>(null);
@@ -85,6 +88,10 @@ const CrossPlatformDropdown: React.FC<CrossPlatformDropdownProps> = ({
 
   // Use custom dropdown for mobile
   const handleDropdownPress = () => {
+    Keyboard.dismiss();
+    if (typeof onOpen === 'function') {
+      onOpen();
+    }
     if (!isVisible && buttonRef.current) {
       // Measure button position for absolute menu
       UIManager.measure(
