@@ -6,7 +6,7 @@ A modern React Native application built with Expo and TypeScript.
 
 ### Prerequisites
 
-- Node.js (v20.19.4)
+- Node.js (v20)
 - npm
 - Android SDK(v36)
 - Expo CLI (optional, but recommended)

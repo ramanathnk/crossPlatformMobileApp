@@ -5,10 +5,9 @@ export async function getAllDeviceTypes(token: string): Promise<DeviceType[]> {
   return new Promise<DeviceType[]>((resolve) => {
     setTimeout(() => {
       resolve([
-        { id: 1, name: 'GPS Tracker' },
-        { id: 2, name: 'Fleet Monitor' },
-        { id: 3, name: 'Asset Tracker' },
-        { id: 4, name: 'Vehicle Tracker' },
+        { deviceTypeId: 2, modelNumber: 'Fleet Monitor' },
+        { deviceTypeId: 3, modelNumber: 'Asset Tracker' },
+        { deviceTypeId: 4, modelNumber: 'Vehicle Tracker' },
       ]);
     }, 500); // Simulate network delay
   });

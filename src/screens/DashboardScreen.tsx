@@ -10,12 +10,12 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import SnaptrackerLogo from '../icons/SnapTrackerLogo'; 
 
-interface DashboardScreenProps {
-  onLogout: () => void;
-  onNavigateToRegister?: () => void;
-}
+import { useNavigation } from '@react-navigation/native';
+import type { StackNavigationProp } from '@react-navigation/stack';
+import type { RootStackParamList } from '../../App';
 
-const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, onNavigateToRegister }) => {
+const DashboardScreen: React.FC = () => {
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList, 'Dashboard'>>();
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
@@ -39,7 +39,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, onNavigateT
           </View>
           <TouchableOpacity 
             style={styles.logoutButton}
-            onPress={onLogout}
+            onPress={() => navigation.replace('Login')}
           >
             <Text style={styles.logoutText}>AT</Text>
           </TouchableOpacity>
@@ -76,7 +76,7 @@ const DashboardScreen: React.FC<DashboardScreenProps> = ({ onLogout, onNavigateT
               <Text style={styles.moduleSubtitle}>Review & approve</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.moduleCard} onPress={onNavigateToRegister}>
+            <TouchableOpacity style={styles.moduleCard} onPress={() => navigation.navigate('RegisterDevice')}>
               <View style={styles.moduleIconContainer}>
                 <Text style={styles.moduleIcon}>➕</Text>
               </View>

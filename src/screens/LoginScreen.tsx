@@ -1,4 +1,13 @@
 import React, { useState } from 'react';
+import { useNavigation } from '@react-navigation/native';
+import type { StackNavigationProp } from '@react-navigation/stack';
+// Define the navigation param list for the stack
+type RootStackParamList = {
+  Dashboard: undefined;
+  Forgot: undefined;
+};
+
+type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Dashboard'>;
 import {
   StyleSheet,
   Text,
@@ -16,17 +25,17 @@ import CrossPlatformAlert from '../utils/CrossPlatformAlert';
 import SnaptrackerLogo from '../icons/SnapTrackerLogo';
 import EyeIcon from '../icons/EyeIcon';
 import * as SecureStore from 'expo-secure-store';
-import { login } from '../api/mocks/authApiMock';
-//import { login } from '../api/authApi';
+// Uses this mock to test the page without hitting the API
+// Switch between the mock and the actual API as needed
+//import { login } from '../api/mocks/authApiMock'; 
+import { login } from '../api/authApi';
 
-console.log('login:', login);
+//console.log('login:', login);
 
-interface LoginScreenProps {
-  onSignInSuccess: () => void;
-  onForgotPassword: () => void;
-}
 
-const LoginScreen: React.FC<LoginScreenProps> = ({ onSignInSuccess, onForgotPassword }) => {
+
+const LoginScreen: React.FC = () => {
+  const navigation = useNavigation<LoginScreenNavigationProp>();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -54,9 +63,11 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSignInSuccess, onForgotPass
     setError(null);
     try {
       const response = await login({ username, password });
-      await SecureStore.setItemAsync('authToken', response.accessToken);
-      onSignInSuccess();
+      await SecureStore.setItemAsync('accessToken', response.accessToken);
+      //console.log('Login successful:', response);
+      navigation.navigate('Dashboard');
     } catch (err) {
+      //console.log('Login failed:', err);
       setError((err as Error).message);
     } finally {
       setLoading(false);
@@ -64,7 +75,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ onSignInSuccess, onForgotPass
   };
 
   const handleForgotPassword = () => {
-    onForgotPassword();
+    navigation.navigate('Forgot');
   };
 
   return (

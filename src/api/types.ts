@@ -53,11 +53,16 @@ export interface LogoutResponse {
 }
 
 export interface Dealer {
-  id: number;
+  dealerId: number;
   name: string;
+  mobileWebAPIUrl: string;
+  application: string;
+  totalDevices: number;
+  activeDevices: number;
+  pendingRegistrations: number;
 }
 
 export interface DeviceType {
-  id: number;
-  name: string;
+  deviceTypeId: number;
+  modelNumber: string;
 }

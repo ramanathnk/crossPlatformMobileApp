@@ -12,35 +12,53 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import SnaptrackerLogo from '../icons/SnapTrackerLogo';
+import { forgotPassword } from '../api/authApi';
+import { useNavigation } from '@react-navigation/native';
+import type { StackNavigationProp } from '@react-navigation/stack';
 
+type RootStackParamList = {
+  Login: undefined;
+  Reset: undefined;
+};
+type ForgotPasswordScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Reset'>;
 
-interface ForgotPasswordScreenProps {
-  onBackToLogin: () => void;
-  onNavigateToReset: () => void;
-}
-
-const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ onBackToLogin, onNavigateToReset }) => {
+const ForgotPasswordScreen: React.FC = () => {
+  const navigation = useNavigation<ForgotPasswordScreenNavigationProp>();
   const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
 
-  const handleSendResetLink = () => {
-    // Handle send reset link logic here
-    console.log('Send reset link pressed');
-    // Navigate to reset password screen
-    onNavigateToReset();
+  const handleSendResetLink = async () => {
+    setError(null);
+    setMessage(null);
+    if (!email.trim()) {
+      setError('Please enter your email address.');
+      return;
+    }
+    setLoading(true);
+    try {
+      const response = await forgotPassword({ email });
+      setMessage(response.message || 'Reset link sent! Check your email.');
+    } catch (err) {
+      setError((err as Error).message || 'Failed to send reset link.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleBackToLogin = () => {
-    onBackToLogin();
+    navigation.navigate('Login');
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         style={styles.keyboardAvoidingView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <ScrollView 
+        <ScrollView
           contentContainerStyle={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
@@ -70,15 +88,23 @@ const ForgotPasswordScreen: React.FC<ForgotPasswordScreenProps> = ({ onBackToLog
                 placeholderTextColor="#6B7280"
                 value={email}
                 onChangeText={setEmail}
-                autoCapitalize="none"
                 autoCorrect={false}
                 keyboardType="email-address"
+                autoCapitalize="none"
               />
             </View>
 
+            {/* Error or Backend Message */}
+            {error && <Text style={{ color: '#FF3B30', fontWeight: 'bold', marginBottom: 12 }}>{error}</Text>}
+            {message && <Text style={{ color: '#10B981', fontWeight: 'bold', marginBottom: 12 }}>{message}</Text>}
+
             {/* Send Reset Link Button */}
-            <TouchableOpacity style={styles.resetButton} onPress={handleSendResetLink}>
-              <Text style={styles.resetButtonText}>Send Reset Link</Text>
+            <TouchableOpacity
+              style={[styles.resetButton, loading && { opacity: 0.6 }]}
+              onPress={handleSendResetLink}
+              disabled={loading}
+            >
+              <Text style={styles.resetButtonText}>{loading ? 'Sending...' : 'Send Reset Link'}</Text>
             </TouchableOpacity>
 
             {/* Back to Login Link */}
@@ -113,19 +139,6 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     alignItems: 'center',
-  },
-  logo: {
-    width: 60,
-    height: 60,
-    backgroundColor: '#3B82F6',
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  logoText: {
-    fontSize: 28,
-    color: '#FFFFFF',
   },
   appName: {
     fontSize: 24,

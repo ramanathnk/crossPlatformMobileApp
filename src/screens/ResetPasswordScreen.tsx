@@ -1,4 +1,14 @@
 import React, { useState } from 'react';
+import { resetPassword } from '../api/authApi';
+import { useRoute, useNavigation } from '@react-navigation/native';
+import type { StackNavigationProp } from '@react-navigation/stack';
+
+type RootStackParamList = {
+  Login: undefined;
+  ResetPassword: { token: string; email: string };
+  // Add other screens as needed
+};
+type ResetPasswordScreenNavigationProp = StackNavigationProp<RootStackParamList, 'ResetPassword'>;
 import {
   StyleSheet,
   Text,
@@ -15,17 +25,22 @@ import CrossPlatformAlert from '../utils/CrossPlatformAlert';
 import SnaptrackerLogo from '../icons/SnapTrackerLogo';
 import EyeIcon from '../icons/EyeIcon';
 
-
-interface ResetPasswordScreenProps {
-  onBackToLogin: () => void;
-  onResetSuccess: () => void;
-}
-
-const ResetPasswordScreen: React.FC<ResetPasswordScreenProps> = ({ onBackToLogin, onResetSuccess }) => {
+const ResetPasswordScreen: React.FC = () => {
+  const navigation = useNavigation<ResetPasswordScreenNavigationProp>();
+  const route = useRoute<{
+    key: string;
+    name: string;
+    params: { token: string; email: string };
+  }>();
+  const token = route.params?.token;
+  const email = route.params?.email;
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
 
   // Reset password validation
   const isResetFormValid = newPassword.trim().length > 0 && 
@@ -33,7 +48,9 @@ const ResetPasswordScreen: React.FC<ResetPasswordScreenProps> = ({ onBackToLogin
                           newPassword === confirmPassword &&
                           newPassword.length >= 8;
 
-  const handleResetPassword = () => {
+  const handleResetPassword = async () => {
+    setError(null);
+    setMessage(null);
     if (!isResetFormValid) {
       let errorMessage = '';
       if (newPassword.trim().length === 0 || confirmPassword.trim().length === 0) {
@@ -43,7 +60,6 @@ const ResetPasswordScreen: React.FC<ResetPasswordScreenProps> = ({ onBackToLogin
       } else if (newPassword !== confirmPassword) {
         errorMessage = 'Passwords do not match.';
       }
-      
       CrossPlatformAlert.alert(
         'Validation Error',
         errorMessage,
@@ -51,18 +67,23 @@ const ResetPasswordScreen: React.FC<ResetPasswordScreenProps> = ({ onBackToLogin
       );
       return;
     }
-
-    CrossPlatformAlert.alert(
-      'Password Reset',
-      'Your password has been reset successfully!',
-      [
-        { 
-          text: 'OK', 
-          style: 'default',
-          onPress: onResetSuccess
-        }
-      ]
-    );
+    setLoading(true);
+    try {
+      if (!token || !email) {
+        setError('Invalid or missing reset token/email.');
+        setLoading(false);
+        return;
+      }
+      const response = await resetPassword({ email, token, newPassword });
+      setMessage(response.message || 'Your password has been reset successfully!');
+      setTimeout(() => {
+        navigation.replace('Login');
+      }, 1200);
+    } catch (err) {
+      setError((err as Error).message || 'Failed to reset password.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -140,25 +161,30 @@ const ResetPasswordScreen: React.FC<ResetPasswordScreenProps> = ({ onBackToLogin
               </View>
             </View>
 
+
+            {/* Error or Success Message */}
+            {error && <Text style={{ color: '#FF3B30', fontWeight: 'bold', marginBottom: 12 }}>{error}</Text>}
+            {message && <Text style={{ color: '#10B981', fontWeight: 'bold', marginBottom: 12 }}>{message}</Text>}
+
             {/* Reset Password Button */}
             <TouchableOpacity 
               style={[
                 styles.resetButton, 
-                !isResetFormValid && styles.resetButtonDisabled
+                (!isResetFormValid || loading) && styles.resetButtonDisabled
               ]} 
               onPress={handleResetPassword}
-              disabled={!isResetFormValid}
+              disabled={!isResetFormValid || loading}
             >
               <Text style={[
                 styles.resetButtonText,
-                !isResetFormValid && styles.resetButtonTextDisabled
+                (!isResetFormValid || loading) && styles.resetButtonTextDisabled
               ]}>
-                Reset Password
+                {loading ? 'Resetting...' : 'Reset Password'}
               </Text>
             </TouchableOpacity>
 
             {/* Back to Login Link */}
-            <TouchableOpacity onPress={onBackToLogin}>
+            <TouchableOpacity onPress={() => navigation.navigate('Login')}>
               <Text style={styles.backToLoginText}>Back to Login</Text>
             </TouchableOpacity>
           </View>

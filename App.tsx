@@ -1,72 +1,55 @@
 import { StatusBar } from 'expo-status-bar';
-import { useState } from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createStackNavigator } from '@react-navigation/stack';
 import LoginScreen from './src/screens/LoginScreen';
 import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen';
 import ResetPasswordScreen from './src/screens/ResetPasswordScreen';
 import DashboardScreen from './src/screens/DashboardScreen';
 import RegisterDeviceScreen from './src/screens/RegisterDeviceScreen';
 
-export type ScreenType = 'login' | 'forgot' | 'reset' | 'dashboard' | 'register-device';
+
+
+export type RootStackParamList = {
+  Login: undefined;
+  Forgot: undefined;
+  Reset: { token?: string; email?: string } | undefined;
+  Dashboard: undefined;
+  RegisterDevice: undefined;
+};
+
+
+const Stack = createStackNavigator<RootStackParamList>();
+
+const linking = {
+  prefixes: ['IMDRA://'],
+  config: {
+    screens: {
+      Login: 'login',
+      Forgot: 'forgot',
+      Reset: {
+        path: 'reset-password',
+        parse: {
+          token: (token: string) => token,
+          email: (email: string) => email,
+        },
+      },
+      Dashboard: 'dashboard',
+      RegisterDevice: 'register-device',
+    },
+  },
+};
 
 export default function App() {
-  const [currentScreen, setCurrentScreen] = useState<ScreenType>('login');
-
-  const renderCurrentScreen = () => {
-    switch (currentScreen) {
-      case 'login':
-        return (
-          <LoginScreen 
-            onSignInSuccess={() => setCurrentScreen('dashboard')}
-            onForgotPassword={() => setCurrentScreen('forgot')}
-          />
-        );
-      
-      case 'forgot':
-        return (
-          <ForgotPasswordScreen 
-            onBackToLogin={() => setCurrentScreen('login')}
-            onNavigateToReset={() => setCurrentScreen('reset')}
-          />
-        );
-      
-      case 'reset':
-        return (
-          <ResetPasswordScreen 
-            onBackToLogin={() => setCurrentScreen('login')}
-            onResetSuccess={() => setCurrentScreen('login')}
-          />
-        );
-      
-      case 'dashboard':
-        return (
-          <DashboardScreen 
-            onLogout={() => setCurrentScreen('login')}
-            onNavigateToRegister={() => setCurrentScreen('register-device')}
-          />
-        );
-      
-      case 'register-device':
-        return (
-          <RegisterDeviceScreen 
-            onBack={() => setCurrentScreen('dashboard')}
-            onRegisterSuccess={() => setCurrentScreen('dashboard')}
-          />
-        );
-      
-      default:
-        return (
-          <LoginScreen 
-            onSignInSuccess={() => setCurrentScreen('dashboard')}
-            onForgotPassword={() => setCurrentScreen('forgot')}
-          />
-        );
-    }
-  };
-
   return (
-    <>
+    <NavigationContainer linking={linking}>
       <StatusBar style="light" />
-      {renderCurrentScreen()}
-    </>
+      <Stack.Navigator initialRouteName="Login" screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="Login" component={LoginScreen} />
+        <Stack.Screen name="Forgot" component={ForgotPasswordScreen} />
+        <Stack.Screen name="Reset" component={ResetPasswordScreen} />
+        <Stack.Screen name="Dashboard" component={DashboardScreen} />
+        <Stack.Screen name="RegisterDevice" component={RegisterDeviceScreen} />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 }
