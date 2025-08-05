@@ -4,12 +4,12 @@
     "slug": "IMDRA",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/SnapTracker_icon_1024_circular_white_bg.png",
+    "icon": "./assets/Expo_Go_1024_1024_V2.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "scheme": "IMDRA",
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/Expo_Go_1024_1024_V2.png",
       "resizeMode": "contain",
       "backgroundColor": "#ffffff"
     },
@@ -18,7 +18,7 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/SnapTracker_icon_1024_circular_white_bg.png",
+        "foregroundImage": "./assets/Expo_Go_1024_1024_V2.png",
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,

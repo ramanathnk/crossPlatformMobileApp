@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+// Use a constant for dropdown vertical padding
+const DROPDOWN_VERTICAL_PADDING = 16;
 import * as SecureStore from 'expo-secure-store';
 import {
   StyleSheet,
@@ -8,7 +10,6 @@ import {
   TouchableOpacity,
   SafeAreaView,
   ScrollView,
-  // findNodeHandle, // removed as not used
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
@@ -19,9 +20,11 @@ import { Provider as PaperProvider } from 'react-native-paper';
 import CrossPlatformDropdown from '../components/CrossPlatformDropdown';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
+import { Dimensions } from 'react-native';
 // For real API calls
 import { getAllDealers } from '../api/dealerApi';
 import { getAllDeviceTypes } from '../api/deviceTypeApi';
+
 // For testing with mock data, uncomment the lines below:
 //import { getAllDealers as getAllDealersMock } from '../api/mocks/dealerApiMock';
 //import { getAllDeviceTypes as getAllDeviceTypesMock } from '../api/mocks/deviceTypeApiMock';
@@ -72,11 +75,15 @@ const RegisterDeviceScreen: React.FC = () => {
   const [scrollY, setScrollY] = useState(0);
 
   // Helper to check if a dropdown is visible in the ScrollView viewport
-  const isDropdownVisible = (dropdownY: number | null) => {
+  const isDropdownVisible = (dropdownY: number | null, dropdownHeight = 200) => {
     if (dropdownY == null || !scrollViewRef.current) return false;
     // Assume viewport height is window height minus padding
     const viewportHeight = Platform.OS === 'web' ? window.innerHeight : 700; // fallback
-    return dropdownY >= scrollY && dropdownY < scrollY + viewportHeight - 60; // 60 for bottom padding
+    // Button is visible if its top is below the top of the viewport and enough space below for dropdown
+    const buttonTop = dropdownY;
+    const buttonBottom = dropdownY + 50; // button height
+    const spaceBelow = scrollY + viewportHeight - buttonBottom;
+    return buttonTop >= scrollY && spaceBelow >= dropdownHeight;
   };
 
   // Scroll-into-view using y position from onLayout (Fabric compatible)
@@ -87,14 +94,82 @@ const RegisterDeviceScreen: React.FC = () => {
     if (dropdown === 'deviceType') { y = deviceTypeDropdownY; setShowDropdown = setShowDeviceTypeDropdown; }
     if (dropdown === 'status') { y = statusDropdownY; setShowDropdown = setShowStatusDropdown; }
     if (y == null || !scrollViewRef.current) return;
-    if (isDropdownVisible(y)) {
-      // Already visible, open immediately
-      setShowDropdown && setShowDropdown(true);
-    } else {
+    //const viewportHeight = Platform.OS === 'web' ? window.innerHeight : 700; // fallback
+    const viewportHeight = Dimensions.get('window').height;
+    const buttonTop = y;
+    const buttonBottom = y + 50; // button height
+    const dropdownHeight = 200; // match dropdownList style
+    const margin = 20;
+    // The ideal top of the button so the dropdown fits below
+    const idealButtonTop = Math.max(0, scrollY, buttonBottom - (viewportHeight - dropdownHeight - margin));
+    console.log("This is the debug log for scrollDropdownIntoView");
+
+    console.log("ButtonTop:", buttonTop, "ButtonBottom:", buttonBottom, "ScrollY:", scrollY, "ViewportHeight:", viewportHeight, "IdealButtonTop:", idealButtonTop);
+    // If the button is above the viewport, scroll up to it
+    if (buttonTop < scrollY) {
       setPendingDropdown(dropdown);
-      scrollViewRef.current.scrollTo({ y: Math.max(0, y - 20), animated: true });
+      scrollViewRef.current.scrollTo({ y: Math.max(0, buttonTop - margin), animated: true });
     }
+    // If not enough space below, and scrolling up would help, scroll up
+    else if ((buttonTop >= scrollY) && (buttonBottom + dropdownHeight + margin > scrollY + viewportHeight)) {
+      // Only scroll up, never down
+      const scrollToY = Math.min(scrollY, Math.max(0, buttonBottom - (viewportHeight - dropdownHeight - margin)));
+      setPendingDropdown(dropdown);
+      scrollViewRef.current.scrollTo({ y: scrollToY, animated: true });
+    }
+    // Otherwise, open immediately
+    else {
+      setShowDropdown && setShowDropdown(true);
+    }
+    //console.log("scrollToY:", scrollToY));
   }, [dealerDropdownY, deviceTypeDropdownY, statusDropdownY, scrollY]);
+
+
+  const statusOptions: DropdownOption[] = [
+    { label: 'Active', value: 1 },
+    { label: 'Inactive', value: 0 },
+  ];
+
+  // Scroll-into-view using y position from onLayout (Fabric compatible)
+  const scrollDropdownIntoView1 = useCallback((dropdown: 'dealer' | 'deviceType' | 'status') => {
+    let y: number | null = null;
+    let setShowDropdown: ((v: boolean) => void) | null = null;
+    let options: DropdownOption[] = [];
+    if (dropdown === 'dealer') { y = dealerDropdownY; setShowDropdown = setShowDealerDropdown; options = dealerOptions; }
+    if (dropdown === 'deviceType') { y = deviceTypeDropdownY; setShowDropdown = setShowDeviceTypeDropdown; options = deviceTypeOptions; }
+    if (dropdown === 'status') { y = statusDropdownY; setShowDropdown = setShowStatusDropdown; options = statusOptions; }
+    if (y == null || !scrollViewRef.current) return;
+    const viewportHeight = Dimensions.get('window').height;
+    const buttonTop = y;
+    const buttonBottom = y + 50; // button height
+    const margin = 20;
+    // Responsive dropdown height: max 70% of screen, but never more than needed for all items
+    const itemHeight = 48; // Estimate or match your dropdown item style
+    const maxDropdownHeight = Math.floor(viewportHeight * 0.7);
+    const requiredHeight = options.length * itemHeight + DROPDOWN_VERTICAL_PADDING;
+    const dropdownHeight = Math.min(maxDropdownHeight, requiredHeight);
+    // If the button is above the viewport, scroll up to it
+    if (buttonTop < scrollY) {
+      setPendingDropdown(dropdown);
+      scrollViewRef.current.scrollTo({ y: Math.max(0, buttonTop - margin), animated: true });
+      return;
+    }
+    // If the button is below the viewport, scroll down to it
+    if (buttonBottom > scrollY + viewportHeight) {
+      setPendingDropdown(dropdown);
+      scrollViewRef.current.scrollTo({ y: Math.max(0, buttonTop - margin), animated: true });
+      return;
+    }
+    // If not enough space below for dropdown, scroll up just enough so dropdown fits
+    if (buttonBottom + dropdownHeight + margin > scrollY + viewportHeight) {
+      const targetY = Math.max(0, buttonBottom - (viewportHeight - dropdownHeight - margin));
+      setPendingDropdown(dropdown);
+      scrollViewRef.current.scrollTo({ y: targetY, animated: true });
+      return;
+    }
+    // Otherwise, open immediately
+    setShowDropdown && setShowDropdown(true);
+  }, [dealerDropdownY, deviceTypeDropdownY, statusDropdownY, scrollY, dealerOptions, deviceTypeOptions, statusOptions]);
 
   useEffect(() => {
     async function fetchDealersAndDeviceTypes() {
@@ -153,10 +228,7 @@ const RegisterDeviceScreen: React.FC = () => {
     fetchDealersAndDeviceTypes();
   }, []);
 
-  const statusOptions: DropdownOption[] = [
-    { label: 'Active', value: 1 },
-    { label: 'Inactive', value: 0 },
-  ];
+
 
   const isFormValid = selectedDealer !== null && serialNumber.trim().length > 0 && selectedDeviceType !== null && selectedStatus !== null;
 
@@ -272,7 +344,7 @@ const RegisterDeviceScreen: React.FC = () => {
                     placeholder="Select dealers"
                     visible={showDealerDropdown}
                     setVisible={setShowDealerDropdown}
-                    onOpen={() => scrollDropdownIntoView('dealer')}
+                    onOpen={() => scrollDropdownIntoView1('dealer')}
                   />
                 )}
               </View>
@@ -308,7 +380,7 @@ const RegisterDeviceScreen: React.FC = () => {
                     placeholder="Select device type"
                     visible={showDeviceTypeDropdown}
                     setVisible={setShowDeviceTypeDropdown}
-                    onOpen={() => scrollDropdownIntoView('deviceType')}
+                    onOpen={() => scrollDropdownIntoView1('deviceType')}
                   />
                 )}
               </View>
@@ -324,7 +396,7 @@ const RegisterDeviceScreen: React.FC = () => {
                   placeholder="Select status"
                   visible={showStatusDropdown}
                   setVisible={setShowStatusDropdown}
-                  onOpen={() => scrollDropdownIntoView('status')}
+                  onOpen={() => scrollDropdownIntoView1('status')}
                 />
               </View>
             </View>

@@ -25,6 +25,19 @@ A modern React Native application built with Expo and TypeScript.
    npm install
    ```
 
+### Setting up the Android SDK for the project 
+
+To tell the project the android sdk location:
+Go to IMDRA->android and edit the file named local.properties 
+Enter the values of the android sdk location there like below:
+
+sdk.dir=C:\\Users\\rkumarappan\\AppData\\Local\\Android\\Sdk
+
+The default location of the android sdk is:
+sdk.dir=C:\\Users\\<your-username>\\AppData\\Local\\Android\\Sdk
+
+
+
 ### Development
 
 To start the development server:
