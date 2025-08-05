@@ -138,7 +138,11 @@ const RegisterDeviceScreen: React.FC = () => {
     if (dropdown === 'dealer') { y = dealerDropdownY; setShowDropdown = setShowDealerDropdown; options = dealerOptions; }
     if (dropdown === 'deviceType') { y = deviceTypeDropdownY; setShowDropdown = setShowDeviceTypeDropdown; options = deviceTypeOptions; }
     if (dropdown === 'status') { y = statusDropdownY; setShowDropdown = setShowStatusDropdown; options = statusOptions; }
-    if (y == null || !scrollViewRef.current) return;
+    console.log(`[scrollDropdownIntoView1] Called for: ${dropdown}, y:`, y);
+    if (y == null || !scrollViewRef.current) {
+      console.log(`[scrollDropdownIntoView1] Aborted for: ${dropdown}, y is null or scrollViewRef not ready.`);
+      return;
+    }
     const viewportHeight = Dimensions.get('window').height;
     const buttonTop = y;
     const buttonBottom = y + 50; // button height
@@ -150,12 +154,14 @@ const RegisterDeviceScreen: React.FC = () => {
     const dropdownHeight = Math.min(maxDropdownHeight, requiredHeight);
     // If the button is above the viewport, scroll up to it
     if (buttonTop < scrollY) {
+      console.log(`[scrollDropdownIntoView1] ${dropdown} above viewport. Scrolling to:`, Math.max(0, buttonTop - margin));
       setPendingDropdown(dropdown);
       scrollViewRef.current.scrollTo({ y: Math.max(0, buttonTop - margin), animated: true });
       return;
     }
     // If the button is below the viewport, scroll down to it
     if (buttonBottom > scrollY + viewportHeight) {
+      console.log(`[scrollDropdownIntoView1] ${dropdown} below viewport. Scrolling to:`, Math.max(0, buttonTop - margin));
       setPendingDropdown(dropdown);
       scrollViewRef.current.scrollTo({ y: Math.max(0, buttonTop - margin), animated: true });
       return;
@@ -163,11 +169,13 @@ const RegisterDeviceScreen: React.FC = () => {
     // If not enough space below for dropdown, scroll up just enough so dropdown fits
     if (buttonBottom + dropdownHeight + margin > scrollY + viewportHeight) {
       const targetY = Math.max(0, buttonBottom - (viewportHeight - dropdownHeight - margin));
+      console.log(`[scrollDropdownIntoView1] Not enough space below for ${dropdown}. Scrolling to:`, targetY);
       setPendingDropdown(dropdown);
       scrollViewRef.current.scrollTo({ y: targetY, animated: true });
       return;
     }
     // Otherwise, open immediately
+    console.log(`[scrollDropdownIntoView1] ${dropdown} is visible, opening immediately.`);
     setShowDropdown && setShowDropdown(true);
   }, [dealerDropdownY, deviceTypeDropdownY, statusDropdownY, scrollY, dealerOptions, deviceTypeOptions, statusOptions]);
 
@@ -385,7 +393,8 @@ const RegisterDeviceScreen: React.FC = () => {
                 )}
               </View>
               {/* Status Dropdown */}
-              <View style={styles.inputContainer}
+              <View
+                style={styles.inputContainer}
                 onLayout={e => setStatusDropdownY(e.nativeEvent.layout.y)}
               >
                 <Text style={styles.inputLabel}>Status *</Text>
