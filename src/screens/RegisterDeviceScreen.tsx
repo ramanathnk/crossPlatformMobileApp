@@ -68,16 +68,33 @@ const RegisterDeviceScreen: React.FC = () => {
 
   // Scroll dropdown into view when opened
 
+  // Track current scroll position
+  const [scrollY, setScrollY] = useState(0);
+
+  // Helper to check if a dropdown is visible in the ScrollView viewport
+  const isDropdownVisible = (dropdownY: number | null) => {
+    if (dropdownY == null || !scrollViewRef.current) return false;
+    // Assume viewport height is window height minus padding
+    const viewportHeight = Platform.OS === 'web' ? window.innerHeight : 700; // fallback
+    return dropdownY >= scrollY && dropdownY < scrollY + viewportHeight - 60; // 60 for bottom padding
+  };
+
   // Scroll-into-view using y position from onLayout (Fabric compatible)
   const scrollDropdownIntoView = useCallback((dropdown: 'dealer' | 'deviceType' | 'status') => {
     let y: number | null = null;
-    if (dropdown === 'dealer') y = dealerDropdownY;
-    if (dropdown === 'deviceType') y = deviceTypeDropdownY;
-    if (dropdown === 'status') y = statusDropdownY;
+    let setShowDropdown: ((v: boolean) => void) | null = null;
+    if (dropdown === 'dealer') { y = dealerDropdownY; setShowDropdown = setShowDealerDropdown; }
+    if (dropdown === 'deviceType') { y = deviceTypeDropdownY; setShowDropdown = setShowDeviceTypeDropdown; }
+    if (dropdown === 'status') { y = statusDropdownY; setShowDropdown = setShowStatusDropdown; }
     if (y == null || !scrollViewRef.current) return;
-    setPendingDropdown(dropdown);
-    scrollViewRef.current.scrollTo({ y: Math.max(0, y - 20), animated: true });
-  }, [dealerDropdownY, deviceTypeDropdownY, statusDropdownY]);
+    if (isDropdownVisible(y)) {
+      // Already visible, open immediately
+      setShowDropdown && setShowDropdown(true);
+    } else {
+      setPendingDropdown(dropdown);
+      scrollViewRef.current.scrollTo({ y: Math.max(0, y - 20), animated: true });
+    }
+  }, [dealerDropdownY, deviceTypeDropdownY, statusDropdownY, scrollY]);
 
   useEffect(() => {
     async function fetchDealersAndDeviceTypes() {
@@ -209,6 +226,8 @@ const RegisterDeviceScreen: React.FC = () => {
             contentContainerStyle={styles.scrollContainer}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
+            onScroll={e => setScrollY(e.nativeEvent.contentOffset.y)}
+            scrollEventThrottle={16}
             onMomentumScrollEnd={() => {
               if (pendingDropdown === 'dealer') {
                 setShowDealerDropdown(true);
