@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import * as SecureStore from 'expo-secure-store';
 import {
   StyleSheet,
@@ -13,6 +13,7 @@ import {
   Platform,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { findNodeHandle, UIManager } from 'react-native';
 import CrossPlatformAlert from '../utils/CrossPlatformAlert';
 import { Provider as PaperProvider } from 'react-native-paper';
 import CrossPlatformDropdown from '../components/CrossPlatformDropdown';
@@ -50,10 +51,33 @@ const RegisterDeviceScreen: React.FC = () => {
   const [dealerError, setDealerError] = useState<string | null>(null);
   const [deviceTypeError, setDeviceTypeError] = useState<string | null>(null);
 
-  // Dropdown visibility state for each dropdown
+
+
+  // Store layout (y position) for dropdowns
+  const [dealerDropdownY, setDealerDropdownY] = useState<number | null>(null);
+  const [deviceTypeDropdownY, setDeviceTypeDropdownY] = useState<number | null>(null);
+  const [statusDropdownY, setStatusDropdownY] = useState<number | null>(null);
+  // Track which dropdown should open after scroll
+  const [pendingDropdown, setPendingDropdown] = useState<'dealer' | 'deviceType' | 'status' | null>(null);
   const [showDealerDropdown, setShowDealerDropdown] = useState(false);
   const [showDeviceTypeDropdown, setShowDeviceTypeDropdown] = useState(false);
+
+
+  // Status dropdown visibility (not scroll-into-view)
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
+
+  // Scroll dropdown into view when opened
+
+  // Scroll-into-view using y position from onLayout (Fabric compatible)
+  const scrollDropdownIntoView = useCallback((dropdown: 'dealer' | 'deviceType' | 'status') => {
+    let y: number | null = null;
+    if (dropdown === 'dealer') y = dealerDropdownY;
+    if (dropdown === 'deviceType') y = deviceTypeDropdownY;
+    if (dropdown === 'status') y = statusDropdownY;
+    if (y == null || !scrollViewRef.current) return;
+    setPendingDropdown(dropdown);
+    scrollViewRef.current.scrollTo({ y: Math.max(0, y - 20), animated: true });
+  }, [dealerDropdownY, deviceTypeDropdownY, statusDropdownY]);
 
   useEffect(() => {
     async function fetchDealersAndDeviceTypes() {
@@ -185,6 +209,18 @@ const RegisterDeviceScreen: React.FC = () => {
             contentContainerStyle={styles.scrollContainer}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
+            onMomentumScrollEnd={() => {
+              if (pendingDropdown === 'dealer') {
+                setShowDealerDropdown(true);
+                setPendingDropdown(null);
+              } else if (pendingDropdown === 'deviceType') {
+                setShowDeviceTypeDropdown(true);
+                setPendingDropdown(null);
+              } else if (pendingDropdown === 'status') {
+                setShowStatusDropdown(true);
+                setPendingDropdown(null);
+              }
+            }}
           >
             {/* Header */}
             <View style={styles.header}>
@@ -201,7 +237,9 @@ const RegisterDeviceScreen: React.FC = () => {
             <View style={styles.sectionContainer}>
               <Text style={styles.sectionTitle}>Device Information</Text>
               {/* Dealer Dropdown */}
-              <View style={styles.inputContainer}>
+              <View style={styles.inputContainer}
+                onLayout={e => setDealerDropdownY(e.nativeEvent.layout.y)}
+              >
                 <Text style={styles.inputLabel}>Dealer *</Text>
                 {loadingDealers ? (
                   <Text style={{ color: '#9CA3AF', marginBottom: 8 }}>Loading dealers...</Text>
@@ -213,6 +251,9 @@ const RegisterDeviceScreen: React.FC = () => {
                     selectedValue={selectedDealer}
                     onSelect={setSelectedDealer}
                     placeholder="Select dealers"
+                    visible={showDealerDropdown}
+                    setVisible={setShowDealerDropdown}
+                    onOpen={() => scrollDropdownIntoView('dealer')}
                   />
                 )}
               </View>
@@ -232,7 +273,9 @@ const RegisterDeviceScreen: React.FC = () => {
                 <Text style={styles.inputHint}>Format: ST-XXXXX (must be unique)</Text>
               </View>
               {/* Device Type Dropdown */}
-              <View style={styles.inputContainer}>
+              <View style={styles.inputContainer}
+                onLayout={e => setDeviceTypeDropdownY(e.nativeEvent.layout.y)}
+              >
                 <Text style={styles.inputLabel}>Device Type *</Text>
                 {loadingDeviceTypes ? (
                   <Text style={{ color: '#9CA3AF', marginBottom: 8 }}>Loading device types...</Text>
@@ -244,17 +287,25 @@ const RegisterDeviceScreen: React.FC = () => {
                     selectedValue={selectedDeviceType}
                     onSelect={setSelectedDeviceType}
                     placeholder="Select device type"
+                    visible={showDeviceTypeDropdown}
+                    setVisible={setShowDeviceTypeDropdown}
+                    onOpen={() => scrollDropdownIntoView('deviceType')}
                   />
                 )}
               </View>
               {/* Status Dropdown */}
-              <View style={styles.inputContainer}>
+              <View style={styles.inputContainer}
+                onLayout={e => setStatusDropdownY(e.nativeEvent.layout.y)}
+              >
                 <Text style={styles.inputLabel}>Status *</Text>
                 <CrossPlatformDropdown
                   options={statusOptions}
                   selectedValue={selectedStatus}
                   onSelect={setSelectedStatus}
                   placeholder="Select status"
+                  visible={showStatusDropdown}
+                  setVisible={setShowStatusDropdown}
+                  onOpen={() => scrollDropdownIntoView('status')}
                 />
               </View>
             </View>

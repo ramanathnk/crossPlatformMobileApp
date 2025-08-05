@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Keyboard } from 'react-native';
 import {
   StyleSheet,
@@ -20,11 +20,13 @@ interface DropdownOption {
 
 interface CrossPlatformDropdownProps {
   options: DropdownOption[];
-  selectedValue: number| null;
+  selectedValue: number | null;
   onSelect: (value: number | null) => void;
   placeholder: string;
   style?: any;
   onOpen?: () => void;
+  visible?: boolean;
+  setVisible?: (v: boolean) => void;
 }
 
 const CrossPlatformDropdown: React.FC<CrossPlatformDropdownProps> = ({
@@ -34,8 +36,9 @@ const CrossPlatformDropdown: React.FC<CrossPlatformDropdownProps> = ({
   placeholder,
   style,
   onOpen,
+  visible,
+  setVisible,
 }) => {
-  const [isVisible, setIsVisible] = useState(false);
   const [dropdownLayout, setDropdownLayout] = useState<{x: number, y: number, width: number, height: number} | null>(null);
   const buttonRef = useRef<View>(null);
 
@@ -92,19 +95,26 @@ const CrossPlatformDropdown: React.FC<CrossPlatformDropdownProps> = ({
     if (typeof onOpen === 'function') {
       onOpen();
     }
-    if (!isVisible && buttonRef.current) {
-      // Measure button position for absolute menu
+    if (!visible) {
+      setVisible && setVisible(true);
+    } else {
+      setVisible && setVisible(false);
+    }
+  };
+
+  // Measure button position after dropdown becomes visible
+  useEffect(() => {
+    if (visible && buttonRef.current) {
       UIManager.measure(
         findNodeHandle(buttonRef.current)!,
         (x, y, width, height, pageX, pageY) => {
           setDropdownLayout({ x: pageX, y: pageY, width, height });
-          setIsVisible(true);
         }
       );
-    } else {
-      setIsVisible(false);
+    } else if (!visible) {
+      setDropdownLayout(null);
     }
-  };
+  }, [visible]);
 
   const windowHeight = Dimensions.get('window').height;
   const dropdownMaxHeight = windowHeight * 0.7;
@@ -123,14 +133,14 @@ const CrossPlatformDropdown: React.FC<CrossPlatformDropdownProps> = ({
         <Text style={styles.dropdownArrow}>▼</Text>
       </TouchableOpacity>
 
-      {isVisible && dropdownLayout && (
+      {visible && dropdownLayout && (
         <Portal>
           <View style={StyleSheet.absoluteFill} pointerEvents="box-none">
             {/* Overlay to darken background and close dropdown on press */}
             <TouchableOpacity
               style={styles.dropdownOverlay}
               activeOpacity={1}
-              onPress={() => setIsVisible(false)}
+              onPress={() => setVisible && setVisible(false)}
             />
             {/* Dropdown menu */}
             <View
@@ -154,7 +164,7 @@ const CrossPlatformDropdown: React.FC<CrossPlatformDropdownProps> = ({
                     style={styles.dropdownItem}
                     onPress={() => {
                       onSelect(option.value);
-                      setIsVisible(false);
+                      setVisible && setVisible(false);
                     }}
                   >
                     <View style={styles.checkboxContainer}>
