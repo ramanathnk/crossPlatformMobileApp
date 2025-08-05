@@ -7,8 +7,6 @@ import {
   TouchableOpacity,
   Platform,
   Dimensions,
-  UIManager,
-  findNodeHandle,
   ScrollView,
 } from 'react-native';
 import { Portal } from 'react-native-paper';
@@ -75,7 +73,7 @@ const CrossPlatformDropdown: React.FC<CrossPlatformDropdownProps> = ({
           {options.map((option) => (
             <option 
               key={option.value} 
-              value={option.label}
+              value={option.value ?? ''}
               style={{ 
                 backgroundColor: '#374151',
                 color: '#FFFFFF'
@@ -90,27 +88,34 @@ const CrossPlatformDropdown: React.FC<CrossPlatformDropdownProps> = ({
   }
 
   // Use custom dropdown for mobile
+  // Only trigger scroll-to-view, do not open dropdown immediately
   const handleDropdownPress = () => {
     Keyboard.dismiss();
     if (typeof onOpen === 'function') {
-      onOpen();
-    }
-    if (!visible) {
-      setVisible && setVisible(true);
-    } else {
-      setVisible && setVisible(false);
+      onOpen(); // parent will scroll and open dropdown after scroll
     }
   };
+
+  // Measure button position after dropdown becomes visible (no setTimeout, layout is stable after scroll event)
+  useEffect(() => {
+    if (visible && buttonRef.current) {
+      buttonRef.current.measure((fx, fy, w, h, px, py) => {
+        setDropdownLayout({ x: px, y: py, width: w, height: h });
+      });
+    } else if (!visible) {
+      setDropdownLayout(null);
+    }
+  }, [visible]);
 
   // Measure button position after dropdown becomes visible
   useEffect(() => {
     if (visible && buttonRef.current) {
-      UIManager.measure(
-        findNodeHandle(buttonRef.current)!,
-        (x, y, width, height, pageX, pageY) => {
-          setDropdownLayout({ x: pageX, y: pageY, width, height });
-        }
-      );
+      // Defer to next frame to ensure layout is settled after scroll
+      setTimeout(() => {
+        buttonRef.current?.measure((fx, fy, w, h, px, py) => {
+          setDropdownLayout({ x: px, y: py, width: w, height: h });
+        });
+      }, 0);
     } else if (!visible) {
       setDropdownLayout(null);
     }
