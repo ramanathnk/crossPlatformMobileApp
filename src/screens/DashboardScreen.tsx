@@ -8,7 +8,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import SnaptrackerLogo from '../icons/SnapTrackerLogo'; 
+import SnaptrackerLogo from '../icons/SnapTrackerLogoNew'; 
 
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';

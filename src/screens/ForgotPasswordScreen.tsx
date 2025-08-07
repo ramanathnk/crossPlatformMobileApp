@@ -11,7 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import SnaptrackerLogo from '../icons/SnapTrackerLogo';
+import SnaptrackerLogo from '../icons/SnapTrackerLogoNew';
 import { forgotPassword } from '../api/authApi';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
