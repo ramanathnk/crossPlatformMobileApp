@@ -67,7 +67,7 @@ const LoginScreen: React.FC = () => {
       //console.log('Login successful:', response);
       navigation.navigate('Dashboard');
     } catch (err) {
-      //console.log('Login failed:', err);
+      console.log('Login failed:', err);
       setError((err as Error).message);
     } finally {
       setLoading(false);

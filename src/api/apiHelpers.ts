@@ -25,13 +25,22 @@ export async function apiRequest<T>(
   if (!response.ok) {
     let errorMsg = fallbackError;
     let errorCode = response.status;
+    let errorData: any = {};
     try {
-      const errorData = await response.json();
+      errorData = await response.json();
       errorMsg = getApiErrorMessageByCode(errorCode, errorData, errorMsg);
+      console.log("errorData:", errorData);
     } catch {
       errorMsg = NONSTANDARD_ERROR;
     }
-    throw new Error(errorMsg);
+    // Throw a structured error object with all fields if available
+    throw {
+      code: errorCode,
+      error: errorData.error || undefined,
+      description: errorData.description || errorMsg,
+      timestamp: errorData.timestamp || undefined,
+      message: errorMsg,
+    };
   }
   return response.json();
 }

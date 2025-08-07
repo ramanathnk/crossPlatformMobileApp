@@ -39,7 +39,7 @@ const DashboardScreen: React.FC = () => {
           </View>
           <TouchableOpacity 
             style={styles.logoutButton}
-            onPress={() => navigation.replace('Login')}
+            activeOpacity={1}
           >
             <Text style={styles.logoutText}>AT</Text>
           </TouchableOpacity>

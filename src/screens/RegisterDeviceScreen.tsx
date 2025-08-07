@@ -14,7 +14,6 @@ import {
   Platform,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import { findNodeHandle, UIManager } from 'react-native';
 import CrossPlatformAlert from '../utils/CrossPlatformAlert';
 import { Provider as PaperProvider } from 'react-native-paper';
 import CrossPlatformDropdown from '../components/CrossPlatformDropdown';
@@ -24,6 +23,8 @@ import { Dimensions } from 'react-native';
 // For real API calls
 import { getAllDealers } from '../api/dealerApi';
 import { getAllDeviceTypes } from '../api/deviceTypeApi';
+import type { DropdownOption, CrossPlatformDropdownProps  } from '../components/CrossPlatformDropdownGen/types';
+import CrossPlatformDropdownGen from '../components/CrossPlatformDropdownGen';
 
 // For testing with mock data, uncomment the lines below:
 //import { getAllDealers as getAllDealersMock } from '../api/mocks/dealerApiMock';
@@ -34,10 +35,7 @@ type RootStackParamList = {
 };
 type RegisterDeviceScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Dashboard'>;
 
-type DropdownOption = {
-  label: string;
-  value: number;
-};
+
 
 
 const RegisterDeviceScreen: React.FC = () => {
@@ -47,8 +45,8 @@ const RegisterDeviceScreen: React.FC = () => {
   const [serialNumber, setSerialNumber] = useState('');
   const [selectedDeviceType, setSelectedDeviceType] = useState<number | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<number | null>(1);
-  const [dealerOptions, setDealerOptions] = useState<DropdownOption[]>([]);
-  const [deviceTypeOptions, setDeviceTypeOptions] = useState<DropdownOption[]>([]);
+  const [dealerOptions, setDealerOptions] = useState<DropdownOption<number>[]>([]);
+  const [deviceTypeOptions, setDeviceTypeOptions] = useState<DropdownOption<number>[]>([]);
   const [loadingDealers, setLoadingDealers] = useState(true);
   const [loadingDeviceTypes, setLoadingDeviceTypes] = useState(true);
   const [dealerError, setDealerError] = useState<string | null>(null);
@@ -60,6 +58,10 @@ const RegisterDeviceScreen: React.FC = () => {
   const [dealerDropdownY, setDealerDropdownY] = useState<number | null>(null);
   const [deviceTypeDropdownY, setDeviceTypeDropdownY] = useState<number | null>(null);
   const [statusDropdownY, setStatusDropdownY] = useState<number | null>(null);
+  // Store measured dropdown heights
+  const [dealerDropdownHeight, setDealerDropdownHeight] = useState<number>(200);
+  const [deviceTypeDropdownHeight, setDeviceTypeDropdownHeight] = useState<number>(200);
+  const [statusDropdownHeight, setStatusDropdownHeight] = useState<number>(200);
   // Track which dropdown should open after scroll
   const [pendingDropdown, setPendingDropdown] = useState<'dealer' | 'deviceType' | 'status' | null>(null);
   const [showDealerDropdown, setShowDealerDropdown] = useState(false);
@@ -125,13 +127,20 @@ const RegisterDeviceScreen: React.FC = () => {
   }, [dealerDropdownY, deviceTypeDropdownY, statusDropdownY, scrollY]);
 
 
-  const statusOptions: DropdownOption[] = [
+  const statusOptions: DropdownOption<number>[] = [
     { label: 'Active', value: 1 },
     { label: 'Inactive', value: 0 },
   ];
 
   // Scroll-into-view using y position from onLayout (Fabric compatible)
   const scrollDropdownIntoView1 = useCallback((dropdown: 'dealer' | 'deviceType' | 'status') => {
+    // Dismiss keyboard before any scroll or dropdown open
+    if (Platform.OS !== 'web') {
+      // Dynamically import Keyboard to avoid issues on web
+      // @ts-ignore
+      const { Keyboard } = require('react-native');
+      Keyboard.dismiss();
+    }
     let y: number | null = null;
     let setShowDropdown: ((v: boolean) => void) | null = null;
     let options: DropdownOption[] = [];
@@ -147,21 +156,18 @@ const RegisterDeviceScreen: React.FC = () => {
     const buttonTop = y;
     const buttonBottom = y + 50; // button height
     const margin = 20;
-    // Responsive dropdown height: max 70% of screen, but never more than needed for all items
-    const itemHeight = 48; // Estimate or match your dropdown item style
+    // Use measured dropdown height from dropdown component
+    let measuredDropdownHeight = 200;
+    if (dropdown === 'dealer') measuredDropdownHeight = dealerDropdownHeight;
+    if (dropdown === 'deviceType') measuredDropdownHeight = deviceTypeDropdownHeight;
+    if (dropdown === 'status') measuredDropdownHeight = statusDropdownHeight;
     const maxDropdownHeight = Math.floor(viewportHeight * 0.7);
-    const requiredHeight = options.length * itemHeight + DROPDOWN_VERTICAL_PADDING;
-    const dropdownHeight = Math.min(maxDropdownHeight, requiredHeight);
+    const dropdownHeight = Math.min(maxDropdownHeight, measuredDropdownHeight);
     // If the button is above the viewport, scroll up to it
+
+    console.log("measuredDropdownHeight:", measuredDropdownHeight);
     if (buttonTop < scrollY) {
       console.log(`[scrollDropdownIntoView1] ${dropdown} above viewport. Scrolling to:`, Math.max(0, buttonTop - margin));
-      setPendingDropdown(dropdown);
-      scrollViewRef.current.scrollTo({ y: Math.max(0, buttonTop - margin), animated: true });
-      return;
-    }
-    // If the button is below the viewport, scroll down to it
-    if (buttonBottom > scrollY + viewportHeight) {
-      console.log(`[scrollDropdownIntoView1] ${dropdown} below viewport. Scrolling to:`, Math.max(0, buttonTop - margin));
       setPendingDropdown(dropdown);
       scrollViewRef.current.scrollTo({ y: Math.max(0, buttonTop - margin), animated: true });
       return;
@@ -172,6 +178,13 @@ const RegisterDeviceScreen: React.FC = () => {
       console.log(`[scrollDropdownIntoView1] Not enough space below for ${dropdown}. Scrolling to:`, targetY);
       setPendingDropdown(dropdown);
       scrollViewRef.current.scrollTo({ y: targetY, animated: true });
+      return;
+    }
+    // If the button is below the viewport, scroll down to it
+    if (buttonBottom > scrollY + viewportHeight) {
+      console.log(`[scrollDropdownIntoView1] ${dropdown} below viewport. Scrolling to:`, Math.max(0, buttonTop - margin));
+      setPendingDropdown(dropdown);
+      scrollViewRef.current.scrollTo({ y: Math.max(0, buttonTop - margin), animated: true });
       return;
     }
     // Otherwise, open immediately
@@ -241,14 +254,8 @@ const RegisterDeviceScreen: React.FC = () => {
   const isFormValid = selectedDealer !== null && serialNumber.trim().length > 0 && selectedDeviceType !== null && selectedStatus !== null;
 
   const formatSerialNumber = (text: string) => {
-    const cleaned = text.replace(/[^A-Z0-9]/gi, '').toUpperCase();
-    if (cleaned.length <= 2) {
-      return cleaned;
-    } else if (cleaned.length <= 7) {
-      return `${cleaned.slice(0, 2)}-${cleaned.slice(2)}`;
-    } else {
-      return `${cleaned.slice(0, 2)}-${cleaned.slice(2, 7)}`;
-    }
+    // Remove non-alphanumeric characters and limit to 10
+    return text.replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 10);
   };
 
   const handleSerialNumberChange = (text: string) => {
@@ -345,7 +352,7 @@ const RegisterDeviceScreen: React.FC = () => {
                 ) : dealerError ? (
                   <Text style={{ color: 'red', marginBottom: 8 }}>{dealerError}</Text>
                 ) : (
-                  <CrossPlatformDropdown
+                  <CrossPlatformDropdownGen<number | null>
                     options={dealerOptions}
                     selectedValue={selectedDealer}
                     onSelect={setSelectedDealer}
@@ -353,6 +360,7 @@ const RegisterDeviceScreen: React.FC = () => {
                     visible={showDealerDropdown}
                     setVisible={setShowDealerDropdown}
                     onOpen={() => scrollDropdownIntoView1('dealer')}
+                    onMeasureAllItemsHeight={setDealerDropdownHeight}
                   />
                 )}
               </View>
@@ -369,7 +377,9 @@ const RegisterDeviceScreen: React.FC = () => {
                   autoCorrect={false}
                   maxLength={8}
                 />
-                <Text style={styles.inputHint}>Format: ST-XXXXX (must be unique)</Text>
+                <Text style={styles.inputHint}>
+                      Format: XXXXXXXXXX (10 alphanumeric characters, letters and numbers only)
+                </Text>
               </View>
               {/* Device Type Dropdown */}
               <View style={styles.inputContainer}
@@ -381,7 +391,7 @@ const RegisterDeviceScreen: React.FC = () => {
                 ) : deviceTypeError ? (
                   <Text style={{ color: 'red', marginBottom: 8 }}>{deviceTypeError}</Text>
                 ) : (
-                  <CrossPlatformDropdown
+                  <CrossPlatformDropdownGen<number | null>
                     options={deviceTypeOptions}
                     selectedValue={selectedDeviceType}
                     onSelect={setSelectedDeviceType}
@@ -389,6 +399,7 @@ const RegisterDeviceScreen: React.FC = () => {
                     visible={showDeviceTypeDropdown}
                     setVisible={setShowDeviceTypeDropdown}
                     onOpen={() => scrollDropdownIntoView1('deviceType')}
+                    onMeasureAllItemsHeight={setDeviceTypeDropdownHeight}
                   />
                 )}
               </View>
@@ -398,7 +409,7 @@ const RegisterDeviceScreen: React.FC = () => {
                 onLayout={e => setStatusDropdownY(e.nativeEvent.layout.y)}
               >
                 <Text style={styles.inputLabel}>Status *</Text>
-                <CrossPlatformDropdown
+                <CrossPlatformDropdownGen<number | null>
                   options={statusOptions}
                   selectedValue={selectedStatus}
                   onSelect={setSelectedStatus}
@@ -406,6 +417,7 @@ const RegisterDeviceScreen: React.FC = () => {
                   visible={showStatusDropdown}
                   setVisible={setShowStatusDropdown}
                   onOpen={() => scrollDropdownIntoView1('status')}
+                  onMeasureAllItemsHeight={setStatusDropdownHeight}
                 />
               </View>
             </View>

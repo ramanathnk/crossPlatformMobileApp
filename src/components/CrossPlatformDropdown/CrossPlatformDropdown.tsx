@@ -10,22 +10,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { Portal } from 'react-native-paper';
-
-interface DropdownOption {
-  label: string;
-  value: number | null;
-}
-
-interface CrossPlatformDropdownProps {
-  options: DropdownOption[];
-  selectedValue: number | null;
-  onSelect: (value: number | null) => void;
-  placeholder: string;
-  style?: any;
-  onOpen?: () => void;
-  visible?: boolean;
-  setVisible?: (v: boolean) => void;
-}
+import {CrossPlatformDropdownProps} from './types';
 
 const CrossPlatformDropdown: React.FC<CrossPlatformDropdownProps> = ({
   options,
