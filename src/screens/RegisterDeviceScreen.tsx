@@ -375,7 +375,7 @@ const RegisterDeviceScreen: React.FC = () => {
                   onChangeText={handleSerialNumberChange}
                   autoCapitalize="characters"
                   autoCorrect={false}
-                  maxLength={8}
+                  maxLength={10}
                 />
                 <Text style={styles.inputHint}>
                       Format: XXXXXXXXXX (10 alphanumeric characters, letters and numbers only)
