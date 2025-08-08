@@ -1,0 +1,66 @@
+import React from 'react';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import DashboardScreen from '../screens/DashboardScreen';
+import RequestsScreen from '../screens/RequestsScreen';
+import DealersScreen from '../screens/DealersScreen';
+import SettingsScreen from '../screens/SettingsScreen';
+import MaterialIconComponent from '../icons/MaterialIconComponent';
+import HomeIcon from '../../assets/material-icons/home.svg';
+import ConciergeIcon from '../../assets/material-icons/concierge.svg';
+import GroupIcon from '../../assets/material-icons/group.svg';
+import SettingsIcon from '../../assets/material-icons/settings.svg';
+
+export type AppTabParamList = {
+  Dashboard: undefined;
+  Requests: undefined;
+  Dealers: undefined;
+  Settings: undefined;
+};
+
+const Tab = createBottomTabNavigator<AppTabParamList>();
+
+const AppTabs: React.FC = () => (
+  <Tab.Navigator
+    screenOptions={({ route }) => ({
+      headerShown: false,
+      tabBarShowLabel: true,
+      tabBarStyle: {
+        backgroundColor: '#374151',
+        borderTopWidth: 0,
+        height: 64,
+      },
+      tabBarLabelStyle: {
+        fontSize: 12,
+        color: '#9CA3AF',
+      },
+      tabBarIcon: ({ focused, color, size }) => {
+        let IconComponent;
+        let iconColor = focused ? '#3B82F6' : '#9CA3AF';
+        switch (route.name) {
+          case 'Dashboard':
+            IconComponent = HomeIcon;
+            break;
+          case 'Requests':
+            IconComponent = ConciergeIcon;
+            break;
+          case 'Dealers':
+            IconComponent = GroupIcon;
+            break;
+          case 'Settings':
+            IconComponent = SettingsIcon;
+            break;
+          default:
+            IconComponent = HomeIcon;
+        }
+        return <MaterialIconComponent Icon={IconComponent} size={24} color={iconColor} />;
+      },
+    })}
+  >
+    <Tab.Screen name="Dashboard" component={DashboardScreen} />
+    <Tab.Screen name="Requests" component={RequestsScreen} />
+    <Tab.Screen name="Dealers" component={DealersScreen} />
+    <Tab.Screen name="Settings" component={SettingsScreen} />
+  </Tab.Navigator>
+);
+
+export default AppTabs;

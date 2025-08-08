@@ -24,7 +24,9 @@ import PendingActionsIcon from '../../assets/material-icons/pending_actions.svg'
 import HomeIcon from '../../assets/material-icons/home.svg';
 import GroupIcon from '../../assets/material-icons/group.svg';
 
-const DashboardScreen: React.FC = () => {
+
+
+const DashboardScreenOld: React.FC = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList, 'Dashboard'>>();
   return (
     <SafeAreaView style={styles.container}>
@@ -33,38 +35,44 @@ const DashboardScreen: React.FC = () => {
         contentContainerStyle={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header Row: Logo, SnapTracker, AT Button */}
-        <View style={styles.headerRow}>
-          <View style={styles.logoTextRow}>
-            <SnaptrackerLogo width={32} height={32} />
+        {/* Logo and App Name */}
+        <View style={styles.headerContainer}>
+          <View style={styles.logoContainer}>
+            <SnaptrackerLogo width={120} height={50} />
             <Text style={styles.appName}>SnapTracker</Text>
           </View>
-          <TouchableOpacity style={styles.logoutButton} activeOpacity={1}>
+        </View>
+
+        {/* Header */}
+        <View style={styles.dashboardHeader}>
+          <View style={styles.dashboardTitleContainer}>
+            <Text style={styles.dashboardTitle}>Dashboard</Text>
+            <Text style={styles.dashboardSubtitle}>Device Registration Portal</Text>
+          </View>
+          <TouchableOpacity
+            style={styles.logoutButton}
+            activeOpacity={1}
+          >
             <Text style={styles.logoutText}>AT</Text>
           </TouchableOpacity>
         </View>
 
-        {/* Dashboard Title */}
-        <View style={styles.dashboardHeader}>
-          <Text style={styles.dashboardTitle}>Dashboard</Text>
-          <Text style={styles.dashboardSubtitle}>Device Registration Portal</Text>
-        </View>
-
         {/* Statistics Cards */}
-        <View style={styles.statsRow}>
+        <View style={styles.statsContainer}>
           <View style={styles.statCard}>
-            <View style={[styles.statIconContainer, styles.statIconPending]}>
-              <MaterialIconComponent Icon={PendingActionsIcon} size={28} color="#fff" />
+            <View style={styles.statIconContainer}>
+              <MaterialIconComponent Icon={PendingActionsIcon} size={24} color="#fff" />
             </View>
             <Text style={styles.statNumber}>12</Text>
             <Text style={styles.statLabel}>Pending Requests</Text>
           </View>
+
           <View style={styles.statCard}>
-            <View style={[styles.statIconContainer, styles.statIconRegistered]}>
-              <MaterialIconComponent Icon={MobileCheckIcon} size={28} color="#fff" />
+            <View style={styles.statIconContainer}>
+              <MaterialIconComponent Icon={MobileCheckIcon} size={24} color="#fff" />
             </View>
-            <Text style={styles.statNumber}>7</Text>
-            <Text style={styles.statLabel}>Registered Today</Text>
+            <Text style={styles.statNumber}>12</Text>
+            <Text style={styles.statLabel}>Registered</Text>
           </View>
         </View>
 
@@ -74,7 +82,7 @@ const DashboardScreen: React.FC = () => {
           <View style={styles.moduleGrid}>
             <TouchableOpacity style={styles.moduleCard}>
               <View style={styles.moduleIconContainer}>
-                <MaterialIconComponent Icon={MobileCheckIcon} size={28} color="#3B82F6" />
+                <MaterialIconComponent Icon={MobileCheckIcon} size={24} color="#fff" />
               </View>
               <Text style={styles.moduleTitle}>Device Requests</Text>
               <Text style={styles.moduleSubtitle}>Review & approve</Text>
@@ -82,7 +90,7 @@ const DashboardScreen: React.FC = () => {
 
             <TouchableOpacity style={styles.moduleCard} onPress={() => navigation.navigate('RegisterDevice')}>
               <View style={styles.moduleIconContainer}>
-                <MaterialIconComponent Icon={AddBoxIcon} size={28} color="#3B82F6" />
+                <MaterialIconComponent Icon={AddBoxIcon} size={24} color="#fff" />
               </View>
               <Text style={styles.moduleTitle}>Register Device</Text>
               <Text style={styles.moduleSubtitle}>Add new device</Text>
@@ -90,7 +98,7 @@ const DashboardScreen: React.FC = () => {
 
             <TouchableOpacity style={styles.moduleCard}>
               <View style={styles.moduleIconContainer}>
-                <MaterialIconComponent Icon={TableEditIcon} size={28} color="#3B82F6" />
+                <MaterialIconComponent Icon={TableEditIcon} size={24} color="#fff" />
               </View>
               <Text style={styles.moduleTitle}>Manage Records</Text>
               <Text style={styles.moduleSubtitle}>Edit & update</Text>
@@ -98,10 +106,10 @@ const DashboardScreen: React.FC = () => {
 
             <TouchableOpacity style={styles.moduleCard}>
               <View style={styles.moduleIconContainer}>
-                <MaterialIconComponent Icon={TableEditIcon} size={28} color="#3B82F6" />
+                <MaterialIconComponent Icon={TableEditIcon} size={24} color="#fff" />
               </View>
               <Text style={styles.moduleTitle}>View Devices</Text>
-              <Text style={styles.moduleSubtitle}>All registrations</Text>
+              <Text style={styles.moduleSubtitle}>All Registrations</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -122,17 +130,20 @@ const DashboardScreen: React.FC = () => {
         {/* Bottom Navigation */}
         <View style={styles.bottomNav}>
           <TouchableOpacity style={styles.navItem}>
-            <MaterialIconComponent Icon={HomeIcon} size={24} color="#3B82F6" />
-            <Text style={[styles.navLabel, styles.navLabelActive]}>Dashboard</Text>
+            <MaterialIconComponent Icon={HomeIcon} size={24} color="#9CA3AF" />
+            <Text style={styles.navLabel}>Dashboard</Text>
           </TouchableOpacity>
+
           <TouchableOpacity style={styles.navItem}>
             <MaterialIconComponent Icon={ConciergeIcon} size={24} color="#9CA3AF" />
             <Text style={styles.navLabel}>Requests</Text>
           </TouchableOpacity>
+
           <TouchableOpacity style={styles.navItem}>
             <MaterialIconComponent Icon={GroupIcon} size={24} color="#9CA3AF" />
             <Text style={styles.navLabel}>Dealers</Text>
           </TouchableOpacity>
+
           <TouchableOpacity style={styles.navItem}>
             <MaterialIconComponent Icon={SettingsIcon} size={24} color="#9CA3AF" />
             <Text style={styles.navLabel}>Settings</Text>
@@ -147,45 +158,48 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#1F2937',
-    paddingBottom: 8,
   },
   scrollContainer: {
     flexGrow: 1,
     paddingHorizontal: 24,
-    paddingTop: 40,
+    paddingTop: 60,
     paddingBottom: 40,
   },
-  headerRow: {
-    flexDirection: 'row',
+  headerContainer: {
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: 40,
   },
-  logoTextRow: {
-    flexDirection: 'row',
+  logoContainer: {
     alignItems: 'center',
   },
-  appName: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginLeft: 10,
-  },
-  logoutButton: {
-    width: 40,
-    height: 40,
-    backgroundColor: '#374151',
-    borderRadius: 20,
+  logo: {
+    width: 60,
+    height: 60,
+    backgroundColor: '#3B82F6',
+    borderRadius: 12,
     justifyContent: 'center',
     alignItems: 'center',
+    marginBottom: 12,
   },
-  logoutText: {
-    fontSize: 16,
-    fontWeight: '600',
+  logoText: {
+    fontSize: 28,
     color: '#FFFFFF',
   },
+  appName: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    marginTop: 8,
+  },
   dashboardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
     marginBottom: 24,
+    paddingHorizontal: 4,
+  },
+  dashboardTitleContainer: {
+    flex: 1,
   },
   dashboardTitle: {
     fontSize: 24,
@@ -197,37 +211,46 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#9CA3AF',
   },
-  statsRow: {
+  logoutButton: {
+    width: 40,
+    height: 40,
+    backgroundColor: '#374151',
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  logoutText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#FFFFFF',
+  },
+  statsContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 32,
     gap: 16,
+    marginBottom: 32,
   },
   statCard: {
     flex: 1,
-    backgroundColor: '#2D3748',
-    borderRadius: 16,
-    padding: 20,
+    backgroundColor: '#374151',
+    borderRadius: 12,
+    padding: 16,
     alignItems: 'center',
-    marginHorizontal: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 2,
   },
   statIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 12,
+    width: 40,
+    height: 40,
+    backgroundColor: '#4B5563',
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
   },
-  statIconPending: {
-    backgroundColor: '#F59E42',
+  statIconGreen: {
+    backgroundColor: '#059669',
   },
-  statIconRegistered: {
-    backgroundColor: '#10B981',
+  statIcon: {
+    fontSize: 20,
+    color: '#FFFFFF',
   },
   statNumber: {
     fontSize: 24,
@@ -263,7 +286,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: 16,
-    justifyContent: 'space-between',
   },
   moduleCard: {
     width: '47%',
@@ -271,7 +293,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 16,
     alignItems: 'center',
-    marginBottom: 16,
   },
   moduleIconContainer: {
     width: 48,
@@ -281,6 +302,10 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
+  },
+  moduleIcon: {
+    fontSize: 24,
+    color: '#FFFFFF',
   },
   moduleTitle: {
     fontSize: 14,
@@ -317,6 +342,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 8,
   },
+  navIcon: {
+    fontSize: 20,
+    marginBottom: 4,
+  },
   navLabel: {
     fontSize: 10,
     color: '#9CA3AF',
@@ -326,4 +355,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default DashboardScreen;
+export default DashboardScreenOld;

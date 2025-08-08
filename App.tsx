@@ -1,13 +1,12 @@
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import LoginScreen from './src/screens/LoginScreen';
 import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen';
 import ResetPasswordScreen from './src/screens/ResetPasswordScreen';
-import DashboardScreen from './src/screens/DashboardScreen';
 import RegisterDeviceScreen from './src/screens/RegisterDeviceScreen';
-
-
+import AppTabs from './src/navigation/AppTabs';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -16,7 +15,6 @@ export type RootStackParamList = {
   Dashboard: undefined;
   RegisterDevice: undefined;
 };
-
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -41,15 +39,18 @@ const linking = {
 
 export default function App() {
   return (
-    <NavigationContainer linking={linking}>
-      <StatusBar style="light" />
-      <Stack.Navigator initialRouteName="Login" screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="Forgot" component={ForgotPasswordScreen} />
-        <Stack.Screen name="Reset" component={ResetPasswordScreen} />
-        <Stack.Screen name="Dashboard" component={DashboardScreen} />
-        <Stack.Screen name="RegisterDevice" component={RegisterDeviceScreen} />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <SafeAreaProvider>
+      <NavigationContainer linking={linking}>
+        <StatusBar style="light" />
+        <Stack.Navigator initialRouteName="Login" screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="Forgot" component={ForgotPasswordScreen} />
+          <Stack.Screen name="Reset" component={ResetPasswordScreen} />
+          {/* Use AppTabs for Dashboard */}
+          <Stack.Screen name="Dashboard" component={AppTabs} />
+          <Stack.Screen name="RegisterDevice" component={RegisterDeviceScreen} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </SafeAreaProvider>
   );
 }
