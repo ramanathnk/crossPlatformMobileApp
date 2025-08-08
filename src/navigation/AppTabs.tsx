@@ -1,5 +1,6 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DashboardScreen from '../screens/DashboardScreen';
 import RequestsScreen from '../screens/RequestsScreen';
 import DealersScreen from '../screens/DealersScreen';
@@ -19,48 +20,53 @@ export type AppTabParamList = {
 
 const Tab = createBottomTabNavigator<AppTabParamList>();
 
-const AppTabs: React.FC = () => (
-  <Tab.Navigator
-    screenOptions={({ route }) => ({
-      headerShown: false,
-      tabBarShowLabel: true,
-      tabBarStyle: {
-        backgroundColor: '#374151',
-        borderTopWidth: 0,
-        height: 64,
-      },
-      tabBarLabelStyle: {
-        fontSize: 12,
-        color: '#9CA3AF',
-      },
-      tabBarIcon: ({ focused, color, size }) => {
-        let IconComponent;
-        let iconColor = focused ? '#3B82F6' : '#9CA3AF';
-        switch (route.name) {
-          case 'Dashboard':
-            IconComponent = HomeIcon;
-            break;
-          case 'Requests':
-            IconComponent = ConciergeIcon;
-            break;
-          case 'Dealers':
-            IconComponent = GroupIcon;
-            break;
-          case 'Settings':
-            IconComponent = SettingsIcon;
-            break;
-          default:
-            IconComponent = HomeIcon;
-        }
-        return <MaterialIconComponent Icon={IconComponent} size={24} color={iconColor} />;
-      },
-    })}
-  >
-    <Tab.Screen name="Dashboard" component={DashboardScreen} />
-    <Tab.Screen name="Requests" component={RequestsScreen} />
-    <Tab.Screen name="Dealers" component={DealersScreen} />
-    <Tab.Screen name="Settings" component={SettingsScreen} />
-  </Tab.Navigator>
-);
+const AppTabs: React.FC = () => {
+  const insets = useSafeAreaInsets(); // <-- Add this line
+
+  return (
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarShowLabel: true,
+        tabBarStyle: {
+          backgroundColor: '#374151',
+          borderTopWidth: 0,
+          height: 64 + insets.bottom,
+          paddingBottom: insets.bottom,
+        },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          color: '#9CA3AF',
+        },
+        tabBarIcon: ({ focused, color, size }) => {
+          let IconComponent;
+          let iconColor = focused ? '#3B82F6' : '#9CA3AF';
+          switch (route.name) {
+            case 'Dashboard':
+              IconComponent = HomeIcon;
+              break;
+            case 'Requests':
+              IconComponent = ConciergeIcon;
+              break;
+            case 'Dealers':
+              IconComponent = GroupIcon;
+              break;
+            case 'Settings':
+              IconComponent = SettingsIcon;
+              break;
+            default:
+              IconComponent = HomeIcon;
+          }
+          return <MaterialIconComponent Icon={IconComponent} size={24} color={iconColor} />;
+        },
+      })}
+    >
+      <Tab.Screen name="Dashboard" component={DashboardScreen} />
+      <Tab.Screen name="Requests" component={RequestsScreen} />
+      <Tab.Screen name="Dealers" component={DealersScreen} />
+      <Tab.Screen name="Settings" component={SettingsScreen} />
+    </Tab.Navigator>
+  );
+};
 
 export default AppTabs;
