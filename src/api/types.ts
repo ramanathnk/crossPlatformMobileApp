@@ -26,6 +26,8 @@ export interface ForgotPasswordRequest {
 
 export interface ForgotPasswordResponse {
   message: string;
+  expiresAt?: string;
+  token?: string;
 }
 
 export interface ResetPasswordRequest {
@@ -52,17 +54,22 @@ export interface LogoutResponse {
   message: string;
 }
 
-export interface Dealer {
-  dealerId: number;
-  name: string;
-  mobileWebAPIUrl: string;
-  application: string;
-  totalDevices: number;
-  activeDevices: number;
-  pendingRegistrations: number;
+export interface VerifyResetTokenRequest {
+  token: string;
+  newPassword: string;
+  confirmPassword: string;
 }
 
-export interface DeviceType {
-  deviceTypeId: number;
-  modelNumber: string;
+export interface VerifyResetTokenResponse {
+  message: string;
+}
+
+export interface RefreshTokenRequest {
+  refreshToken: string;
+}
+
+export interface RefreshTokenResponse {
+  accessToken: string;
+  refreshToken: string;
+  expiresIn: number;
 }

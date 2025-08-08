@@ -85,9 +85,9 @@ android {
     ndkVersion rootProject.ext.ndkVersion
 
     buildToolsVersion rootProject.ext.buildToolsVersion
-    compileSdk rootProject.ext.compileSdkVersion
+    compileSdkVersion rootProject.ext.compileSdkVersion
 
-    namespace 'com.ramanathnk.IMDRA'
+    namespace = 'com.ramanathnk.IMDRA'
     defaultConfig {
         applicationId 'com.ramanathnk.IMDRA'
         minSdkVersion rootProject.ext.minSdkVersion

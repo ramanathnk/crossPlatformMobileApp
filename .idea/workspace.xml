@@ -5,7 +5,18 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="83722aaa-5ec1-4638-a8b2-433b139e9f28" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/app/build.gradle" beforeDir="false" afterPath="$PROJECT_DIR$/android/app/build.gradle" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/android/build.gradle" beforeDir="false" afterPath="$PROJECT_DIR$/android/build.gradle" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app.json" beforeDir="false" afterPath="$PROJECT_DIR$/app.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/api/authApi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/api/authApi.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/api/dealerApi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/api/dealerApi.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/api/deviceTypeApi.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/api/deviceTypeApi.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/api/types.ts" beforeDir="false" afterPath="$PROJECT_DIR$/src/api/types.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/screens/ForgotPasswordScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/screens/ForgotPasswordScreen.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/screens/LoginScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/screens/LoginScreen.tsx" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/screens/ResetPasswordScreen.tsx" beforeDir="false" afterPath="$PROJECT_DIR$/src/screens/ResetPasswordScreen.tsx" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -40,7 +51,8 @@
     "kotlin-language-version-configured": "true",
     "project.structure.last.edited": "Project",
     "project.structure.proportion": "0.15",
-    "project.structure.side.proportion": "0.2"
+    "project.structure.side.proportion": "0.2",
+    "settings.editor.selected.configurable": "AndroidSdkUpdater"
   }
 }]]></component>
   <component name="TaskManager">

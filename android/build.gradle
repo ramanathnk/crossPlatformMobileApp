@@ -1,5 +1,16 @@
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 
+ext {
+    // this version needs to be compatible with the expo version specified in the root package.json file
+    // to check for compatibility, refer to the Expo SDK documentation
+    // https://docs.expo.dev/versions/latest/
+    compileSdkVersion = 35 
+    buildToolsVersion = "35.0.0"
+    minSdkVersion = 24
+    targetSdkVersion = 35
+    ndkVersion = "27.1.12297006"
+}
+
 buildscript {
   repositories {
     google()

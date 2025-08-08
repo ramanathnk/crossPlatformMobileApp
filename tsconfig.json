@@ -2,10 +2,14 @@
   "extends": "expo/tsconfig.base",
   "compilerOptions": {
     "strict": true,
-    "types": ["jest", "node"]
+    "types": ["jest", "node"],
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "outDir": "scripts" 
   },
   "include": [
     "src",
-    "src/types/svg.d.ts"
+    "src/types/svg.d.ts",
+    "scripts"
   ],
 }

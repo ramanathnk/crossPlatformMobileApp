@@ -8,18 +8,32 @@ import {
   ResetPasswordResponse,
   RefreshTokenRequest,
   RefreshTokenResponse,
-  LogoutResponse
+  LogoutResponse,
+  VerifyResetTokenRequest,
+  VerifyResetTokenResponse
 } from './types';
 
 const DEFAULT_LOGIN_ERROR = 'Login failed';
 const FORGOT_PASSWORD_DEFAULT_ERROR = 'Failed to initiate password reset';
 const REFRESH_TOKEN_DEFAULT_ERROR = 'Failed to refresh token';
+const VERIFY_RESET_TOKEN_ERROR = 'Failed to verify reset token';
+
 
 export async function login(data: LoginRequest): Promise<LoginResponse> {
   return apiRequest<LoginResponse>(
     `${API_BASE}/api/v1/auth/login`,
     'POST',
     DEFAULT_LOGIN_ERROR,
+    undefined,
+    data
+  );
+}
+
+export async function verifyResetToken(data: VerifyResetTokenRequest): Promise<VerifyResetTokenResponse> {
+  return apiRequest<VerifyResetTokenResponse>(
+    `${API_BASE}/api/v1/auth/verify-reset-token`,
+    'POST',
+    VERIFY_RESET_TOKEN_ERROR,
     undefined,
     data
   );

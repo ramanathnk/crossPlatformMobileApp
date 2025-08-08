@@ -23,14 +23,14 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import CrossPlatformAlert from '../utils/CrossPlatformAlert';
 import SnaptrackerLogo from '../icons/SnapTrackerLogoNew';
-import EyeIcon from '../icons/EyeIcon';
+import EyeIcon from '../icons/EyeIconNew';
 
 const ResetPasswordScreen: React.FC = () => {
   const navigation = useNavigation<ResetPasswordScreenNavigationProp>();
   const route = useRoute<{
     key: string;
     name: string;
-    params: { token: string; email: string };
+    params: { token: string; email: string; expiresAt?: string } | undefined;
   }>();
   const token = route.params?.token;
   const email = route.params?.email;
@@ -69,12 +69,14 @@ const ResetPasswordScreen: React.FC = () => {
     }
     setLoading(true);
     try {
-      if (!token || !email) {
+      /*if (!token || !email) {
         setError('Invalid or missing reset token/email.');
         setLoading(false);
         return;
-      }
-      const response = await resetPassword({ email, token, newPassword });
+      }*/
+
+      const response = await resetPassword({ email: email ?? '', token: token ?? '' , newPassword });
+      console.debug('Reset Password Response:', response);
       setMessage(response.message || 'Your password has been reset successfully!');
       setTimeout(() => {
         navigation.replace('Login');

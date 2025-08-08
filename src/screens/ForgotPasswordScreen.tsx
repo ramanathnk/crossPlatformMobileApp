@@ -15,10 +15,11 @@ import SnaptrackerLogo from '../icons/SnapTrackerLogoNew';
 import { forgotPassword } from '../api/authApi';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
+import CrossPlatformAlert from '../utils/CrossPlatformAlert';
 
 type RootStackParamList = {
   Login: undefined;
-  Reset: undefined;
+  Reset: { token: string; expiresAt: string; email: string };
 };
 type ForgotPasswordScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Reset'>;
 
@@ -39,6 +40,21 @@ const ForgotPasswordScreen: React.FC = () => {
     setLoading(true);
     try {
       const response = await forgotPassword({ email });
+      // Show alert and navigate if no error
+      CrossPlatformAlert.alert(
+        'Reset Link Sent',
+        'You can now reset your password.',
+        [
+          {
+            text: 'OK',
+            onPress: () => navigation.navigate('Reset', {
+              token: response.token ?? 'dummy-token',
+              expiresAt: response.expiresAt ?? '',
+              email: email,
+            }),
+          },
+        ]
+      );
       setMessage(response.message || 'Reset link sent! Check your email.');
     } catch (err) {
       setError((err as Error).message || 'Failed to send reset link.');
