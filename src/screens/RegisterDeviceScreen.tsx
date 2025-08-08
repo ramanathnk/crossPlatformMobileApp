@@ -16,14 +16,13 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import CrossPlatformAlert from '../utils/CrossPlatformAlert';
 import { Provider as PaperProvider } from 'react-native-paper';
-import CrossPlatformDropdown from '../components/CrossPlatformDropdown';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import { Dimensions } from 'react-native';
 // For real API calls
 import { getAllDealers } from '../api/dealerApi';
 import { getAllDeviceTypes } from '../api/deviceTypeApi';
-import type { DropdownOption, CrossPlatformDropdownProps  } from '../components/CrossPlatformDropdownGen/types';
+import type { DropdownOption } from '../components/CrossPlatformDropdownGen/types';
 import CrossPlatformDropdownGen from '../components/CrossPlatformDropdownGen';
 
 // For testing with mock data, uncomment the lines below:

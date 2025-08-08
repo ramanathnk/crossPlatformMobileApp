@@ -8,25 +8,37 @@ import {
   ScrollView,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import SnaptrackerLogo from '../icons/SnapTrackerLogoNew'; 
+import SnaptrackerLogo from '../icons/SnapTrackerLogoNew';
 
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import type { RootStackParamList } from '../../App';
+import MaterialIconComponent from '../icons/MaterialIconComponent';
+
+import SettingsIcon from '../../assets/material-icons/settings.svg';
+import TableEditIcon from '../../assets/material-icons/table_edit.svg';
+import AddBoxIcon from '../../assets/material-icons/add_box.svg';
+import ConciergeIcon from '../../assets/material-icons/concierge.svg';
+import MobileCheckIcon from '../../assets/material-icons/mobile_check.svg';
+import PendingActionsIcon from '../../assets/material-icons/pending_actions.svg';
+import HomeIcon from '../../assets/material-icons/home.svg';
+import GroupIcon from '../../assets/material-icons/group.svg';
+
+
 
 const DashboardScreen: React.FC = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList, 'Dashboard'>>();
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
-      <ScrollView 
+      <ScrollView
         contentContainerStyle={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
       >
         {/* Logo and App Name */}
         <View style={styles.headerContainer}>
           <View style={styles.logoContainer}>
-            <SnaptrackerLogo width={120} height={50} />   
+            <SnaptrackerLogo width={120} height={50} />
             <Text style={styles.appName}>SnapTracker</Text>
           </View>
         </View>
@@ -37,7 +49,7 @@ const DashboardScreen: React.FC = () => {
             <Text style={styles.dashboardTitle}>Dashboard</Text>
             <Text style={styles.dashboardSubtitle}>Device Registration Portal</Text>
           </View>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.logoutButton}
             activeOpacity={1}
           >
@@ -49,17 +61,17 @@ const DashboardScreen: React.FC = () => {
         <View style={styles.statsContainer}>
           <View style={styles.statCard}>
             <View style={styles.statIconContainer}>
-              <Text style={styles.statIcon}>📋</Text>
+              <MaterialIconComponent Icon={PendingActionsIcon} size={24} color="#fff" />
             </View>
             <Text style={styles.statNumber}>12</Text>
-            <Text style={styles.statLabel}>Total Devices</Text>
+            <Text style={styles.statLabel}>Pending Requests</Text>
           </View>
-          
+
           <View style={styles.statCard}>
-            <View style={[styles.statIconContainer, styles.statIconGreen]}>
-              <Text style={styles.statIcon}>✓</Text>
+            <View style={styles.statIconContainer}>
+              <MaterialIconComponent Icon={MobileCheckIcon} size={24} color="#fff" />
             </View>
-            <Text style={styles.statNumber}>8</Text>
+            <Text style={styles.statNumber}>12</Text>
             <Text style={styles.statLabel}>Registered</Text>
           </View>
         </View>
@@ -70,7 +82,7 @@ const DashboardScreen: React.FC = () => {
           <View style={styles.moduleGrid}>
             <TouchableOpacity style={styles.moduleCard}>
               <View style={styles.moduleIconContainer}>
-                <Text style={styles.moduleIcon}>📱</Text>
+                <MaterialIconComponent Icon={MobileCheckIcon} size={24} color="#fff" />
               </View>
               <Text style={styles.moduleTitle}>Device Requests</Text>
               <Text style={styles.moduleSubtitle}>Review & approve</Text>
@@ -78,7 +90,7 @@ const DashboardScreen: React.FC = () => {
 
             <TouchableOpacity style={styles.moduleCard} onPress={() => navigation.navigate('RegisterDevice')}>
               <View style={styles.moduleIconContainer}>
-                <Text style={styles.moduleIcon}>➕</Text>
+                <MaterialIconComponent Icon={AddBoxIcon} size={24} color="#fff" />
               </View>
               <Text style={styles.moduleTitle}>Register Device</Text>
               <Text style={styles.moduleSubtitle}>Add new device</Text>
@@ -86,7 +98,7 @@ const DashboardScreen: React.FC = () => {
 
             <TouchableOpacity style={styles.moduleCard}>
               <View style={styles.moduleIconContainer}>
-                <Text style={styles.moduleIcon}>📊</Text>
+                <MaterialIconComponent Icon={TableEditIcon} size={24} color="#fff" />
               </View>
               <Text style={styles.moduleTitle}>Manage Records</Text>
               <Text style={styles.moduleSubtitle}>Edit & update</Text>
@@ -94,10 +106,10 @@ const DashboardScreen: React.FC = () => {
 
             <TouchableOpacity style={styles.moduleCard}>
               <View style={styles.moduleIconContainer}>
-                <Text style={styles.moduleIcon}>👁️</Text>
+                <MaterialIconComponent Icon={TableEditIcon} size={24} color="#fff" />
               </View>
               <Text style={styles.moduleTitle}>View Devices</Text>
-              <Text style={styles.moduleSubtitle}>All registrations</Text>
+              <Text style={styles.moduleSubtitle}>All Registrations</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -118,22 +130,22 @@ const DashboardScreen: React.FC = () => {
         {/* Bottom Navigation */}
         <View style={styles.bottomNav}>
           <TouchableOpacity style={styles.navItem}>
-            <Text style={styles.navIcon}>🏠</Text>
-            <Text style={[styles.navLabel, styles.navLabelActive]}>Dashboard</Text>
+            <MaterialIconComponent Icon={HomeIcon} size={24} color="#9CA3AF" />
+            <Text style={styles.navLabel}>Dashboard</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity style={styles.navItem}>
-            <Text style={styles.navIcon}>📋</Text>
+            <MaterialIconComponent Icon={ConciergeIcon} size={24} color="#9CA3AF" />
             <Text style={styles.navLabel}>Requests</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity style={styles.navItem}>
-            <Text style={styles.navIcon}>📱</Text>
-            <Text style={styles.navLabel}>Devices</Text>
+            <MaterialIconComponent Icon={GroupIcon} size={24} color="#9CA3AF" />
+            <Text style={styles.navLabel}>Dealers</Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity style={styles.navItem}>
-            <Text style={styles.navIcon}>⚙️</Text>
+            <MaterialIconComponent Icon={SettingsIcon} size={24} color="#9CA3AF" />
             <Text style={styles.navLabel}>Settings</Text>
           </TouchableOpacity>
         </View>
