@@ -118,26 +118,6 @@ const DashboardScreen: React.FC = () => {
             <Text style={styles.noActivityText}>No recent activity</Text>
           </View>
         </View>
-
-        {/* Bottom Navigation */}
-        <View style={styles.bottomNav}>
-          <TouchableOpacity style={styles.navItem}>
-            <MaterialIconComponent Icon={HomeIcon} size={24} color="#3B82F6" />
-            <Text style={[styles.navLabel, styles.navLabelActive]}>Dashboard</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.navItem}>
-            <MaterialIconComponent Icon={ConciergeIcon} size={24} color="#9CA3AF" />
-            <Text style={styles.navLabel}>Requests</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.navItem}>
-            <MaterialIconComponent Icon={GroupIcon} size={24} color="#9CA3AF" />
-            <Text style={styles.navLabel}>Dealers</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.navItem}>
-            <MaterialIconComponent Icon={SettingsIcon} size={24} color="#9CA3AF" />
-            <Text style={styles.navLabel}>Settings</Text>
-          </TouchableOpacity>
-        </View>
       </ScrollView>
     </SafeAreaView>
   );
