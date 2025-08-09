@@ -3,7 +3,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 // Define the navigation param list for the stack
 type RootStackParamList = {
-  Dashboard: undefined;
+  MainTabs: undefined;
   Forgot: undefined;
 };
 
@@ -65,7 +65,7 @@ const LoginScreen: React.FC = () => {
       const response = await login({ username, password });
       await SecureStore.setItemAsync('accessToken', response.accessToken);
       //console.log('Login successful:', response);
-      navigation.navigate('Dashboard');
+      navigation.navigate('MainTabs');
     } catch (err) {
       console.log('Login failed:', err);
       setError((err as Error).message);

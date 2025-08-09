@@ -12,7 +12,7 @@ export type RootStackParamList = {
   Login: undefined;
   Forgot: undefined;
   Reset: { token?: string; email?: string } | undefined;
-  Dashboard: undefined;
+  MainTabs: undefined;
   RegisterDevice: undefined;
 };
 
@@ -46,8 +46,7 @@ export default function App() {
           <Stack.Screen name="Login" component={LoginScreen} />
           <Stack.Screen name="Forgot" component={ForgotPasswordScreen} />
           <Stack.Screen name="Reset" component={ResetPasswordScreen} />
-          {/* Use AppTabs for Dashboard */}
-          <Stack.Screen name="Dashboard" component={AppTabs} />
+          <Stack.Screen name="MainTabs" component={AppTabs} />
           <Stack.Screen name="RegisterDevice" component={RegisterDeviceScreen} />
         </Stack.Navigator>
       </NavigationContainer>

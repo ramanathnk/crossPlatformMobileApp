@@ -30,9 +30,9 @@ import CrossPlatformDropdownGen from '../components/CrossPlatformDropdownGen';
 //import { getAllDeviceTypes as getAllDeviceTypesMock } from '../api/mocks/deviceTypeApiMock';
 
 type RootStackParamList = {
-  Dashboard: undefined;
+  MainTabs: undefined;
 };
-type RegisterDeviceScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Dashboard'>;
+type RegisterDeviceScreenNavigationProp = StackNavigationProp<RootStackParamList, 'MainTabs'>;
 
 
 
@@ -250,7 +250,11 @@ const RegisterDeviceScreen: React.FC = () => {
 
 
 
-  const isFormValid = selectedDealer !== null && serialNumber.trim().length > 0 && selectedDeviceType !== null && selectedStatus !== null;
+  const isFormValid = selectedDealer !== null
+                        && serialNumber.trim().length === 0
+                        && selectedDeviceType !== null
+                        && selectedStatus !== null
+                        && selectedDealer !== null;
 
   const formatSerialNumber = (text: string) => {
     // Remove non-alphanumeric characters and limit to 10
@@ -278,7 +282,7 @@ const RegisterDeviceScreen: React.FC = () => {
         {
           text: 'OK',
           style: 'default',
-          onPress: () => navigation.navigate('Dashboard'),
+          onPress: () => navigation.navigate('MainTabs'),
         },
       ]
     );

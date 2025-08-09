@@ -15,17 +15,14 @@ import type { StackNavigationProp } from '@react-navigation/stack';
 import type { RootStackParamList } from '../../App';
 import MaterialIconComponent from '../icons/MaterialIconComponent';
 
-import SettingsIcon from '../../assets/material-icons/settings.svg';
 import TableEditIcon from '../../assets/material-icons/table_edit.svg';
 import AddBoxIcon from '../../assets/material-icons/add_box.svg';
-import ConciergeIcon from '../../assets/material-icons/concierge.svg';
 import MobileCheckIcon from '../../assets/material-icons/mobile_check.svg';
 import PendingActionsIcon from '../../assets/material-icons/pending_actions.svg';
-import HomeIcon from '../../assets/material-icons/home.svg';
-import GroupIcon from '../../assets/material-icons/group.svg';
+
 
 const DashboardScreen: React.FC = () => {
-  const navigation = useNavigation<StackNavigationProp<RootStackParamList, 'Dashboard'>>();
+  const navigation = useNavigation<StackNavigationProp<RootStackParamList, 'RegisterDevice'>>();
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
