@@ -251,10 +251,9 @@ const RegisterDeviceScreen: React.FC = () => {
 
 
   const isFormValid = selectedDealer !== null
-                        && serialNumber.trim().length === 0
+                        && serialNumber.trim().length === 10
                         && selectedDeviceType !== null
-                        && selectedStatus !== null
-                        && selectedDealer !== null;
+                        && selectedStatus !== null;
 
   const formatSerialNumber = (text: string) => {
     // Remove non-alphanumeric characters and limit to 10
