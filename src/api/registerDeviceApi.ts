@@ -9,27 +9,7 @@ export interface RegisterDeviceRequest {
 }
 
 export interface RegisterDeviceResponse {
-  dealerId: number;
-  dealerName: string;
-  serialNo: string;
-  deviceTypeId: number;
-  manufacturerName: string;
-  modelNumber: string;
-  osVersion: string;
-  buildNumber: string;
-  currentAppVersion: string;
-  currentAppVersionId: string;
-  lastAppVersionCheck: string;
-  updateAvailable: boolean;
-  updateRequired: boolean;
-  status: string;
-  registrationDate: string;
-  lastUpdated: string;
-  lastSeen: string;
-  registeredByName: number;
-  updatedBy: number;
-  updatedByName: string;
-  notes: string;
+
 }
 
 export interface DeviceRegisterErrorResponse {

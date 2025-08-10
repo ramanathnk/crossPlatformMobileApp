@@ -24,6 +24,7 @@ import { getAllDealers } from '../api/dealerApi';
 import { getAllDeviceTypes } from '../api/deviceTypeApi';
 import type { DropdownOption } from '../components/CrossPlatformDropdownGen/types';
 import CrossPlatformDropdownGen from '../components/CrossPlatformDropdownGen';
+import { registerDevice } from '../api/registerDeviceApi';
 
 // For testing with mock data, uncomment the lines below:
 //import { getAllDealers as getAllDealersMock } from '../api/mocks/dealerApiMock';
@@ -50,6 +51,8 @@ const RegisterDeviceScreen: React.FC = () => {
   const [loadingDeviceTypes, setLoadingDeviceTypes] = useState(true);
   const [dealerError, setDealerError] = useState<string | null>(null);
   const [deviceTypeError, setDeviceTypeError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
 
 
@@ -251,9 +254,9 @@ const RegisterDeviceScreen: React.FC = () => {
 
 
   const isFormValid = selectedDealer !== null
-                        && serialNumber.trim().length === 10
-                        && selectedDeviceType !== null
-                        && selectedStatus !== null;
+    && serialNumber.trim().length === 10
+    && selectedDeviceType !== null
+    && selectedStatus !== null;
 
   const formatSerialNumber = (text: string) => {
     // Remove non-alphanumeric characters and limit to 10
@@ -265,26 +268,59 @@ const RegisterDeviceScreen: React.FC = () => {
     setSerialNumber(formatted);
   };
 
-  const handleRegisterDevice = () => {
+
+  const handleRegisterDevice = async () => {
     if (!isFormValid) {
       CrossPlatformAlert.alert(
         'Validation Error',
-        'Please fill in all required fields.',
+        'Please fill in all required fields. Serial number must be exactly 10 characters.',
         [{ text: 'OK', style: 'default' }]
       );
       return;
     }
-    CrossPlatformAlert.alert(
-      'Device Registered',
-      `Device ${serialNumber} has been successfully registered!`,
-      [
-        {
-          text: 'OK',
-          style: 'default',
-          onPress: () => navigation.navigate('MainTabs'),
-        },
-      ]
-    );
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const token = await SecureStore.getItemAsync('accessToken');
+      if (!token) {
+        setError('No access token found. Please log in again.');
+        setLoading(false);
+        return;
+      }
+
+      const requestData = {
+        dealerIds: [selectedDealer!],
+        serialNo: serialNumber,
+        deviceTypeId: selectedDeviceType!,
+        status: selectedStatus!,
+      };
+
+      console.log('Registering device with data:', requestData);
+      const response = await registerDevice(requestData, token);
+      console.log('Device registration response:', response);
+      CrossPlatformAlert.alert(
+        'Success',
+        'Device registration request was successfully processed.',
+        [
+          {
+            text: 'OK',
+            style: 'default',
+            onPress: () => navigation.navigate('MainTabs'),
+          },
+        ]
+      );
+    } catch (error: any) {
+      console.log('Login failed:', error);
+      let errorMessage = 'Failed to register device.';
+      if (error?.description) {
+        errorMessage = error.description;
+      }
+      setError(errorMessage);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getCurrentDateTime = () => {
@@ -380,7 +416,7 @@ const RegisterDeviceScreen: React.FC = () => {
                   maxLength={10}
                 />
                 <Text style={styles.inputHint}>
-                      Format: XXXXXXXXXX (10 alphanumeric characters, letters and numbers only)
+                  Format: XXXXXXXXXX (10 alphanumeric characters, letters and numbers only)
                 </Text>
               </View>
               {/* Device Type Dropdown */}

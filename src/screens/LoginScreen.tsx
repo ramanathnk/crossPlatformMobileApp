@@ -7,7 +7,7 @@ type RootStackParamList = {
   Forgot: undefined;
 };
 
-type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Dashboard'>;
+type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, 'MainTabs'>;
 import {
   StyleSheet,
   Text,
