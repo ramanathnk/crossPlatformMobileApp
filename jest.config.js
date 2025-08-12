@@ -3,8 +3,10 @@ module.exports = {
   transform: {
     '^.+\\.(js|ts|tsx)$': 'babel-jest',
   },
-  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
+  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
+  setupFilesAfterEnv: [
+    '@testing-library/jest-native/extend-expect'
+  ],
   testPathIgnorePatterns: [
     '/node_modules/',
     '/android/',

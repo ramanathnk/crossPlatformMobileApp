@@ -476,7 +476,6 @@ const RegisterDeviceScreen: React.FC = () => {
             {/* Register Button */}
             <View style={styles.buttonContainer}>
               <TouchableOpacity
-                testID ="register-device-button"
                 style={[
                   styles.registerButton,
                   !isFormValid && styles.registerButtonDisabled,
