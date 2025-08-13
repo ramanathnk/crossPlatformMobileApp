@@ -110,6 +110,7 @@ const LoginScreen: React.FC = () => {
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Username</Text>
               <TextInput
+                testID="username-input"
                 style={styles.textInput}
                 placeholder="Enter your username"
                 placeholderTextColor="#6B7280"
@@ -125,6 +126,7 @@ const LoginScreen: React.FC = () => {
               <Text style={styles.inputLabel}>Password</Text>
               <View style={styles.passwordContainer}>
                 <TextInput
+                  testID="password-input"
                   style={styles.passwordInput}
                   placeholder="Enter your password"
                   placeholderTextColor="#6B7280"
@@ -136,9 +138,10 @@ const LoginScreen: React.FC = () => {
                 />
                 <TouchableOpacity
                   style={styles.eyeIcon}
+                  testID='toggle-password-visibility'
                   onPress={() => setShowPassword(!showPassword)}
                 >
-                  <EyeIcon visible={showPassword} size={20} color="#9CA3AF" />
+                  <EyeIcon visible={showPassword} size={20} color="#9CA3AF"  />
                 </TouchableOpacity>
               </View>
             </View>
@@ -146,6 +149,7 @@ const LoginScreen: React.FC = () => {
             {/* Sign In Button */}
             {error && <Text style={styles.error}>{error}</Text>}
             <TouchableOpacity
+              testID='sign-in-button'
               style={[
                 styles.signInButton,
                 (!isFormValid || loading) && styles.signInButtonDisabled
