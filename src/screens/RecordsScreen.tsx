@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import { 
-  View, 
-  Text, 
-  TextInput, 
-  TouchableOpacity, 
-  FlatList, 
-  StyleSheet, 
-  ScrollView 
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  FlatList,
+  StyleSheet,
+  ScrollView
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 
@@ -214,7 +214,6 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   addButtonText: {
-    
     color: '#FFF',
     fontWeight: 'bold',
     fontSize: 15,
