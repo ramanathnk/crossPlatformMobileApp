@@ -3,7 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DashboardScreen from '../screens/DashboardScreen';
 import RequestsScreen from '../screens/RequestsScreen';
-import DealersScreen from '../screens/DealersScreen';
+import RecordsScreen from '../screens/RecordsScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import MaterialIconComponent from '../icons/MaterialIconComponent';
 import HomeIcon from '../../assets/material-icons/home.svg';
@@ -14,7 +14,7 @@ import SettingsIcon from '../../assets/material-icons/settings.svg';
 export type AppTabParamList = {
   Dashboard: undefined;
   Requests: undefined;
-  Dealers: undefined;
+  Records: undefined;
   Settings: undefined;
 };
 
@@ -48,7 +48,7 @@ const AppTabs: React.FC = () => {
             case 'Requests':
               IconComponent = ConciergeIcon;
               break;
-            case 'Dealers':
+            case 'Records':
               IconComponent = GroupIcon;
               break;
             case 'Settings':
@@ -63,7 +63,7 @@ const AppTabs: React.FC = () => {
     >
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
       <Tab.Screen name="Requests" component={RequestsScreen} />
-      <Tab.Screen name="Dealers" component={DealersScreen} />
+      <Tab.Screen name="Records" component={RecordsScreen} />
       <Tab.Screen name="Settings" component={SettingsScreen} />
     </Tab.Navigator>
   );

@@ -8,7 +8,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
-import SnaptrackerLogo from '../icons/SnapTrackerLogoNew';
+import SnaptrackerLogo from '../icons/SnapTrackerLogo';
 
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
@@ -69,7 +69,7 @@ const DashboardScreen: React.FC = () => {
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionTitle}>CORE MODULES</Text>
           <View style={styles.moduleGrid}>
-            <TouchableOpacity style={styles.moduleCard}>
+            <TouchableOpacity style={styles.moduleCard} onPress={() => navigation.navigate('DeviceRequests')}>
               <View style={styles.moduleIconContainer}>
                 <MaterialIconComponent Icon={MobileCheckIcon} size={28} color="#3B82F6" />
               </View>
@@ -93,7 +93,7 @@ const DashboardScreen: React.FC = () => {
               <Text style={styles.moduleSubtitle}>Edit & update</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.moduleCard}>
+            <TouchableOpacity style={styles.moduleCard} onPress={() => navigation.navigate('Devices')}>
               <View style={styles.moduleIconContainer}>
                 <MaterialIconComponent Icon={TableEditIcon} size={28} color="#3B82F6" />
               </View>

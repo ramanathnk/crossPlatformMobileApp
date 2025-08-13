@@ -22,7 +22,7 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import CrossPlatformAlert from '../utils/CrossPlatformAlert';
-import SnaptrackerLogo from '../icons/SnapTrackerLogoNew';
+import SnaptrackerLogo from '../icons/SnapTrackerLogo';
 import EyeIcon from '../icons/EyeIconNew';
 import * as SecureStore from 'expo-secure-store';
 // Uses this mock to test the page without hitting the API

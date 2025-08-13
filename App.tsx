@@ -6,7 +6,10 @@ import LoginScreen from './src/screens/LoginScreen';
 import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen';
 import ResetPasswordScreen from './src/screens/ResetPasswordScreen';
 import RegisterDeviceScreen from './src/screens/RegisterDeviceScreen';
+import DevicesScreen from './src/screens/DevicesScreen';
 import AppTabs from './src/navigation/AppTabs';
+import DeviceRequestsScreen from './src/screens/DeviceRequestsScreen';
+
 
 export type RootStackParamList = {
   Login: undefined;
@@ -14,6 +17,8 @@ export type RootStackParamList = {
   Reset: { token?: string; email?: string } | undefined;
   MainTabs: undefined;
   RegisterDevice: undefined;
+  Devices: undefined;
+  DeviceRequests: undefined;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -48,6 +53,8 @@ export default function App() {
           <Stack.Screen name="Reset" component={ResetPasswordScreen} />
           <Stack.Screen name="MainTabs" component={AppTabs} />
           <Stack.Screen name="RegisterDevice" component={RegisterDeviceScreen} />
+          <Stack.Screen name="Devices" component={DevicesScreen} options={{ title: 'All Registered Devices' }} />
+          <Stack.Screen name="DeviceRequests" component={DeviceRequestsScreen} options={{ title: 'Device Requests' }} />
         </Stack.Navigator>
       </NavigationContainer>
     </SafeAreaProvider>

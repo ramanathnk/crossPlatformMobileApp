@@ -22,7 +22,7 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import CrossPlatformAlert from '../utils/CrossPlatformAlert';
-import SnaptrackerLogo from '../icons/SnapTrackerLogoNew';
+import SnaptrackerLogo from '../icons/SnapTrackerLogo';
 import EyeIcon from '../icons/EyeIconNew';
 
 const ResetPasswordScreen: React.FC = () => {

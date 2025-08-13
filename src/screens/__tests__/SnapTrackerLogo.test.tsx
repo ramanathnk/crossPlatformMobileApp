@@ -1,6 +1,6 @@
 import React from 'react';
 import { render } from '@testing-library/react-native';
-import SnaptrackerLogo from '../../icons/SnapTrackerLogoNew';
+import SnaptrackerLogo from '../../icons/SnapTrackerLogo';
 
 describe('SnaptrackerLogo', () => {
   it('renders without crashing', () => {
