@@ -36,6 +36,13 @@ The default location of the android sdk is:
 sdk.dir=C:\\Users\\<your-username>\\AppData\\Local\\Android\\Sdk
 
 
+### Running tests 
+
+Run tests with the command
+```bash
+npm test
+```
+
 
 ### Development
 

@@ -23,7 +23,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import CrossPlatformAlert from '../utils/CrossPlatformAlert';
 import SnaptrackerLogo from '../icons/SnapTrackerLogo';
-import EyeIcon from '../icons/EyeIconNew';
+import EyeIcon from '../icons/EyeIcon';
 
 const ResetPasswordScreen: React.FC = () => {
   const navigation = useNavigation<ResetPasswordScreenNavigationProp>();

@@ -1,6 +1,9 @@
 import React, { useState } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
+import { inputStyles, buttonStyles, errorStyles } from '../styles/commonStyles';
+import { colors, spacing, fontSizes } from '../styles/theme';
+
 // Define the navigation param list for the stack
 type RootStackParamList = {
   MainTabs: undefined;
@@ -23,7 +26,7 @@ import {
 import { StatusBar } from 'expo-status-bar';
 import CrossPlatformAlert from '../utils/CrossPlatformAlert';
 import SnaptrackerLogo from '../icons/SnapTrackerLogo';
-import EyeIcon from '../icons/EyeIconNew';
+import EyeIcon from '../icons/EyeIcon';
 import * as SecureStore from 'expo-secure-store';
 // Uses this mock to test the page without hitting the API
 // Switch between the mock and the actual API as needed
@@ -108,10 +111,10 @@ const LoginScreen: React.FC = () => {
           <View style={styles.formContainer}>
             {/* Username Field */}
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Username</Text>
+              <Text style={inputStyles.label}>Username</Text>
               <TextInput
                 testID="username-input"
-                style={styles.textInput}
+                style={inputStyles.textInput}
                 placeholder="Enter your username"
                 placeholderTextColor="#6B7280"
                 value={username}
@@ -123,7 +126,7 @@ const LoginScreen: React.FC = () => {
 
             {/* Password Field */}
             <View style={styles.inputContainer}>
-              <Text style={styles.inputLabel}>Password</Text>
+              <Text style={inputStyles.label}>Password</Text>
               <View style={styles.passwordContainer}>
                 <TextInput
                   testID="password-input"
@@ -181,18 +184,17 @@ const LoginScreen: React.FC = () => {
     </SafeAreaView>
   );
 };
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#1F2937',
+    backgroundColor: colors.background,
   },
   keyboardAvoidingView: {
     flex: 1,
   },
   scrollContainer: {
     flexGrow: 1,
-    paddingHorizontal: 24,
+    paddingHorizontal: spacing.lg,
     paddingTop: 60,
     paddingBottom: 60,
     minHeight: '100%',
@@ -204,23 +206,10 @@ const styles = StyleSheet.create({
   logoContainer: {
     alignItems: 'center',
   },
-  logo: {
-    width: 60,
-    height: 60,
-    backgroundColor: '#3B82F6',
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  logoText: {
-    fontSize: 28,
-    color: '#FFFFFF',
-  },
   appName: {
-    fontSize: 24,
+    fontSize: fontSizes.xxlarge,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.text,
     marginTop: 8,
   },
   titleSection: {
@@ -228,15 +217,15 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   title: {
-    fontSize: 20,
+    fontSize: fontSizes.xlarge,
     fontWeight: '600',
-    color: '#FFFFFF',
+    color: colors.text,
     marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 14,
-    color: '#9CA3AF',
+    fontSize: fontSizes.medium,
+    color: colors.muted,
     textAlign: 'center',
     lineHeight: 20,
   },
@@ -245,37 +234,14 @@ const styles = StyleSheet.create({
     minHeight: 200,
   },
   inputContainer: {
-    marginBottom: 20,
-  },
-  inputLabel: {
-    fontSize: 14,
-    color: '#D1D5DB',
-    marginBottom: 8,
-    fontWeight: '500',
-  },
-  textInput: {
-    backgroundColor: '#374151',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    color: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#4B5563',
+    marginBottom: spacing.lg,
   },
   passwordContainer: {
     position: 'relative',
   },
   passwordInput: {
-    backgroundColor: '#374151',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    ...inputStyles.textInput,
     paddingRight: 50,
-    fontSize: 16,
-    color: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#4B5563',
   },
   eyeIcon: {
     position: 'absolute',
@@ -286,37 +252,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   signInButton: {
-    backgroundColor: '#3B82F6',
-    borderRadius: 8,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 8,
-    marginBottom: 32,
+    ...buttonStyles.primary,
   },
   signInButtonDisabled: {
-    backgroundColor: '#6B7280',
-    opacity: 0.6,
+    ...buttonStyles.disabled,
   },
   signInButtonText: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#FFFFFF',
+    ...buttonStyles.text,
   },
   signInButtonTextDisabled: {
-    color: '#D1D5DB',
+    ...buttonStyles.textDisabled,
   },
   forgotPasswordText: {
-    fontSize: 14,
-    color: '#3B82F6',
+    fontSize: fontSizes.medium,
+    color: colors.primary,
     textAlign: 'center',
     textDecorationLine: 'underline',
-    paddingVertical: 8,
+    paddingVertical: spacing.sm,
   },
   error: {
-    color: '#FF3B30', // Bright red for high visibility
-    fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 12,  
+    ...errorStyles.error,
   },
 });
 

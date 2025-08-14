@@ -3,14 +3,18 @@ import {
   View,
   Text,
   TouchableOpacity,
-  StyleSheet,
   FlatList,
+  StyleSheet,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
+
+import { colors, spacing, fontSizes, borderRadius, fontWeights } from '../styles/theme';
+import { cardStyles, textStyles, buttonStyles } from '../styles/commonStyles';
+
 type RootStackParamList = {
   MainTabs: undefined;
 };
@@ -49,7 +53,6 @@ const MOCK_REQUESTS: Request[] = [
     notes: 'For Global Trackers LLC',
     status: 'Pending',
   },
-  // Add more mock requests as needed
 ];
 
 const DeviceRequestsScreen: React.FC = () => {
@@ -104,9 +107,9 @@ const DeviceRequestsScreen: React.FC = () => {
             style={styles.backBtn}
             onPress={() => navigation.goBack()}
           >
-            <MaterialIcons name="arrow-back" size={24} color="#FFF" />
+            <MaterialIcons name="arrow-back" size={24} color={colors.text} />
           </TouchableOpacity>
-          <Text style={styles.title}>Device Requests</Text>
+          <Text style={textStyles.heading}>Device Requests</Text>
         </View>
 
         {/* Filters */}
@@ -147,7 +150,7 @@ const DeviceRequestsScreen: React.FC = () => {
             style={[
               styles.pickerWrapper,
               {
-                marginLeft: 12,
+                marginLeft: spacing.md,
                 zIndex: typeFilterOpen ? 3000 : 1000,
                 elevation: typeFilterOpen ? 10 : 1,
                 position: 'relative',
@@ -180,7 +183,7 @@ const DeviceRequestsScreen: React.FC = () => {
 
         {/* Pending count & refresh */}
         <View style={styles.countBar}>
-          <Text style={styles.countText}>{pendingCount} Pending Requests</Text>
+          <Text style={textStyles.subtitle}>{pendingCount} Pending Requests</Text>
           <TouchableOpacity onPress={onRefresh}>
             <Text style={styles.refreshText}>Refresh</Text>
           </TouchableOpacity>
@@ -193,19 +196,19 @@ const DeviceRequestsScreen: React.FC = () => {
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
           renderItem={({ item }) => (
-            <View style={styles.card}>
+            <View style={cardStyles.container}>
               <View style={styles.cardTop}>
-                <MaterialIcons name="schedule" size={20} color="#FBBF24" />
-                <Text style={styles.serial}>{item.serial}</Text>
+                <MaterialIcons name="schedule" size={20} color={colors.accent} />
+                <Text style={cardStyles.title}>{item.serial}</Text>
                 <View style={styles.badge}>
                   <Text style={styles.badgeText}>{item.status}</Text>
                 </View>
               </View>
-              <Text style={styles.detail}>Device Type: {item.type}</Text>
-              <Text style={styles.detail}>OS Version: {item.os}</Text>
-              <Text style={styles.detail}>Build: {item.build}</Text>
-              <Text style={styles.detail}>Request Date: {item.date}</Text>
-              <Text style={styles.detail}>Notes: {item.notes}</Text>
+              <Text style={cardStyles.detail}>Device Type: {item.type}</Text>
+              <Text style={cardStyles.detail}>OS Version: {item.os}</Text>
+              <Text style={cardStyles.detail}>Build: {item.build}</Text>
+              <Text style={cardStyles.detail}>Request Date: {item.date}</Text>
+              <Text style={cardStyles.detail}>Notes: {item.notes}</Text>
 
               <Text style={styles.selectLabel}>Select Dealer</Text>
               <View style={[styles.pickerWrapper, { zIndex: 1000 }]}>
@@ -216,8 +219,12 @@ const DeviceRequestsScreen: React.FC = () => {
                   setOpen={setDealerOpen}
                   setValue={setDealerValue}
                   setItems={setDealerItems}
-                  style={styles.picker}
-                  dropDownContainerStyle={styles.pickerDropdown}
+                  style={styles.dealerPicker}
+                  dropDownContainerStyle={styles.dealerPickerDropdown}
+                  placeholderStyle={styles.dealerPickerPlaceholder}
+                  textStyle={styles.dealerPickerText}
+                  listItemLabelStyle={styles.dealerPickerText}
+                  placeholder="-- Select Dealer --"
                   //arrowIconStyle={styles.pickerArrow}
                 />
               </View>
@@ -238,104 +245,82 @@ const DeviceRequestsScreen: React.FC = () => {
   );
 };
 
-export default DeviceRequestsScreen;
-
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#1F2937' },
+  container: { flex: 1, backgroundColor: colors.background },
   scrollContent: {
-    paddingHorizontal: 20,
-    paddingBottom: 40,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xl,
   },
-  header: { flexDirection: 'row', alignItems: 'center', marginBottom: 24 },
-  backBtn: { marginRight: 12 },
-  title: { fontSize: 20, fontWeight: '600', color: '#FFF' },
+  header: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.lg },
+  backBtn: { marginRight: spacing.md },
   filters: {
     flexDirection: 'row',
-    marginBottom: 16,
-    zIndex: 3000, // Ensure filters are above cards
+    marginBottom: spacing.md,
+    zIndex: 3000,
+    paddingHorizontal: spacing.sm,
   },
   pickerWrapper: {
     flex: 1,
-    minWidth: 150,
-    backgroundColor: '#374151',
-    borderRadius: 8,
-    zIndex: 3000, // Highest zIndex for dropdown
+    minWidth: 120,
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.md,
+    zIndex: 3000,
     position: 'relative',
   },
   picker: {
-    backgroundColor: '#374151',
-    borderColor: '#4B5563',
-    color: '#FFF',
-    paddingHorizontal: 12,
-    fontSize: 16,
+    backgroundColor: colors.card,
+    borderColor: colors.border,
+    color: colors.text,
+    paddingHorizontal: spacing.md,
+    fontSize: fontSizes.medium,
     minHeight: 44,
   },
   pickerDropdown: {
-    backgroundColor: '#374151',
-    borderColor: '#4B5563',
+    backgroundColor: colors.card,
+    borderColor: colors.border,
     minWidth: 150,
     zIndex: 3000,
     position: 'absolute',
   },
   pickerPlaceholder: {
-    color: '#FFF',
-    fontSize: 16,
+    color: colors.text,
+    fontSize: fontSizes.medium,
   },
   pickerText: {
-    color: '#FFF',
-    fontSize: 16,
+    color: colors.text,
+    fontSize: fontSizes.medium,
   },
   pickerArrow: {
-    tintColor: '#FFF',
+    tintColor: colors.text,
   },
   countBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginBottom: 24,
+    marginBottom: spacing.lg,
   },
-  countText: { color: '#9CA3AF', fontSize: 14 },
-  refreshText: { color: '#3B82F6', fontSize: 14 },
-  card: {
-    backgroundColor: '#374151',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    zIndex: 1, // Cards should be below dropdowns
-  },
+  refreshText: { color: colors.primary, fontSize: fontSizes.medium },
   cardTop: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
-  },
-  serial: {
-    color: '#FFF',
-    fontWeight: '600',
-    fontSize: 16,
-    marginLeft: 8,
-    flex: 1,
+    marginBottom: spacing.md,
   },
   badge: {
-    backgroundColor: '#FBBF24',
-    borderRadius: 12,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    backgroundColor: colors.accent,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
   },
-  badgeText: { color: '#1F2937', fontWeight: '600' },
-  detail: {
-    color: '#D1D5DB',
-    fontSize: 14,
-    marginBottom: 4,
-  },
+  badgeText: { color: colors.background, fontWeight: fontWeights.semibold },
   selectLabel: {
-    color: '#9CA3AF',
-    marginTop: 12,
-    marginBottom: 4,
-    fontSize: 14,
+    color: colors.text,
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
+    fontSize: fontSizes.medium,
   },
   actions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    marginTop: 16,
+    marginTop: spacing.md,
   },
   actionBtn: {
     flex: 1,
@@ -348,4 +333,29 @@ const styles = StyleSheet.create({
   approve: { backgroundColor: '#3B82F6' },
   actionTextDeny: { color: '#6B7280', fontWeight: '600' },
   actionTextApprove: { color: '#FFF', fontWeight: '600' },
+  dealerPicker: {
+    backgroundColor: colors.card,
+    borderColor: colors.border,
+    color: colors.text, // Ensures input text is white
+    paddingHorizontal: spacing.md,
+    fontSize: fontSizes.medium,
+    minHeight: 44,
+  },
+  dealerPickerDropdown: {
+    backgroundColor: colors.card,
+    borderColor: colors.border,
+    minWidth: 150,
+    zIndex: 3000,
+    position: 'absolute',
+  },
+  dealerPickerPlaceholder: {
+    color: colors.text,
+    fontSize: fontSizes.medium,
+  },
+  dealerPickerText: {
+    color: colors.text,
+    fontSize: fontSizes.medium,
+  },
 });
+
+export default DeviceRequestsScreen;
