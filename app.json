@@ -22,7 +22,8 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.kisp.imdra"
+      "package": "com.kisp.imdra",
+      "versionCode": 1
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -32,7 +33,9 @@
         "expo-build-properties",
         {
           "android": {
-            "ndkVersion": "27.0.12077973"
+            "enableProguardInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true,
+            "extraProguardRules": "-keep class com.facebook.react.** { *; }\n-keep class com.facebook.jni.** { *; }\n-keep class com.facebook.hermes.** { *; }\n-keep class com.facebook.yoga.** { *; }\n-keep class com.horcrux.svg.** { *; }\n-keep class com.swmansion.gesturehandler.** { *; }\n-keep class com.th3rdwave.safeareacontext.** { *; }\n-dontwarn com.facebook.**\n-dontwarn com.horcrux.svg.**"
           }
         }
       ],

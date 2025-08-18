@@ -12,3 +12,15 @@
 -keep class com.facebook.react.turbomodule.** { *; }
 
 # Add any project specific keep options here:
+
+# @generated begin expo-build-properties - expo prebuild (DO NOT MODIFY)
+-keep class com.facebook.react.** { *; }
+-keep class com.facebook.jni.** { *; }
+-keep class com.facebook.hermes.** { *; }
+-keep class com.facebook.yoga.** { *; }
+-keep class com.horcrux.svg.** { *; }
+-keep class com.swmansion.gesturehandler.** { *; }
+-keep class com.th3rdwave.safeareacontext.** { *; }
+-dontwarn com.facebook.**
+-dontwarn com.horcrux.svg.**
+# @generated end expo-build-properties
