@@ -1,4 +1,4 @@
-package com.ramanathnk.IMDRA
+package com.kisp.imdra
 
 import android.app.Application
 import android.content.res.Configuration

@@ -1,13 +1,13 @@
 {
   "expo": {
     "name": "IMDRA",
-    "slug": "IMDRA",
+    "slug": "imdra",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/SnapTrackerLogoNew1024.png",
     "userInterfaceStyle": "light",
     "newArchEnabled": true,
-    "scheme": "IMDRA",
+    "scheme": "imdra",
     "splash": {
       "image": "./assets/SnapTrackerLogoNew1024.png",
       "resizeMode": "contain",
@@ -22,7 +22,7 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.ramanathnk.IMDRA"
+      "package": "com.kisp.imdra"
     },
     "web": {
       "favicon": "./assets/favicon.png"

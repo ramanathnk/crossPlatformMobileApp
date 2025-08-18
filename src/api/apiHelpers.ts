@@ -6,7 +6,7 @@ export const API_BASE = process.env.EXPO_PUBLIC_API_URL || 'https://www46.kisp.c
 
 export async function apiRequest<T>(
   url: string,
-  method: 'GET' | 'POST',
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE',
   fallbackError: string,
   token?: string,
   body?: object

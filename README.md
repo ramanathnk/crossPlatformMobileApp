@@ -15,6 +15,7 @@ A modern React Native application built with Expo and TypeScript.
 ### Installation
 
 1. Clone the repository:
+
    ```bash
    git clone <repository-url>
    cd IMDRA
@@ -25,24 +26,23 @@ A modern React Native application built with Expo and TypeScript.
    npm install
    ```
 
-### Setting up the Android SDK for the project 
+### Setting up the Android SDK for the project
 
 To tell the project the android sdk location:
-Go to IMDRA->android and create/edit the file named local.properties 
-Edit <your-username> to include your username
+Go to IMDRA->android and create/edit the file named local.properties
+Edit <your-username> in the line below to include your username/
 Enter the values of the android sdk location there like below:
 
 The default location of the android sdk is:
 sdk.dir=C:\\Users\\<your-username>\\AppData\\Local\\Android\\Sdk
 
-
-### Running tests 
+### Running tests
 
 Run tests with the command
+
 ```bash
 npm test
 ```
-
 
 ### Development
 
@@ -51,7 +51,6 @@ To start the development server:
 ```bash
 npm start
 ```
-
 
 This will start the Expo development server. You can then:
 
@@ -62,16 +61,17 @@ This will start the Expo development server. You can then:
 
 ### Available Scripts
 
-- `npm start` - Start the Expo development server
-- `npm run android` - Start the app on Android
-- `npm run ios` - Start the app on iOS (macOS only)
-- `npm run web` - Start the app in web browser
+- `npx expo start` - Start the Expo development server
+- `npx expo start -c` - Start the Expo development server after clearing cache
+- `npx expo run:android` - Start the app on Android
+- `npx expo run:ios` - Start the app on iOS (macOS only)
+- `npx expo run:web` - Start the app in web browser
 
 ## 🛠️ Tech Stack
 
 - **Framework**: React Native with Expo
 - **Language**: TypeScript
-- **Development Tools**: 
+- **Development Tools**:
   - VS Code with React Native Tools
   - Expo Tools extension
   - ES7+ React/Redux/React-Native snippets
@@ -111,31 +111,65 @@ This project is private and confidential.
 
 If you encounter any issues:
 
-1. Make sure all dependencies are installed: `npm install`
-2. Clear the Expo cache: `expo start -c`
-3. Restart the development server
-4. Check the Expo documentation: https://docs.expo.dev/
+1. Install expo first : `npm install expo`
+2. Make sure all dependencies are installed: `npx expo install`
+3. Clear the Expo cache: `npx expo start -c`
+4. Restart the development server
+5. Check the Expo documentation: https://docs.expo.dev/
 
 ---
 
 Built with ❤️ using Expo and React Native
 
+### Pre Build
+
+Run Pre-build after these situations:
+
+- After changing app.json (scheme, android.package, icons, splash, permissions).
+
+- After installing/upgrading native modules (e.g., react-native-svg, expo-secure-store).
+
+- After upgrading Expo SDK.
+
+# Generate only Android
+
+npx expo prebuild -p android
+
+# Regenerate from scratch (cleans native dirs)
+
+npx expo prebuild -p android --clean
+
+# Don’t install npm pods during prebuild
+
+npx expo prebuild -p android --no-install
 
 ### Debug Build
 
 To build an apk to deploy on Android devices (need a dev server running):
+
 - Navigate to the android folder
-   cd android
+  cd android
 
 - run gradle build
-   .\gradlew.bat assembleDebug
-
+  .\gradlew assembleDebug
 
 ### Release Build
 
 To build an apk to deploy on Android devices (no dev server needed):
+
 - Navigate to the android folder
-   cd android
+  cd android
 
 - run gradle build
-   .\gradlew.bat assembleRelease
+  .\gradlew assembleRelease
+
+### Typical Workflow
+
+npx expo prebuild -p android
+cd android;
+.\gradlew clean;
+.\gradlew assembleDebug # or assembleRelease
+
+# or run directly
+
+npx expo run:android

@@ -85,21 +85,15 @@ android {
     ndkVersion rootProject.ext.ndkVersion
 
     buildToolsVersion rootProject.ext.buildToolsVersion
-    compileSdkVersion rootProject.ext.compileSdkVersion
+    compileSdk rootProject.ext.compileSdkVersion
 
-    namespace = 'com.ramanathnk.IMDRA'
+    namespace 'com.kisp.imdra'
     defaultConfig {
-        applicationId 'com.ramanathnk.IMDRA'
+        applicationId 'com.kisp.imdra'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0.0"
-    }
-    applicationVariants.all { variant ->
-        variant.outputs.all { output ->
-            def newName = "IMDRA-${variant.name}-${variant.versionName}.apk"
-            outputFileName = newName
-        }
     }
     signingConfigs {
         debug {
@@ -130,6 +124,16 @@ android {
     }
     androidResources {
         ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:!CVS:!thumbs.db:!picasa.ini:!*~'
+    }
+    applicationVariants.all { variant ->
+        variant.outputs.all { output ->
+            if (variant.buildType.name == "debug") {
+                outputFileName = "imdra-debug.apk"
+            }
+            if (variant.buildType.name == "release") {
+                outputFileName = "imdra-release.apk"
+            }
+        }
     }
 }
 
