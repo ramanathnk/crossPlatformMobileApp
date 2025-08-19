@@ -1,19 +1,158 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   FlatList,
   StyleSheet,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import DropDownPicker from 'react-native-dropdown-picker';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import * as SecureStore from 'expo-secure-store';
 
 import { colors, spacing, fontSizes, borderRadius, fontWeights } from '../styles/theme';
-import { cardStyles, textStyles, buttonStyles } from '../styles/commonStyles';
+import { cardStyles, textStyles } from '../styles/commonStyles';
+
+// ===================================================================================
+// --- MOCK API IMPLEMENTATION ---
+// The following section contains mock data and functions to simulate API calls.
+// This allows the UI to be developed and tested without a live backend.
+// ===================================================================================
+
+// --- Type definitions (normally imported from API files) ---
+export interface DeviceRegistrationRequest {
+  requestId: number;
+  serialNo: string;
+  deviceTypeName: string;
+  osVersion: string | null;
+  buildNumber: string | null;
+  requestedAt: string;
+  notes: string | null;
+}
+
+export interface DeviceType {
+  id: number;
+  name: string;
+}
+
+// --- Helper to simulate network delay ---
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+// --- Mock Data Store ---
+const mockPendingRequests: DeviceRegistrationRequest[] = [
+  {
+    requestId: 101,
+    serialNo: 'SN-MOCK-12345',
+    deviceTypeName: 'Scanner X1',
+    osVersion: 'Android 11',
+    buildNumber: 'B-XYZ-001',
+    requestedAt: new Date().toISOString(),
+    notes: 'Device for warehouse inventory.',
+  },
+  {
+    requestId: 102,
+    serialNo: 'SN-MOCK-67890',
+    deviceTypeName: 'Tablet T2',
+    osVersion: 'iOS 15.2',
+    buildNumber: 'B-ABC-002',
+    requestedAt: new Date(Date.now() - 86400000).toISOString(), // Yesterday
+    notes: 'Field agent tablet.',
+  },
+  {
+    requestId: 103,
+    serialNo: 'SN-MOCK-ABCDE',
+    deviceTypeName: 'Scanner X1',
+    osVersion: 'Android 10',
+    buildNumber: 'B-PQR-003',
+    requestedAt: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
+    notes: null, // Test case with no notes
+  },
+];
+
+const mockDeviceTypes: DeviceType[] = [
+  { id: 1, name: 'Scanner X1' },
+  { id: 2, name: 'Tablet T2' },
+  { id: 3, name: 'Handheld H3' },
+];
+
+
+// --- Mock API Function Stubs ---
+
+/**
+ * MOCK: Fetches a list of pending device registration requests.
+ */
+const getPendingRegistrationRequests = async (token: string): Promise<DeviceRegistrationRequest[]> => {
+  console.log('--- MOCK: Fetching pending requests... ---');
+  await sleep(1000); // Simulate 1-second network delay
+  if (!token) {
+    throw new Error('MOCK: Auth token is required.');
+  }
+  console.log('--- MOCK: Returning mock requests. ---');
+  // Return a copy to prevent direct mutation of the mock data store
+  return Promise.resolve([...mockPendingRequests]);
+};
+
+/**
+ * MOCK: Fetches all available device types.
+ */
+const getAllDeviceTypes = async (token: string): Promise<DeviceType[]> => {
+  console.log('--- MOCK: Fetching device types... ---');
+  await sleep(500); // Simulate 0.5-second network delay
+  if (!token) {
+    throw new Error('MOCK: Auth token is required.');
+  }
+  console.log('--- MOCK: Returning mock device types. ---');
+  return Promise.resolve([...mockDeviceTypes]);
+};
+
+/**
+ * MOCK: Approves a device registration request.
+ */
+const approveRegistrationRequest = async (token: string, requestId: number): Promise<void> => {
+  console.log(`--- MOCK: Approving request ID: ${requestId} ---`);
+  await sleep(1500); // Simulate 1.5-second network delay
+  if (!token) {
+    throw new Error('MOCK: Auth token is required.');
+  }
+  // In a real mock, you might remove the item from the array.
+  // Here, we just log it and let the component's `fetchData` call handle the "refresh".
+  console.log(`--- MOCK: Request ${requestId} approved. Component will refetch data. ---`);
+  return Promise.resolve();
+};
+
+/**
+ * MOCK: Rejects a device registration request.
+ */
+const rejectRegistrationRequest = async (token: string, requestId: number, reason: string): Promise<void> => {
+  console.log(`--- MOCK: Rejecting request ID: ${requestId} with reason: "${reason}" ---`);
+  await sleep(1500); // Simulate 1.5-second network delay
+  if (!token) {
+    throw new Error('MOCK: Auth token is required.');
+  }
+  console.log(`--- MOCK: Request ${requestId} rejected. Component will refetch data. ---`);
+  return Promise.resolve();
+};
+
+// ===================================================================================
+// --- End of MOCK API IMPLEMENTATION ---
+// ===================================================================================
+
+
+// Import API functions and types
+/* COMMENTED OUT - Using mock implementations above
+import {
+  getPendingRegistrationRequests,
+  approveRegistrationRequest,
+  rejectRegistrationRequest,
+  DeviceRegistrationRequest,
+} from '../api/deviceRegistrationApi';
+import { getAllDeviceTypes, DeviceType } from '../api/deviceTypeApi';
+*/
 
 type RootStackParamList = {
   MainTabs: undefined;
@@ -21,8 +160,9 @@ type RootStackParamList = {
 
 type NavProp = StackNavigationProp<RootStackParamList, 'MainTabs'>;
 
+// UI-specific interface for a request
 interface Request {
-  id: string;
+  id: string; // Corresponds to requestId
   serial: string;
   type: string;
   os: string;
@@ -32,53 +172,47 @@ interface Request {
   status: 'Pending' | 'Approved' | 'Denied';
 }
 
-const MOCK_REQUESTS: Request[] = [
-  {
-    id: '1',
-    serial: 'ST-78901',
-    type: 'ST-Pro 2023',
-    os: 'v4.2.1',
-    build: '2023.05.1',
-    date: 'May 15, 2023',
-    notes: 'New device for TechSolutions Inc.',
-    status: 'Pending',
-  },
-  {
-    id: '2',
-    serial: 'ST-78845',
-    type: 'ST-Mini 2023',
-    os: 'v4.1.8',
-    build: '2023.03.2',
-    date: 'May 14, 2023',
-    notes: 'For Global Trackers LLC',
-    status: 'Pending',
-  },
-];
+// Helper to format API data for the UI
+const formatRequest = (apiRequest: DeviceRegistrationRequest): Request => ({
+  id: apiRequest.requestId.toString(),
+  serial: apiRequest.serialNo,
+  type: apiRequest.deviceTypeName,
+  os: apiRequest.osVersion || 'N/A',
+  build: apiRequest.buildNumber || 'N/A',
+  date: new Date(apiRequest.requestedAt).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  }),
+  notes: apiRequest.notes || 'No notes provided.',
+  status: 'Pending', // All requests from this API are pending
+});
 
 const DeviceRequestsScreen: React.FC = () => {
   const navigation = useNavigation<NavProp>();
-  const [requests] = useState<Request[]>(MOCK_REQUESTS);
 
-  // Status filter
+  // State for data, loading, and errors
+  const [requests, setRequests] = useState<Request[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const [submittingRequestId, setSubmittingRequestId] = useState<string | null>(null);
+
+  // State for filters
   const [statusFilterOpen, setStatusFilterOpen] = useState(false);
-  const [statusFilterValue, setStatusFilterValue] = useState<string>('All');
+  const [statusFilterValue, setStatusFilterValue] = useState<string>('Pending');
   const [statusFilterItems, setStatusFilterItems] = useState([
-    { label: 'All Status', value: 'All' },
     { label: 'Pending', value: 'Pending' },
     { label: 'Approved', value: 'Approved' },
     { label: 'Denied', value: 'Denied' },
   ]);
 
-  // Type filter
   const [typeFilterOpen, setTypeFilterOpen] = useState(false);
   const [typeFilterValue, setTypeFilterValue] = useState<string>('All');
   const [typeFilterItems, setTypeFilterItems] = useState([
     { label: 'All Device Types', value: 'All' },
-    { label: 'ST-Pro 2023', value: 'ST-Pro 2023' },
-    { label: 'ST-Mini 2023', value: 'ST-Mini 2023' },
   ]);
 
-  // Dealer selector (per card, so use local state for demo)
+  // TODO: Dealer dropdown state needs to be wired up if required
   const [dealerOpen, setDealerOpen] = useState(false);
   const [dealerValue, setDealerValue] = useState<string>('');
   const [dealerItems, setDealerItems] = useState([
@@ -87,115 +221,110 @@ const DeviceRequestsScreen: React.FC = () => {
     { label: 'Global Trackers LLC', value: 'Global Trackers LLC' },
   ]);
 
-  const filteredRequests = requests.filter(r =>
-    (statusFilterValue === 'All' || r.status === statusFilterValue) &&
-    (typeFilterValue === 'All' || r.type === typeFilterValue)
-  );
-  const pendingCount = filteredRequests.filter(r => r.status === 'Pending').length;
+  // Fetch data from API
+  const fetchData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const token = await SecureStore.getItemAsync('accessToken') || 'mock-token'; // Use a mock token
+      if (!token) {
+        throw new Error('Authentication token not found.');
+      }
+      console.log('Before call to getPendingRegistrationRequests');
 
-  const onRefresh = () => {
-    // TODO: fetch fresh data
-    console.log('refreshing…');
+      // Fetch requests and device types in parallel
+      const [pendingRequests, deviceTypes] = await Promise.all([
+        getPendingRegistrationRequests(token),
+        getAllDeviceTypes(token),
+      ]);
+      console.log('The call for getPendingRegistrationRequests was successful');
+      console.log('Pending Requests:', pendingRequests);
+      console.log('Device Types:', deviceTypes);
+      setRequests(pendingRequests.map(formatRequest));
+
+      const formattedTypes = deviceTypes.map((type: DeviceType) => ({
+        label: type.name,
+        value: type.name,
+      }));
+      setTypeFilterItems([{ label: 'All Device Types', value: 'All' }, ...formattedTypes]);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An unknown error occurred.');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const handleApprove = async (requestId: string) => {
+    setSubmittingRequestId(requestId);
+    try {
+      const token = await SecureStore.getItemAsync('accessToken') || 'mock-token';
+      if (!token) throw new Error('Authentication token not found.');
+
+      await approveRegistrationRequest(token, parseInt(requestId, 10));
+      Alert.alert('Success (Mock)', 'Device registration has been approved.');
+      fetchData(); // Refresh list
+    } catch (err) {
+      Alert.alert('Error (Mock)', err instanceof Error ? err.message : 'Failed to approve request.');
+    } finally {
+      setSubmittingRequestId(null);
+    }
   };
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <View style={{ flex: 1 }}>
-        {/* Header */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backBtn}
-            onPress={() => navigation.goBack()}
-          >
-            <MaterialIcons name="arrow-back" size={24} color={colors.text} />
-          </TouchableOpacity>
-          <Text style={textStyles.heading}>Device Requests</Text>
-        </View>
+  const handleDeny = (requestId: string) => {
+    Alert.prompt(
+      'Deny Request',
+      'Please provide a reason for denying this request.',
+      async (reason) => {
+        if (!reason) return; // User cancelled or entered no reason
 
-        {/* Filters */}
-        <View style={styles.filters}>
-          <View
-            style={[
-              styles.pickerWrapper,
-              {
-                zIndex: statusFilterOpen ? 3000 : 2000,
-                elevation: statusFilterOpen ? 10 : 1,
-                position: 'relative',
-              },
-            ]}
-          >
-            <DropDownPicker<string>
-              open={statusFilterOpen}
-              value={statusFilterValue}
-              items={statusFilterItems}
-              setOpen={setStatusFilterOpen}
-              setValue={setStatusFilterValue}
-              setItems={setStatusFilterItems}
-              style={styles.picker}
-              dropDownContainerStyle={styles.pickerDropdown}
-              placeholder="All Status"
-              placeholderStyle={styles.pickerPlaceholder}
-              textStyle={styles.pickerText}
-              listItemLabelStyle={styles.pickerText}
-              //arrowIconStyle={styles.pickerArrow}
-              onOpen={() => {
-                setStatusFilterOpen(true);
-              }}
-              onClose={() => setStatusFilterOpen(false)}
-              zIndex={3000}
-              zIndexInverse={2000}
-            />
-          </View>
-          <View
-            style={[
-              styles.pickerWrapper,
-              {
-                marginLeft: spacing.md,
-                zIndex: typeFilterOpen ? 3000 : 1000,
-                elevation: typeFilterOpen ? 10 : 1,
-                position: 'relative',
-              },
-            ]}
-          >
-            <DropDownPicker<string>
-              open={typeFilterOpen}
-              value={typeFilterValue}
-              items={typeFilterItems}
-              setOpen={setTypeFilterOpen}
-              setValue={setTypeFilterValue}
-              setItems={setTypeFilterItems}
-              style={styles.picker}
-              dropDownContainerStyle={styles.pickerDropdown}
-              placeholder="All Device Types"
-              placeholderStyle={styles.pickerPlaceholder}
-              textStyle={styles.pickerText}
-              listItemLabelStyle={styles.pickerText}
-              //arrowIconStyle={styles.pickerArrow}
-              onOpen={() => {
-                setTypeFilterOpen(true);
-              }}
-              onClose={() => setTypeFilterOpen(false)}
-              zIndex={3000}
-              zIndexInverse={1000}
-            />
-          </View>
-        </View>
+        setSubmittingRequestId(requestId);
+        try {
+          const token = await SecureStore.getItemAsync('accessToken') || 'mock-token';
+          if (!token) throw new Error('Authentication token not found.');
 
-        {/* Pending count & refresh */}
-        <View style={styles.countBar}>
-          <Text style={textStyles.subtitle}>{pendingCount} Pending Requests</Text>
-          <TouchableOpacity onPress={onRefresh}>
-            <Text style={styles.refreshText}>Refresh</Text>
-          </TouchableOpacity>
-        </View>
+          await rejectRegistrationRequest(token, parseInt(requestId, 10), reason);
+          Alert.alert('Success (Mock)', 'Device registration has been denied.');
+          fetchData(); // Refresh list
+        } catch (err) {
+          Alert.alert('Error (Mock)', err instanceof Error ? err.message : 'Failed to deny request.');
+        } finally {
+          setSubmittingRequestId(null);
+        }
+      },
+    );
+  };
 
-        {/* Requests List */}
-        <FlatList
-          data={filteredRequests}
-          keyExtractor={r => r.id}
-          showsVerticalScrollIndicator={false}
-          contentContainerStyle={styles.scrollContent}
-          renderItem={({ item }) => (
+  const filteredRequests = requests.filter(
+    (r) =>
+      (statusFilterValue === 'All' || r.status === statusFilterValue) &&
+      (typeFilterValue === 'All' || r.type === typeFilterValue),
+  );
+
+  const renderContent = () => {
+    if (loading) {
+      return <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 50 }} />;
+    }
+    if (error) {
+      return <Text style={styles.errorText}>{error}</Text>;
+    }
+    if (filteredRequests.length === 0) {
+      return <Text style={styles.emptyText}>No pending requests found.</Text>;
+    }
+    return (
+      <FlatList
+        data={filteredRequests}
+        keyExtractor={(r) => r.id}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        refreshing={loading}
+        onRefresh={fetchData}
+        renderItem={({ item }) => {
+          const isSubmitting = submittingRequestId === item.id;
+          return (
             <View style={cardStyles.container}>
               <View style={styles.cardTop}>
                 <MaterialIcons name="schedule" size={20} color={colors.accent} />
@@ -210,6 +339,7 @@ const DeviceRequestsScreen: React.FC = () => {
               <Text style={cardStyles.detail}>Request Date: {item.date}</Text>
               <Text style={cardStyles.detail}>Notes: {item.notes}</Text>
 
+              {/* This dealer selector is still using mock data as per original code */}
               <Text style={styles.selectLabel}>Select Dealer</Text>
               <View style={[styles.pickerWrapper, { zIndex: 1000 }]}>
                 <DropDownPicker<string>
@@ -221,82 +351,135 @@ const DeviceRequestsScreen: React.FC = () => {
                   setItems={setDealerItems}
                   style={styles.dealerPicker}
                   dropDownContainerStyle={styles.dealerPickerDropdown}
-                  placeholderStyle={styles.dealerPickerPlaceholder}
-                  textStyle={styles.dealerPickerText}
-                  listItemLabelStyle={styles.dealerPickerText}
                   placeholder="-- Select Dealer --"
-                  //arrowIconStyle={styles.pickerArrow}
                 />
               </View>
 
               <View style={styles.actions}>
-                <TouchableOpacity style={[styles.actionBtn, styles.deny]}>
+                <TouchableOpacity
+                  style={[styles.actionBtn, styles.deny]}
+                  onPress={() => handleDeny(item.id)}
+                  disabled={isSubmitting}
+                >
                   <Text style={styles.actionTextDeny}>Deny</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={[styles.actionBtn, styles.approve]}>
-                  <Text style={styles.actionTextApprove}>Approve</Text>
+                <TouchableOpacity
+                  style={[styles.actionBtn, styles.approve]}
+                  onPress={() => handleApprove(item.id)}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <ActivityIndicator size="small" color="#FFF" />
+                  ) : (
+                    <Text style={styles.actionTextApprove}>Approve</Text>
+                  )}
                 </TouchableOpacity>
               </View>
             </View>
-          )}
-        />
+          );
+        }}
+      />
+    );
+  };
+
+  return (
+    <SafeAreaView style={styles.container}>
+      {/* Header and Filters are mostly unchanged, but now use state-driven items */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+          <MaterialIcons name="arrow-back" size={24} color={colors.text} />
+        </TouchableOpacity>
+        <Text style={textStyles.heading}>Device Requests</Text>
       </View>
+
+      {/* Filters */}
+      <View style={styles.filters}>
+        <View style={[styles.pickerWrapper, { zIndex: statusFilterOpen ? 3000 : 2000 }]}>
+          <DropDownPicker<string>
+            open={statusFilterOpen}
+            value={statusFilterValue}
+            items={statusFilterItems}
+            setOpen={setStatusFilterOpen}
+            setValue={setStatusFilterValue}
+            setItems={setStatusFilterItems}
+            style={styles.picker}
+            dropDownContainerStyle={styles.pickerDropdown}
+          />
+        </View>
+        <View
+          style={[
+            styles.pickerWrapper,
+            { marginLeft: spacing.md, zIndex: typeFilterOpen ? 3000 : 1000 },
+          ]}
+        >
+          <DropDownPicker<string>
+            open={typeFilterOpen}
+            value={typeFilterValue}
+            items={typeFilterItems} // Using state-driven items
+            setOpen={setTypeFilterOpen}
+            setValue={setTypeFilterValue}
+            setItems={setTypeFilterItems}
+            style={styles.picker}
+            dropDownContainerStyle={styles.pickerDropdown}
+          />
+        </View>
+      </View>
+
+      {/* Count Bar */}
+      <View style={styles.countBar}>
+        <Text style={textStyles.subtitle}>{requests.length} Pending Requests</Text>
+        <TouchableOpacity onPress={fetchData}>
+          <Text style={styles.refreshText}>Refresh</Text>
+        </TouchableOpacity>
+      </View>
+
+      {renderContent()}
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
+  // --- Keep all your original styles here ---
   container: { flex: 1, backgroundColor: colors.background },
   scrollContent: {
     paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xl,
   },
-  header: { flexDirection: 'row', alignItems: 'center', marginBottom: spacing.lg },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    marginBottom: spacing.lg,
+  },
   backBtn: { marginRight: spacing.md },
   filters: {
     flexDirection: 'row',
     marginBottom: spacing.md,
     zIndex: 3000,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: spacing.lg,
   },
   pickerWrapper: {
     flex: 1,
-    minWidth: 120,
-    backgroundColor: colors.card,
-    borderRadius: borderRadius.md,
-    zIndex: 3000,
-    position: 'relative',
   },
   picker: {
     backgroundColor: colors.card,
     borderColor: colors.border,
-    color: colors.text,
-    paddingHorizontal: spacing.md,
-    fontSize: fontSizes.medium,
     minHeight: 44,
   },
   pickerDropdown: {
     backgroundColor: colors.card,
     borderColor: colors.border,
-    minWidth: 150,
-    zIndex: 3000,
     position: 'absolute',
-  },
-  pickerPlaceholder: {
-    color: colors.text,
-    fontSize: fontSizes.medium,
   },
   pickerText: {
     color: colors.text,
-    fontSize: fontSizes.medium,
-  },
-  pickerArrow: {
-    tintColor: colors.text,
   },
   countBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: spacing.lg,
+    paddingHorizontal: spacing.lg,
   },
   refreshText: { color: colors.primary, fontSize: fontSizes.medium },
   cardTop: {
@@ -309,6 +492,7 @@ const styles = StyleSheet.create({
     borderRadius: borderRadius.md,
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
+    marginLeft: 'auto',
   },
   badgeText: { color: colors.background, fontWeight: fontWeights.semibold },
   selectLabel: {
@@ -321,6 +505,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-end',
     marginTop: spacing.md,
+    zIndex: -1, // Ensure actions are below dealer dropdown
   },
   actionBtn: {
     flex: 1,
@@ -336,25 +521,23 @@ const styles = StyleSheet.create({
   dealerPicker: {
     backgroundColor: colors.card,
     borderColor: colors.border,
-    color: colors.text, // Ensures input text is white
-    paddingHorizontal: spacing.md,
-    fontSize: fontSizes.medium,
-    minHeight: 44,
   },
   dealerPickerDropdown: {
     backgroundColor: colors.card,
     borderColor: colors.border,
-    minWidth: 150,
-    zIndex: 3000,
     position: 'absolute',
   },
-  dealerPickerPlaceholder: {
-    color: colors.text,
-    fontSize: fontSizes.medium,
+  errorText: {
+    color: 'red',
+    textAlign: 'center',
+    marginTop: 20,
+    fontSize: fontSizes.large,
   },
-  dealerPickerText: {
+  emptyText: {
     color: colors.text,
-    fontSize: fontSizes.medium,
+    textAlign: 'center',
+    marginTop: 20,
+    fontSize: fontSizes.large,
   },
 });
 
