@@ -24,7 +24,7 @@ import { getAllDealers } from '../api/dealerApi';
 import { getAllDeviceTypes } from '../api/deviceTypeApi';
 import type { DropdownOption } from '../components/CrossPlatformDropdownGen/types';
 import CrossPlatformDropdownGen from '../components/CrossPlatformDropdownGen';
-import { registerDevice } from '../api/registerDeviceApi';
+import { registerDevice } from '../api/deviceRegistrationApi';
 
 // For testing with mock data, uncomment the lines below:
 //import { getAllDealers as getAllDealersMock } from '../api/mocks/dealerApiMock';

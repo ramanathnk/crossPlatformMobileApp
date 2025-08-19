@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   SafeAreaView,
   ScrollView,
@@ -8,10 +8,15 @@ import {
   TouchableOpacity,
   FlatList,
   StyleSheet,
+  ActivityIndicator,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
+import * as SecureStore from 'expo-secure-store';
+
+// Assuming your api file is in ../api/
+import { getRegisteredDevices, RegisteredDevice } from '../api/deviceRegistrationApi';
 
 export interface Device {
   id: string;
@@ -22,26 +27,103 @@ export interface Device {
   date: string;
 }
 
-const MOCK_DEVICES: Device[] = [
-  { id: '1', serial: 'ST-78901', model: 'ST-Pro 2023', dealer: 'TechSolutions Inc.', status: 'Active', date: 'May 15, 2023' },
-  { id: '2', serial: 'ST-78845', model: 'ST-Mini 2023', dealer: 'Global Trackers LLC', status: 'Active', date: 'May 14, 2023' },
-  { id: '3', serial: 'ST-78756', model: 'ST-Pro 2022', dealer: 'SmartTrack Solutions', status: 'Inactive', date: 'May 12, 2023' },
-];
-
 type RootStackParamList = {
   MainTabs: undefined;
 };
 type RegisterDeviceScreenNavigationProp = StackNavigationProp<RootStackParamList, 'MainTabs'>;
 
-
 const DevicesScreen: React.FC = () => {
-
+  const [devices, setDevices] = useState<Device[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
-  const filtered = MOCK_DEVICES.filter(d =>
-    d.serial.toLowerCase().includes(search.toLowerCase())
-  );
+
+  const filtered = devices.filter((d) => d.serial.toLowerCase().includes(search.toLowerCase()));
   const navigation = useNavigation<RegisterDeviceScreenNavigationProp>();
 
+  useEffect(() => {
+    const fetchDevices = async () => {
+      let authToken = '';
+      try {
+        authToken = (await SecureStore.getItemAsync('accessToken')) || '';
+        if (!authToken) {
+          throw new Error('No access token found. Please log in again.');
+        }
+      } catch (err) {
+        setError('Failed to retrieve access token. Please log in again.');
+        return;
+      }
+      try {
+        const apiDevices = await getRegisteredDevices(authToken);
+
+        const formattedDevices: Device[] = apiDevices.map((device: RegisteredDevice) => ({
+          id: device.serialNo,
+          serial: device.serialNo,
+          model: device.modelNumber,
+          dealer: device.dealerName,
+          status: device.status === 'Active' ? 'Active' : 'Inactive',
+          date: new Date(device.registrationDate).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric',
+          }),
+        }));
+
+        setDevices(formattedDevices);
+      } catch (err) {
+        if (err instanceof Error) {
+          setError(err.message);
+        } else {
+          setError('An unknown error occurred while fetching devices.');
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDevices();
+  }, []);
+
+  const renderContent = () => {
+    if (loading) {
+      return <ActivityIndicator size="large" color="#FFFFFF" style={{ marginTop: 50 }} />;
+    }
+
+    if (error) {
+      return <Text style={styles.errorText}>Error: {error}</Text>;
+    }
+
+    if (filtered.length === 0) {
+      return <Text style={styles.emptyText}>No devices found.</Text>;
+    }
+
+    return (
+      <FlatList
+        data={filtered}
+        //keyExtractor={(item) => item.id}
+        keyExtractor={(item, index) => index.toString()}
+        scrollEnabled={false}
+        renderItem={({ item }) => (
+          <View style={styles.card}>
+            <View style={styles.cardLeft}>
+              <MaterialIcons
+                name={item.status === 'Active' ? 'check-circle' : 'cancel'}
+                size={24}
+                color={item.status === 'Active' ? '#10B981' : '#EF4444'}
+              />
+              <View style={styles.cardText}>
+                <Text style={styles.serial}>{item.serial}</Text>
+                <Text style={styles.model}>{item.model}</Text>
+                <Text style={styles.dealer}>{item.dealer}</Text>
+              </View>
+            </View>
+            <Text style={styles.date}>{item.date}</Text>
+          </View>
+        )}
+        contentContainerStyle={{ paddingBottom: 60 }}
+      />
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -51,17 +133,12 @@ const DevicesScreen: React.FC = () => {
       >
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => navigation.goBack()}
-          >
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
             <Text style={styles.backArrow}>←</Text>
           </TouchableOpacity>
           <View style={styles.headerTitleContainer}>
             <Text style={styles.headerTitle}>All Registered Devices</Text>
-            <Text style={styles.headerSubtitle}>
-              View and manage your devices
-            </Text>
+            <Text style={styles.headerSubtitle}>View and manage your devices</Text>
           </View>
         </View>
 
@@ -90,29 +167,7 @@ const DevicesScreen: React.FC = () => {
         </View>
 
         {/* Devices List */}
-        <FlatList
-          data={filtered}
-          keyExtractor={item => item.id}
-          scrollEnabled={false}
-          renderItem={({ item }) => (
-            <View style={styles.card}>
-              <View style={styles.cardLeft}>
-                <MaterialIcons
-                  name={item.status === 'Active' ? 'check-circle' : 'cancel'}
-                  size={24}
-                  color={item.status === 'Active' ? '#10B981' : '#EF4444'}
-                />
-                <View style={styles.cardText}>
-                  <Text style={styles.serial}>{item.serial}</Text>
-                  <Text style={styles.model}>{item.model}</Text>
-                  <Text style={styles.dealer}>{item.dealer}</Text>
-                </View>
-              </View>
-              <Text style={styles.date}>{item.date}</Text>
-            </View>
-          )}
-          contentContainerStyle={{ paddingBottom: 60 }}
-        />
+        {renderContent()}
       </ScrollView>
     </SafeAreaView>
   );
@@ -222,6 +277,18 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     fontSize: 12,
     alignSelf: 'flex-start',
+  },
+  errorText: {
+    color: '#EF4444',
+    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 20,
+  },
+  emptyText: {
+    color: '#9CA3AF',
+    fontSize: 16,
+    textAlign: 'center',
+    marginTop: 20,
   },
 });
 
