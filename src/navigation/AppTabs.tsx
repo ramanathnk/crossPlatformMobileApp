@@ -40,7 +40,7 @@ const AppTabs: React.FC = () => {
         },
         tabBarIcon: ({ focused, color, size }) => {
           let IconComponent;
-          let iconColor = focused ? '#3B82F6' : '#9CA3AF';
+          const iconColor = focused ? '#3B82F6' : '#9CA3AF';
           switch (route.name) {
             case 'Dashboard':
               IconComponent = HomeIcon;

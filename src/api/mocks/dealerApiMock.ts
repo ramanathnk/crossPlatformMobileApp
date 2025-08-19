@@ -1,7 +1,7 @@
 import { Dealer } from '../dealerApi';
 
 // Mocked getAllDealers function for development
-export async function getAllDealers(token: string): Promise<Dealer[]> {
+export async function getAllDealers(_token: string): Promise<Dealer[]> {
   return new Promise<Dealer[]>((resolve) => {
     setTimeout(() => {
       resolve([
