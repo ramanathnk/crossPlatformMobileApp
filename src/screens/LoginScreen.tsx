@@ -1,16 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import { inputStyles, buttonStyles, errorStyles } from '../styles/commonStyles';
 import { colors, spacing, fontSizes } from '../styles/theme';
-
-// Define the navigation param list for the stack
-type RootStackParamList = {
-  MainTabs: undefined;
-  Forgot: undefined;
-};
-
-type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, 'MainTabs'>;
 import {
   StyleSheet,
   Text,
@@ -28,52 +20,59 @@ import CrossPlatformAlert from '../utils/CrossPlatformAlert';
 import SnaptrackerLogo from '../icons/SnapTrackerLogo';
 import EyeIcon from '../icons/EyeIcon';
 import * as SecureStore from 'expo-secure-store';
-// Uses this mock to test the page without hitting the API
-// Switch between the mock and the actual API as needed
-//import { login } from '../api/mocks/authApiMock'; 
-import { login } from '../api/authApi';
+import { useDispatch, useSelector } from 'react-redux';
+import { AppDispatch, RootState } from '../store';
+import { loginThunk, clearError } from '../store/authSlice';
 
-//console.log('login:', login);
+type RootStackParamList = {
+  MainTabs: undefined;
+  Forgot: undefined;
+};
 
-
+type LoginScreenNavigationProp = StackNavigationProp<RootStackParamList, 'MainTabs'>;
 
 const LoginScreen: React.FC = () => {
   const navigation = useNavigation<LoginScreenNavigationProp>();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  const dispatch = useDispatch<AppDispatch>();
+  const authState = useSelector((state: RootState) => state.auth);
+  const loading = authState.loading;
+  const serverError = authState.error;
+
+  useEffect(() => {
+    // If server error changes, surface it locally
+    setLocalError(serverError);
+  }, [serverError]);
+
   // Validation: Check if username and password are not empty
   const isFormValid = username.trim().length > 0 && password.trim().length > 0;
 
   const handleSignIn = async () => {
     if (!isFormValid) {
-      CrossPlatformAlert.alert(
-        'Validation Error',
-        'Please enter both username and password.',
-        [
-          {
-            text: 'OK',
-            style: 'default',
-          },
-        ]
-      );
+      CrossPlatformAlert.alert('Validation Error', 'Please enter both username and password.', [
+        {
+          text: 'OK',
+          style: 'default',
+        },
+      ]);
       return;
     }
 
-    setLoading(true);
-    setError(null);
+    setLocalError(null);
+
     try {
-      const response = await login({ username, password });
-      await SecureStore.setItemAsync('accessToken', response.accessToken);
-      //console.log('Login successful:', response);
+      const response = await dispatch(loginThunk({ username, password })).unwrap();
+      // Store token centrally (you can move this into the thunk if preferred)
+      if (response.accessToken) {
+        await SecureStore.setItemAsync('accessToken', response.accessToken);
+      }
       navigation.navigate('MainTabs');
-    } catch (err) {
-      console.log('Login failed:', err);
-      setError((err as Error).message);
-    } finally {
-      setLoading(false);
+    } catch (err: any) {
+      setLocalError(err?.message || 'Login failed');
     }
   };
 
@@ -81,14 +80,16 @@ const LoginScreen: React.FC = () => {
     navigation.navigate('Forgot');
   };
 
+  const displayError = localError;
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         style={styles.keyboardAvoidingView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <ScrollView 
+        <ScrollView
           contentContainerStyle={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
@@ -141,21 +142,21 @@ const LoginScreen: React.FC = () => {
                 />
                 <TouchableOpacity
                   style={styles.eyeIcon}
-                  testID='toggle-password-visibility'
+                  testID="toggle-password-visibility"
                   onPress={() => setShowPassword(!showPassword)}
                 >
-                  <EyeIcon visible={showPassword} size={20} color="#9CA3AF"  />
+                  <EyeIcon visible={showPassword} size={20} color="#9CA3AF" />
                 </TouchableOpacity>
               </View>
             </View>
 
             {/* Sign In Button */}
-            {error && <Text style={styles.error}>{error}</Text>}
+            {displayError && <Text style={styles.error}>{displayError}</Text>}
             <TouchableOpacity
-              testID='sign-in-button'
+              testID="sign-in-button"
               style={[
                 styles.signInButton,
-                (!isFormValid || loading) && styles.signInButtonDisabled
+                (!isFormValid || loading) && styles.signInButtonDisabled,
               ]}
               onPress={handleSignIn}
               disabled={!isFormValid || loading}
@@ -166,7 +167,7 @@ const LoginScreen: React.FC = () => {
                 <Text
                   style={[
                     styles.signInButtonText,
-                    (!isFormValid || loading) && styles.signInButtonTextDisabled
+                    (!isFormValid || loading) && styles.signInButtonTextDisabled,
                   ]}
                 >
                   Sign In

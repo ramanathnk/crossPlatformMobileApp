@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   SafeAreaView,
   ScrollView,
@@ -9,17 +9,18 @@ import {
   FlatList,
   StyleSheet,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import * as SecureStore from 'expo-secure-store';
 
-// Assuming your api file is in ../api/
-import { getRegisteredDevices, RegisteredDevice } from '../api/deviceRegistrationApi';
+import { RegisteredDevice } from '../api/deviceRegistrationApi';
+import { useGetRegisteredDevices } from '../api/deviceRegistrationApiRQ';
 
 export interface Device {
-  id: string;
+  id: string; // stable unique id used by FlatList
   serial: string;
   model: string;
   dealer: string;
@@ -29,60 +30,101 @@ export interface Device {
 
 type RootStackParamList = {
   MainTabs: undefined;
+  Login?: undefined;
 };
 type RegisterDeviceScreenNavigationProp = StackNavigationProp<RootStackParamList, 'MainTabs'>;
 
 const DevicesScreen: React.FC = () => {
-  const [devices, setDevices] = useState<Device[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [authToken, setAuthToken] = useState<string | null | undefined>(undefined);
+  const [localError, setLocalError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const filtered = devices.filter((d) => d.serial.toLowerCase().includes(search.toLowerCase()));
   const navigation = useNavigation<RegisterDeviceScreenNavigationProp>();
 
   useEffect(() => {
-    const fetchDevices = async () => {
-      let authToken = '';
+    let mounted = true;
+    (async () => {
       try {
-        authToken = (await SecureStore.getItemAsync('accessToken')) || '';
-        if (!authToken) {
-          throw new Error('No access token found. Please log in again.');
+        const token = await SecureStore.getItemAsync('accessToken');
+        if (!mounted) return;
+        setAuthToken(token ?? null);
+        if (!token) {
+          setLocalError('No access token found. Please log in again.');
         }
       } catch (err) {
-        setError('Failed to retrieve access token. Please log in again.');
-        return;
+        if (!mounted) return;
+        setAuthToken(null);
+        setLocalError('Failed to retrieve access token. Please log in again.');
       }
-      try {
-        const apiDevices = await getRegisteredDevices(authToken);
-
-        const formattedDevices: Device[] = apiDevices.map((device: RegisteredDevice) => ({
-          id: device.serialNo,
-          serial: device.serialNo,
-          model: device.modelNumber,
-          dealer: device.dealerName,
-          status: device.status === 'Active' ? 'Active' : 'Inactive',
-          date: new Date(device.registrationDate).toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric',
-          }),
-        }));
-
-        setDevices(formattedDevices);
-      } catch (err) {
-        if (err instanceof Error) {
-          setError(err.message);
-        } else {
-          setError('An unknown error occurred while fetching devices.');
-        }
-      } finally {
-        setLoading(false);
-      }
+    })();
+    return () => {
+      mounted = false;
     };
-
-    fetchDevices();
   }, []);
+
+  useEffect(() => {
+    if (authToken === null) {
+      navigation.navigate('Login' as any);
+    }
+  }, [authToken, navigation]);
+
+  const {
+    data: apiDevices,
+    isLoading: queryLoading,
+    isError: queryIsError,
+    error: queryError,
+    refetch,
+  } = useGetRegisteredDevices(authToken ?? undefined);
+
+  const loading = authToken === undefined || queryLoading;
+
+  const error =
+    localError ??
+    (queryIsError ? (queryError instanceof Error ? queryError.message : String(queryError)) : null);
+
+  // Map API RegisteredDevice[] to UI Device[] and generate stable unique keys.
+  // We use a composite key (dealerId + serialNo), and if duplicates still happen we append an occurrence count.
+  const devices: Device[] = useMemo(() => {
+    if (!apiDevices || apiDevices.length === 0) return [];
+
+    const occurrences: Record<string, number> = {};
+
+    return apiDevices.map((device: RegisteredDevice) => {
+      // Use dealerId (if present) + serialNo as a composite base key
+      const dealerPart =
+        (device as any).dealerId ?? (device as any).registeredBy ?? 'unknownDealer';
+      const baseKey = `${dealerPart}-${device.serialNo}`;
+
+      occurrences[baseKey] = (occurrences[baseKey] ?? 0) + 1;
+      const uniqueKey = occurrences[baseKey] > 1 ? `${baseKey}-${occurrences[baseKey]}` : baseKey;
+
+      return {
+        id: uniqueKey,
+        serial: device.serialNo,
+        model: device.modelNumber,
+        dealer: device.dealerName,
+        status: device.status === 'Active' ? 'Active' : 'Inactive',
+        date: new Date(device.registrationDate).toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'long',
+          day: 'numeric',
+        }),
+      };
+    });
+  }, [apiDevices]);
+
+  const filtered = devices.filter((d) => d.serial.toLowerCase().includes(search.toLowerCase()));
+
+  const onRefresh = async () => {
+    if (!refetch) return;
+    setRefreshing(true);
+    try {
+      await refetch();
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const renderContent = () => {
     if (loading) {
@@ -100,8 +142,7 @@ const DevicesScreen: React.FC = () => {
     return (
       <FlatList
         data={filtered}
-        //keyExtractor={(item) => item.id}
-        keyExtractor={(item, index) => index.toString()}
+        keyExtractor={(item) => item.id}
         scrollEnabled={false}
         renderItem={({ item }) => (
           <View style={styles.card}>
@@ -121,6 +162,9 @@ const DevicesScreen: React.FC = () => {
           </View>
         )}
         contentContainerStyle={{ paddingBottom: 60 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FFFFFF" />
+        }
       />
     );
   };
@@ -131,7 +175,6 @@ const DevicesScreen: React.FC = () => {
         contentContainerStyle={styles.scrollContainer}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
             <Text style={styles.backArrow}>←</Text>
@@ -142,7 +185,6 @@ const DevicesScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* Search */}
         <View style={styles.sectionContainer}>
           <TextInput
             style={styles.textInput}
@@ -153,7 +195,6 @@ const DevicesScreen: React.FC = () => {
           />
         </View>
 
-        {/* Toolbar */}
         <View style={[styles.sectionContainer, styles.toolbar]}>
           <TouchableOpacity style={styles.toolBtn}>
             <MaterialIcons name="filter-list" size={20} color="#FFF" />
@@ -166,7 +207,6 @@ const DevicesScreen: React.FC = () => {
           <Text style={styles.count}>{filtered.length} Devices</Text>
         </View>
 
-        {/* Devices List */}
         {renderContent()}
       </ScrollView>
     </SafeAreaView>

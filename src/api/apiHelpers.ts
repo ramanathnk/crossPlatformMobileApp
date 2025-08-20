@@ -10,7 +10,7 @@ interface ApiErrorData {
   error?: string;
   description?: string;
   timestamp?: string;
-  [key: string]: unknown; // any other unknown fields
+  [key: string]: unknown;
 }
 
 export async function apiRequest<T>(

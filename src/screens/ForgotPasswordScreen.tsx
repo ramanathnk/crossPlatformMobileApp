@@ -12,7 +12,8 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import SnaptrackerLogo from '../icons/SnapTrackerLogo';
-import { forgotPassword } from '../api/authApi';
+// import { forgotPassword } from '../api/authApi'; // REMOVE THIS LINE
+import { useForgotPassword } from '../api/authApiRQ'; // ADD THIS LINE
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import CrossPlatformAlert from '../utils/CrossPlatformAlert';
@@ -26,46 +27,58 @@ type ForgotPasswordScreenNavigationProp = StackNavigationProp<RootStackParamList
 const ForgotPasswordScreen: React.FC = () => {
   const navigation = useNavigation<ForgotPasswordScreenNavigationProp>();
   const [email, setEmail] = useState('');
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
-  const handleSendResetLink = async () => {
+  // Use the React Query hook for forgot password
+  const {
+    mutate: forgotPasswordMutate,
+    isPending: loading,
+    isError,
+    error: mutationError,
+    data: mutationData,
+  } = useForgotPassword();
+
+  const handleSendResetLink = () => {
     setError(null);
     setMessage(null);
     if (!email.trim()) {
       setError('Please enter your email address.');
       return;
     }
-    setLoading(true);
-    try {
-      const response = await forgotPassword({ email });
-      // Show alert and navigate if no error
-      CrossPlatformAlert.alert(
-        'Reset Link Sent',
-        'You can now reset your password.',
-        [
-          {
-            text: 'OK',
-            onPress: () => navigation.navigate('Reset', {
-              token: response.token ?? 'dummy-token',
-              expiresAt: response.expiresAt ?? '',
-              email: email,
-            }),
-          },
-        ]
-      );
-      setMessage(response.message || 'Reset link sent! Check your email.');
-    } catch (err) {
-      setError((err as Error).message || 'Failed to send reset link.');
-    } finally {
-      setLoading(false);
-    }
+
+    forgotPasswordMutate(
+      { email },
+      {
+        onSuccess: (response) => {
+          CrossPlatformAlert.alert('Reset Link Sent', 'You can now reset your password.', [
+            {
+              text: 'OK',
+              onPress: () =>
+                navigation.navigate('Reset', {
+                  token: response.token ?? 'dummy-token',
+                  expiresAt: response.expiresAt ?? '',
+                  email: email,
+                }),
+            },
+          ]);
+          setMessage(response.message || 'Reset link sent! Check your email.');
+        },
+        onError: (err: any) => {
+          setError(err?.message || 'Failed to send reset link.');
+        },
+      },
+    );
   };
 
   const handleBackToLogin = () => {
     navigation.navigate('Login');
   };
+
+  // Show error from mutation if not already set locally
+  const displayError = error || (isError && (mutationError as Error)?.message);
+  // Show message from mutation data if not already set locally
+  const displayMessage = message || (mutationData && mutationData.message);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -111,8 +124,16 @@ const ForgotPasswordScreen: React.FC = () => {
             </View>
 
             {/* Error or Backend Message */}
-            {error && <Text style={{ color: '#FF3B30', fontWeight: 'bold', marginBottom: 12 }}>{error}</Text>}
-            {message && <Text style={{ color: '#10B981', fontWeight: 'bold', marginBottom: 12 }}>{message}</Text>}
+            {displayError && (
+              <Text style={{ color: '#FF3B30', fontWeight: 'bold', marginBottom: 12 }}>
+                {displayError}
+              </Text>
+            )}
+            {displayMessage && (
+              <Text style={{ color: '#10B981', fontWeight: 'bold', marginBottom: 12 }}>
+                {displayMessage}
+              </Text>
+            )}
 
             {/* Send Reset Link Button */}
             <TouchableOpacity
@@ -120,7 +141,9 @@ const ForgotPasswordScreen: React.FC = () => {
               onPress={handleSendResetLink}
               disabled={loading}
             >
-              <Text style={styles.resetButtonText}>{loading ? 'Sending...' : 'Send Reset Link'}</Text>
+              <Text style={styles.resetButtonText}>
+                {loading ? 'Sending...' : 'Send Reset Link'}
+              </Text>
             </TouchableOpacity>
 
             {/* Back to Login Link */}

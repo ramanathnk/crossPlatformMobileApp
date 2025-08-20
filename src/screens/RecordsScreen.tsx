@@ -4,40 +4,38 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  FlatList,
   StyleSheet,
   ScrollView,
-  Modal,
   ActivityIndicator,
   Alert,
+  RefreshControl,
+  FlatList,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 
-import {
-  getAllDealers,
-  createDealer,
-  updateDealer,
-  deleteDealer,
-  type Dealer as ApiDealer,
-  type DealerCreateRequest,
-  type DealerUpdateRequest,
+import type {
+  Dealer as ApiDealer,
+  DealerCreateRequest,
+  DealerUpdateRequest,
 } from '../api/dealerApi';
+import type { DeviceType as ApiDeviceType, DeviceTypeRequestPayload } from '../api/deviceTypeApi';
+import type { Manufacturer } from '../api/manufacturerApi';
+
+import {
+  useGetDealers,
+  useCreateDealer,
+  useUpdateDealer,
+  useDeleteDealer,
+} from '../api/dealerApiRQ';
+import {
+  useGetDeviceTypes,
+  useCreateDeviceType,
+  useUpdateDeviceType,
+  useDeleteDeviceType,
+} from '../api/deviceTypeApiRQ';
+import { useGetManufacturers } from '../api/manufacturerApiRQ';
+
 import * as SecureStore from 'expo-secure-store';
-
-import {
-  getAllDeviceTypes,
-  createDeviceType,
-  updateDeviceType,
-  deleteDeviceType,
-  type DeviceType as ApiDeviceType,
-  type DeviceTypeRequestPayload,
-} from '../api/deviceTypeApi';
-
-import {
-  Manufacturer,
-  getAllManufacturers,
-  // TODO: Add create, update, and delete manufacturer functions
-} from '../api/manufacturerApi';
 
 import RecordManagementList from '../components/RecordManagementList';
 import GenericModal from '../components/GenericModal';
@@ -68,7 +66,6 @@ const FormContent = ({
   fields,
   onChange,
 }: {
-  // Updated type to accept null
   initial?: { [key: string]: any } | null;
   fields: FormField[];
   onChange: (values: { [key: string]: any }) => void;
@@ -108,7 +105,6 @@ const FormContent = ({
   );
 };
 
-// Define field configurations for each form type
 const dealerFormFields: FormField[] = [
   { label: '', placeholder: 'Dealer name', key: 'name', autoCapitalize: 'words' },
   { label: '', placeholder: 'Mobile Web API URL', key: 'mobileWebAPIUrl', keyboardType: 'url' },
@@ -134,13 +130,7 @@ const RecordsScreen: React.FC = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [authToken, setAuthToken] = useState<string>('');
 
-  // States for all record types
-  const [dealers, setDealers] = useState<ApiDealer[]>([]);
-  const [deviceTypes, setDeviceTypes] = useState<ApiDeviceType[]>([]);
-  const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
-
   // General states
-  const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [search, setSearch] = useState('');
   const [dealerFormVisible, setDealerFormVisible] = useState(false);
@@ -152,19 +142,25 @@ const RecordsScreen: React.FC = () => {
   const [dealerFormValues, setDealerFormValues] = useState<any | null>(null);
   const [deviceTypeFormValues, setDeviceTypeFormValues] = useState<any | null>(null);
   const [manufacturerFormValues, setManufacturerFormValues] = useState<any | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Define canSave variables using useMemo
-  const canSaveDealer = useMemo(() => {
-    return !!dealerFormValues?.name;
-  }, [dealerFormValues]);
+  // React Query hooks for data + mutations (mutations handle invalidation)
+  const dealersQuery = useGetDealers(authToken ?? undefined);
+  const deviceTypesQuery = useGetDeviceTypes(authToken ?? undefined);
+  const manufacturersQuery = useGetManufacturers(authToken ?? undefined);
 
-  const canSaveDeviceType = useMemo(() => {
-    return !!deviceTypeFormValues?.name && !!deviceTypeFormValues?.modelNumber;
-  }, [deviceTypeFormValues]);
+  const createDealerMutation = useCreateDealer(authToken ?? undefined);
+  const updateDealerMutation = useUpdateDealer(authToken ?? undefined);
+  const deleteDealerMutation = useDeleteDealer(authToken ?? undefined);
 
-  const canSaveManufacturer = useMemo(() => {
-    return !!manufacturerFormValues?.name;
-  }, [manufacturerFormValues]);
+  const createDeviceTypeMutation = useCreateDeviceType(authToken ?? undefined);
+  const updateDeviceTypeMutation = useUpdateDeviceType(authToken ?? undefined);
+  const deleteDeviceTypeMutation = useDeleteDeviceType(authToken ?? undefined);
+
+  // Derived canSave flags
+  const canSaveDealer = !!dealerFormValues?.name;
+  const canSaveDeviceType = !!deviceTypeFormValues?.name && !!deviceTypeFormValues?.modelNumber;
+  const canSaveManufacturer = !!manufacturerFormValues?.name;
 
   useEffect(() => {
     (async () => {
@@ -178,109 +174,95 @@ const RecordsScreen: React.FC = () => {
     })();
   }, []);
 
-  const loadData = async (tabIndex: number) => {
-    try {
-      setLoading(true);
-      if (!authToken) throw new Error('Missing auth token');
-
-      switch (tabIndex) {
-        case 0:
-          const dealersData = await getAllDealers(authToken);
-          setDealers(dealersData);
-          break;
-        case 1:
-          const deviceTypesData = await getAllDeviceTypes(authToken);
-          setDeviceTypes(deviceTypesData);
-          break;
-        case 2:
-          const manufacturersData = await getAllManufacturers(authToken);
-          setManufacturers(manufacturersData);
-          break;
-        default:
-          console.error('Invalid tab index:', tabIndex);
-          break;
-      }
-    } catch (e: any) {
-      Alert.alert('Error', e?.message ?? `Failed to load data`);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Load data based on active tab and auth token
-  useEffect(() => {
-    if (authToken) {
-      loadData(activeTab);
-    }
-  }, [activeTab, authToken]);
-
-  const handleRecordSubmit = async (
-    recordType: 'dealer' | 'device type' | 'manufacturer',
-    formValues: any,
-    editingRecord: any,
-    createFn: (token: string, data: any) => Promise<any>,
-    updateFn: (token: string, id: number, data: any) => Promise<any>,
-    recordIdKey: string,
-    setModalVisible: React.Dispatch<React.SetStateAction<boolean>>,
-    setEditingRecord: React.Dispatch<React.SetStateAction<any>>,
-    tabIndex: number,
+  // Helper to run mutations with unified UI state + error handling
+  const performMutation = async (
+    fn: (...args: any[]) => Promise<any>,
+    vars: any,
+    errorTitle = 'Error',
   ) => {
     try {
-      if (!formValues) return;
       setSubmitting(true);
-      if (!authToken) throw new Error('Missing auth token');
-
-      if (editingRecord) {
-        const recordId = editingRecord[recordIdKey];
-        await updateFn(authToken, recordId, formValues);
-      } else {
-        await createFn(authToken, formValues);
-      }
-
-      setModalVisible(false);
-      setEditingRecord(null);
-      await loadData(tabIndex);
+      await fn(vars);
+      return true;
     } catch (e: any) {
-      Alert.alert(
-        'Error',
-        e?.message ??
-          (editingRecord ? `Failed to update ${recordType}` : `Failed to create ${recordType}`),
-      );
+      Alert.alert(errorTitle, e?.message ?? 'Operation failed');
+      return false;
     } finally {
       setSubmitting(false);
     }
   };
 
-  // NEW GENERIC DELETE FUNCTION
-  const confirmDeleteRecord = (
-    item: RecordItem,
-    recordType: string,
-    recordIdKey: string,
-    deleteFn: (token: string, id: number) => Promise<void>,
-    tabIndex: number,
-  ) => {
+  // Pull-to-refresh: trigger refetch for the active tab
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      if (activeTab === 0 && dealersQuery.refetch) await dealersQuery.refetch();
+      if (activeTab === 1 && deviceTypesQuery.refetch) await deviceTypesQuery.refetch();
+      if (activeTab === 2 && manufacturersQuery.refetch) await manufacturersQuery.refetch();
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  // Handlers for Dealers
+  const openAddDealer = () => {
+    setEditingDealer(null);
+    setDealerFormValues(null);
+    setDealerFormVisible(true);
+  };
+
+  const openEditDealer = (dealer: ApiDealer) => {
+    setEditingDealer(dealer);
+    setDealerFormValues(dealer);
+    setDealerFormVisible(true);
+  };
+
+  const handleDealerSubmit = async () => {
+    if (!dealerFormValues) return;
+    if (!authToken) {
+      Alert.alert('Error', 'Missing auth token');
+      return;
+    }
+
+    if (editingDealer) {
+      const recordId = editingDealer.dealerId;
+      await performMutation(
+        (vars) => updateDealerMutation.mutateAsync(vars),
+        { token: authToken, dealerId: recordId, dealer: dealerFormValues },
+        'Failed to update dealer',
+      );
+    } else {
+      await performMutation(
+        (vars) => createDealerMutation.mutateAsync(vars),
+        { token: authToken, dealer: dealerFormValues },
+        'Failed to create dealer',
+      );
+    }
+
+    setDealerFormVisible(false);
+    setEditingDealer(null);
+    setDealerFormValues(null);
+  };
+
+  const confirmDeleteDealer = (dealer: ApiDealer) => {
     Alert.alert(
-      `Delete ${recordType}`,
-      `Are you sure you want to delete "${item.name}"?`,
+      'Delete dealer',
+      `Are you sure you want to delete "${dealer.name}"?`,
       [
         { text: 'Cancel', style: 'cancel' },
         {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
-            try {
-              setSubmitting(true);
-              if (!authToken) throw new Error('Missing auth token');
-              // Use bracket notation to access the dynamic key
-              const recordId = (item as any)[recordIdKey];
-              await deleteFn(authToken, recordId);
-              await loadData(tabIndex); // Reload data after deletion
-              console.log(`Deleted ${recordType}:`, item.name);
-            } catch (e: any) {
-              Alert.alert('Error', e?.message ?? `Failed to delete ${recordType}`);
-            } finally {
-              setSubmitting(false);
+            if (!authToken) {
+              Alert.alert('Error', 'Missing auth token');
+              return;
             }
+            await performMutation(
+              (vars) => deleteDealerMutation.mutateAsync(vars),
+              { token: authToken, dealerId: dealer.dealerId },
+              'Failed to delete dealer',
+            );
           },
         },
       ],
@@ -288,72 +270,100 @@ const RecordsScreen: React.FC = () => {
     );
   };
 
-  // Handlers for Dealers
-  const openAddDealer = () => {
-    setEditingDealer(null);
-    setDealerFormVisible(true);
-  };
-
-  const openEditDealer = (dealer: ApiDealer) => {
-    setEditingDealer(dealer);
-    setDealerFormVisible(true);
-  };
-
-  const handleDealerSubmit = () => {
-    handleRecordSubmit(
-      'dealer',
-      dealerFormValues,
-      editingDealer,
-      createDealer,
-      updateDealer,
-      'dealerId',
-      setDealerFormVisible,
-      setEditingDealer,
-      0,
-    );
-  };
-
   // Handlers for Device Types
   const openAddDeviceType = () => {
     setEditingDeviceType(null);
+    setDeviceTypeFormValues(null);
     setDeviceTypeFormVisible(true);
   };
 
   const openEditDeviceType = (deviceType: ApiDeviceType) => {
     setEditingDeviceType(deviceType);
+    setDeviceTypeFormValues(deviceType);
     setDeviceTypeFormVisible(true);
   };
 
-  const handleDeviceTypeSubmit = () => {
-    handleRecordSubmit(
-      'device type',
-      deviceTypeFormValues,
-      editingDeviceType,
-      createDeviceType,
-      updateDeviceType,
-      'deviceTypeId',
-      setDeviceTypeFormVisible,
-      setEditingDeviceType,
-      1,
+  const handleDeviceTypeSubmit = async () => {
+    if (!deviceTypeFormValues) return;
+    if (!authToken) {
+      Alert.alert('Error', 'Missing auth token');
+      return;
+    }
+
+    if (editingDeviceType) {
+      const recordId = editingDeviceType.deviceTypeId;
+      await performMutation(
+        (vars) => updateDeviceTypeMutation.mutateAsync(vars),
+        { token: authToken, deviceTypeId: recordId, deviceType: deviceTypeFormValues },
+        'Failed to update device type',
+      );
+    } else {
+      await performMutation(
+        (vars) => createDeviceTypeMutation.mutateAsync(vars),
+        { token: authToken, deviceType: deviceTypeFormValues },
+        'Failed to create device type',
+      );
+    }
+
+    setDeviceTypeFormVisible(false);
+    setEditingDeviceType(null);
+    setDeviceTypeFormValues(null);
+  };
+
+  const confirmDeleteDeviceType = (deviceType: ApiDeviceType) => {
+    Alert.alert(
+      'Delete device type',
+      `Are you sure you want to delete "${deviceType.name}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            if (!authToken) {
+              Alert.alert('Error', 'Missing auth token');
+              return;
+            }
+            await performMutation(
+              (vars) => deleteDeviceTypeMutation.mutateAsync(vars),
+              { token: authToken, deviceTypeId: deviceType.deviceTypeId },
+              'Failed to delete device type',
+            );
+          },
+        },
+      ],
+      { cancelable: true },
     );
   };
 
-  // Handlers for Manufacturers - TO BE IMPLEMENTED
+  // Handlers for Manufacturers (read-only in current API)
   const openAddManufacturer = () => {
     setEditingManufacturer(null);
+    setManufacturerFormValues(null);
     setManufacturerFormVisible(true);
   };
 
   const openEditManufacturer = (manufacturer: Manufacturer) => {
     setEditingManufacturer(manufacturer);
+    setManufacturerFormValues(manufacturer);
     setManufacturerFormVisible(true);
   };
 
   const confirmDeleteManufacturer = (manufacturer: Manufacturer) => {
-    // TODO: Implement manufacturer delete function
+    Alert.alert('Not implemented', 'Delete manufacturer is not implemented.');
   };
 
-  // Memoized filtered lists
+  // Use query data (fallback to empty arrays)
+  const dealers = dealersQuery.data ?? [];
+  const deviceTypes = deviceTypesQuery.data ?? [];
+  const manufacturers = manufacturersQuery.data ?? [];
+
+  // Per-tab loading using queries' isFetching flags (simpler and more accurate than local loading)
+  const dealersLoading = dealersQuery.isFetching;
+  const deviceTypesLoading = deviceTypesQuery.isFetching;
+  const manufacturersLoading = manufacturersQuery.isFetching;
+
+  // Filtered lists
   const filteredDealers = useMemo(
     () => dealers.filter((d) => d.name.toLowerCase().includes(search.toLowerCase())),
     [dealers, search],
@@ -416,7 +426,11 @@ const RecordsScreen: React.FC = () => {
   );
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.scrollContent}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+    >
       <View style={styles.container}>
         <Text style={styles.title}>Manage Records</Text>
         <Text style={styles.subtitle}>Manage foundational data for the application</Text>
@@ -450,7 +464,7 @@ const RecordsScreen: React.FC = () => {
         {activeTab === 0 && (
           <RecordManagementList
             data={filteredDealers}
-            loading={loading}
+            loading={dealersLoading}
             search={search}
             itemLabel="Dealers"
             onSearchChange={setSearch}
@@ -459,8 +473,7 @@ const RecordsScreen: React.FC = () => {
               renderItem({
                 item,
                 onEdit: (item) => openEditDealer(item as ApiDealer),
-                onDelete: (item) =>
-                  confirmDeleteRecord(item, 'dealer', 'dealerId', deleteDealer, 0),
+                onDelete: (item) => confirmDeleteDealer(item as ApiDealer),
                 primaryText: item.name,
                 secondaryText: `ID: ${(item as ApiDealer).dealerId} • ${
                   (item as ApiDealer).activeDevices ?? 0
@@ -475,7 +488,7 @@ const RecordsScreen: React.FC = () => {
         {activeTab === 1 && (
           <RecordManagementList
             data={filteredDeviceTypes}
-            loading={loading}
+            loading={deviceTypesLoading}
             search={search}
             itemLabel="Device Types"
             onSearchChange={setSearch}
@@ -484,8 +497,7 @@ const RecordsScreen: React.FC = () => {
               renderItem({
                 item,
                 onEdit: (item) => openEditDeviceType(item as ApiDeviceType),
-                onDelete: (item) =>
-                  confirmDeleteRecord(item, 'device type', 'deviceTypeId', deleteDeviceType, 1),
+                onDelete: (item) => confirmDeleteDeviceType(item as ApiDeviceType),
                 primaryText: (item as ApiDeviceType).name,
                 secondaryText: `ID: ${(item as ApiDeviceType).deviceTypeId} • ${(item as ApiDeviceType).modelNumber}`,
                 testIDPrefix: 'device-type',
@@ -498,7 +510,7 @@ const RecordsScreen: React.FC = () => {
         {activeTab === 2 && (
           <RecordManagementList
             data={filteredManufacturers}
-            loading={loading}
+            loading={manufacturersLoading}
             search={search}
             itemLabel="Manufacturers"
             onSearchChange={setSearch}
@@ -566,7 +578,8 @@ const RecordsScreen: React.FC = () => {
           setEditingManufacturer(null);
         }}
         onSave={() => {
-          // TODO: Implement manufacturer submit handler
+          // Manufacturers create/update/delete were not implemented in API previously
+          Alert.alert('Not implemented', 'Create/update manufacturer is not implemented.');
         }}
       >
         <FormContent

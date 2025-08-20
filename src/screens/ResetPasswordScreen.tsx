@@ -1,14 +1,6 @@
-import React, { useState } from 'react';
-import { resetPassword } from '../api/authApi';
+import React, { useState, useEffect } from 'react';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
-
-type RootStackParamList = {
-  Login: undefined;
-  ResetPassword: { token: string; email: string };
-  // Add other screens as needed
-};
-type ResetPasswordScreenNavigationProp = StackNavigationProp<RootStackParamList, 'ResetPassword'>;
 import {
   StyleSheet,
   Text,
@@ -24,6 +16,15 @@ import { StatusBar } from 'expo-status-bar';
 import CrossPlatformAlert from '../utils/CrossPlatformAlert';
 import SnaptrackerLogo from '../icons/SnapTrackerLogo';
 import EyeIcon from '../icons/EyeIcon';
+import { useDispatch, useSelector } from 'react-redux';
+import { AppDispatch, RootState } from '../store';
+import { resetPasswordThunk, clearError, clearMessage } from '../store/authSlice';
+
+type RootStackParamList = {
+  Login: undefined;
+  ResetPassword: { token: string; email: string };
+};
+type ResetPasswordScreenNavigationProp = StackNavigationProp<RootStackParamList, 'ResetPassword'>;
 
 const ResetPasswordScreen: React.FC = () => {
   const navigation = useNavigation<ResetPasswordScreenNavigationProp>();
@@ -34,19 +35,41 @@ const ResetPasswordScreen: React.FC = () => {
   }>();
   const token = route.params?.token;
   const email = route.params?.email;
+
+  const dispatch = useDispatch<AppDispatch>();
+  const authState = useSelector((state: RootState) => state.auth);
+  const loading = authState.loading;
+  const serverError = authState.error;
+  const serverMessage = authState.message;
+
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
+  useEffect(() => {
+    // show server errors/messages in local state so UI layout stays the same
+    setError(serverError);
+  }, [serverError]);
+
+  useEffect(() => {
+    setMessage(serverMessage);
+    if (serverMessage) {
+      // navigate to login after a short delay
+      setTimeout(() => {
+        navigation.replace('Login');
+      }, 1200);
+    }
+  }, [serverMessage, navigation]);
+
   // Reset password validation
-  const isResetFormValid = newPassword.trim().length > 0 && 
-                          confirmPassword.trim().length > 0 && 
-                          newPassword === confirmPassword &&
-                          newPassword.length >= 8;
+  const isResetFormValid =
+    newPassword.trim().length > 0 &&
+    confirmPassword.trim().length > 0 &&
+    newPassword === confirmPassword &&
+    newPassword.length >= 8;
 
   const handleResetPassword = async () => {
     setError(null);
@@ -60,42 +83,40 @@ const ResetPasswordScreen: React.FC = () => {
       } else if (newPassword !== confirmPassword) {
         errorMessage = 'Passwords do not match.';
       }
-      CrossPlatformAlert.alert(
-        'Validation Error',
-        errorMessage,
-        [{ text: 'OK', style: 'default' }]
-      );
+      CrossPlatformAlert.alert('Validation Error', errorMessage, [
+        { text: 'OK', style: 'default' },
+      ]);
       return;
     }
-    setLoading(true);
-    try {
-      /*if (!token || !email) {
-        setError('Invalid or missing reset token/email.');
-        setLoading(false);
-        return;
-      }*/
 
-      const response = await resetPassword({ email: email ?? '', token: token ?? '' , newPassword });
-      console.debug('Reset Password Response:', response);
-      setMessage(response.message || 'Your password has been reset successfully!');
-      setTimeout(() => {
-        navigation.replace('Login');
-      }, 1200);
-    } catch (err) {
-      setError((err as Error).message || 'Failed to reset password.');
-    } finally {
-      setLoading(false);
+    if (!token || !email) {
+      setError('Invalid or missing reset token/email.');
+      return;
+    }
+
+    // Dispatch the redux thunk (which calls the API)
+    try {
+      await dispatch(
+        resetPasswordThunk({
+          email: email ?? '',
+          token: token ?? '',
+          newPassword,
+        }),
+      ).unwrap();
+      // success is handled by slice -> message and navigation effect
+    } catch (err: any) {
+      setError(err?.message || 'Failed to reset password.');
     }
   };
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
-      <KeyboardAvoidingView 
+      <KeyboardAvoidingView
         style={styles.keyboardAvoidingView}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <ScrollView 
+        <ScrollView
           contentContainerStyle={styles.scrollContainer}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
@@ -163,24 +184,33 @@ const ResetPasswordScreen: React.FC = () => {
               </View>
             </View>
 
-
             {/* Error or Success Message */}
-            {error && <Text style={{ color: '#FF3B30', fontWeight: 'bold', marginBottom: 12 }}>{error}</Text>}
-            {message && <Text style={{ color: '#10B981', fontWeight: 'bold', marginBottom: 12 }}>{message}</Text>}
+            {(error || serverError) && (
+              <Text style={{ color: '#FF3B30', fontWeight: 'bold', marginBottom: 12 }}>
+                {error || serverError}
+              </Text>
+            )}
+            {(message || serverMessage) && (
+              <Text style={{ color: '#10B981', fontWeight: 'bold', marginBottom: 12 }}>
+                {message || serverMessage}
+              </Text>
+            )}
 
             {/* Reset Password Button */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[
-                styles.resetButton, 
-                (!isResetFormValid || loading) && styles.resetButtonDisabled
-              ]} 
+                styles.resetButton,
+                (!isResetFormValid || loading) && styles.resetButtonDisabled,
+              ]}
               onPress={handleResetPassword}
               disabled={!isResetFormValid || loading}
             >
-              <Text style={[
-                styles.resetButtonText,
-                (!isResetFormValid || loading) && styles.resetButtonTextDisabled
-              ]}>
+              <Text
+                style={[
+                  styles.resetButtonText,
+                  (!isResetFormValid || loading) && styles.resetButtonTextDisabled,
+                ]}
+              >
                 {loading ? 'Resetting...' : 'Reset Password'}
               </Text>
             </TouchableOpacity>
@@ -207,8 +237,8 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
     paddingHorizontal: 24,
-    paddingTop: 40, // Reduced to account for large header section (logo + title)
-    paddingBottom: 60, // Consistent with other login screens
+    paddingTop: 40,
+    paddingBottom: 60,
   },
   headerContainer: {
     alignItems: 'center',
@@ -216,19 +246,6 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     alignItems: 'center',
-  },
-  logo: {
-    width: 60,
-    height: 60,
-    backgroundColor: '#3B82F6',
-    borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  logoText: {
-    fontSize: 28,
-    color: '#FFFFFF',
   },
   appName: {
     fontSize: 24,
@@ -317,7 +334,7 @@ const styles = StyleSheet.create({
     color: '#3B82F6',
     textAlign: 'center',
     textDecorationLine: 'underline',
-    marginTop: 16, // Added margin to ensure proper spacing from reset button
+    marginTop: 16,
   },
 });
 
