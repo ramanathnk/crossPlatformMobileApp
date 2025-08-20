@@ -12,8 +12,7 @@ import {
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import SnaptrackerLogo from '../icons/SnapTrackerLogo';
-// import { forgotPassword } from '../api/authApi'; // REMOVE THIS LINE
-import { useForgotPassword } from '../api/authApiRQ'; // ADD THIS LINE
+import { useForgotPassword } from '../api/authApiRQ';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import CrossPlatformAlert from '../utils/CrossPlatformAlert';
@@ -51,20 +50,37 @@ const ForgotPasswordScreen: React.FC = () => {
       { email },
       {
         onSuccess: (response) => {
+          // If server didn't return a token, show a clear error and don't proceed.
+          if (!response || !response.token) {
+            // Don't set any server message when token is missing.
+            setMessage(null);
+            setError('Unable to proceed further');
+            return;
+          }
+
+          // response.token is guaranteed to exist here; help TypeScript by asserting non-null.
+          const tokenStr = response.token!;
+
+          // If token is present, allow the user to proceed to Reset screen.
           CrossPlatformAlert.alert('Reset Link Sent', 'You can now reset your password.', [
             {
               text: 'OK',
               onPress: () =>
                 navigation.navigate('Reset', {
-                  token: response.token ?? 'dummy-token',
+                  token: tokenStr,
                   expiresAt: response.expiresAt ?? '',
                   email: email,
                 }),
             },
           ]);
+
+          // Only set the server message when a token is present.
           setMessage(response.message || 'Reset link sent! Check your email.');
+          setError(null);
         },
         onError: (err: any) => {
+          // On error, show the error and clear any success message.
+          setMessage(null);
           setError(err?.message || 'Failed to send reset link.');
         },
       },
@@ -77,8 +93,10 @@ const ForgotPasswordScreen: React.FC = () => {
 
   // Show error from mutation if not already set locally
   const displayError = error || (isError && (mutationError as Error)?.message);
-  // Show message from mutation data if not already set locally
-  const displayMessage = message || (mutationData && mutationData.message);
+  // Show message only if we set it locally OR if mutationData includes a token (defensive),
+  // otherwise don't show the server message when token is missing.
+  const displayMessage =
+    message ?? (mutationData && (mutationData as any).token ? (mutationData as any).message : null);
 
   return (
     <SafeAreaView style={styles.container}>

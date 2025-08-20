@@ -158,12 +158,16 @@ const authSlice = createSlice({
       defaultRejectedMessage: 'Login failed',
     });
 
-    // forgot password: message only
+    // forgot password: store token if present, but only persist message when token exists
     thunk.attachThunkHandlers(builder, forgotPasswordThunk, {
+      // If the forgot-password response contains a token (ephemeral reset token), store it in state.token.
+      // This token will be used to allow the user to reset the password and will be cleared once reset is successful.
+      getToken: (payload: any) => (payload ? ((payload as any).token ?? null) : null),
+      // Only store a success message when the payload actually includes a token.
       getMessage: (payload: any) =>
-        payload
+        payload && (payload as any).token
           ? ((payload as ForgotPasswordResponse).message ?? 'Password reset email sent')
-          : 'Password reset email sent',
+          : null,
       defaultRejectedMessage: 'Failed to initiate password reset',
     });
 
@@ -176,12 +180,12 @@ const authSlice = createSlice({
       defaultRejectedMessage: 'Failed to verify reset token',
     });
 
-    // reset password: message only
+    // reset password: do NOT store any message or token on success.
+    // We still clear the ephemeral token (if present) so it cannot be reused.
     thunk.attachThunkHandlers(builder, resetPasswordThunk, {
-      getMessage: (payload: any) =>
-        payload
-          ? ((payload as ResetPasswordResponse).message ?? 'Password reset successful')
-          : 'Password reset successful',
+      clearTokenOnFulfilled: true, // clear the ephemeral reset token once password reset succeeds
+      // Explicitly return null to avoid storing any success message in the slice.
+      getMessage: () => null,
       defaultRejectedMessage: 'Failed to reset password',
     });
 

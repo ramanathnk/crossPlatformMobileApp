@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 // Use a constant for dropdown vertical padding
 const DROPDOWN_VERTICAL_PADDING = 16;
-import * as SecureStore from 'expo-secure-store';
 import {
   StyleSheet,
   Text,
@@ -19,13 +18,29 @@ import CrossPlatformAlert from '../utils/CrossPlatformAlert';
 import { Provider as PaperProvider } from 'react-native-paper';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
-// For real API calls
-import { getAllDealers } from '../api/dealerApi';
-import { getAllDeviceTypes } from '../api/deviceTypeApi';
 import type { DropdownOption } from '../components/CrossPlatformDropdownGen/types';
 import CrossPlatformDropdownGen from '../components/CrossPlatformDropdownGen';
-// Use React Query mutation hook instead of calling the API function directly
-import { useRegisterDevice } from '../api/deviceRegistrationApiRQ';
+
+// Redux
+import { useDispatch, useSelector } from 'react-redux';
+import type { AppDispatch, RootState } from '../store';
+import {
+  registerDeviceRequest,
+  selectRegistering,
+  selectRegisterError,
+} from '../store/deviceRequestsSlice';
+import {
+  fetchDealers,
+  selectDealers,
+  selectDealersLoading,
+  selectDealersError,
+} from '../store/dealerSlice';
+import {
+  fetchDeviceTypes,
+  selectDeviceTypes,
+  selectDeviceTypesLoading,
+  selectDeviceTypesError,
+} from '../store/deviceTypeSlice';
 
 type RootStackParamList = {
   MainTabs: undefined;
@@ -34,106 +49,51 @@ type RegisterDeviceScreenNavigationProp = StackNavigationProp<RootStackParamList
 
 const RegisterDeviceScreen: React.FC = () => {
   const navigation = useNavigation<RegisterDeviceScreenNavigationProp>();
+  const dispatch = useDispatch<AppDispatch>();
   const scrollViewRef = useRef<ScrollView>(null);
+
+  // Form state
   const [selectedDealer, setSelectedDealer] = useState<number | null>(null);
   const [serialNumber, setSerialNumber] = useState('');
   const [selectedDeviceType, setSelectedDeviceType] = useState<number | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<number | null>(1);
-  const [dealerOptions, setDealerOptions] = useState<DropdownOption<number>[]>([]);
-  const [deviceTypeOptions, setDeviceTypeOptions] = useState<DropdownOption<number>[]>([]);
-  const [loadingDealers, setLoadingDealers] = useState(true);
-  const [loadingDeviceTypes, setLoadingDeviceTypes] = useState(true);
-  const [dealerError, setDealerError] = useState<string | null>(null);
-  const [deviceTypeError, setDeviceTypeError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
-  // Store layout (y position) for dropdowns
+  // Dropdown layout / behavior state (unchanged)
   const [dealerDropdownY, setDealerDropdownY] = useState<number | null>(null);
   const [deviceTypeDropdownY, setDeviceTypeDropdownY] = useState<number | null>(null);
   const [statusDropdownY, setStatusDropdownY] = useState<number | null>(null);
-  // Store measured dropdown heights
   const [dealerDropdownHeight, setDealerDropdownHeight] = useState<number>(200);
   const [deviceTypeDropdownHeight, setDeviceTypeDropdownHeight] = useState<number>(200);
   const [statusDropdownHeight, setStatusDropdownHeight] = useState<number>(200);
-  // Track which dropdown should open after scroll
   const [pendingDropdown, setPendingDropdown] = useState<'dealer' | 'deviceType' | 'status' | null>(
     null,
   );
   const [showDealerDropdown, setShowDealerDropdown] = useState(false);
   const [showDeviceTypeDropdown, setShowDeviceTypeDropdown] = useState(false);
-
-  // Status dropdown visibility (not scroll-into-view)
   const [showStatusDropdown, setShowStatusDropdown] = useState(false);
-
-  // Track current scroll position
   const [scrollY, setScrollY] = useState(0);
 
-  // Helper to check if a dropdown is visible in the ScrollView viewport
-  const isDropdownVisible = (dropdownY: number | null, dropdownHeight = 200) => {
-    if (dropdownY == null || !scrollViewRef.current) return false;
-    // Assume viewport height is window height minus padding
-    const viewportHeight = Platform.OS === 'web' ? window.innerHeight : 700; // fallback
-    // Button is visible if its top is below the top of the viewport and enough space below for dropdown
-    const buttonTop = dropdownY;
-    const buttonBottom = dropdownY + 50; // button height
-    const spaceBelow = scrollY + viewportHeight - buttonBottom;
-    return buttonTop >= scrollY && spaceBelow >= dropdownHeight;
-  };
+  // Redux state/selectors
+  const registering = useSelector((s: RootState) => selectRegistering(s));
+  const registerError = useSelector((s: RootState) => selectRegisterError(s));
 
-  // Scroll-into-view using y position from onLayout (Fabric compatible)
-  const scrollDropdownIntoView = useCallback(
-    (dropdown: 'dealer' | 'deviceType' | 'status') => {
-      let y: number | null = null;
-      let setShowDropdown: ((v: boolean) => void) | null = null;
-      if (dropdown === 'dealer') {
-        y = dealerDropdownY;
-        setShowDropdown = setShowDealerDropdown;
-      }
-      if (dropdown === 'deviceType') {
-        y = deviceTypeDropdownY;
-        setShowDropdown = setShowDeviceTypeDropdown;
-      }
-      if (dropdown === 'status') {
-        y = statusDropdownY;
-        setShowDropdown = setShowStatusDropdown;
-      }
-      if (y == null || !scrollViewRef.current) return;
-      const viewportHeight = Dimensions.get('window').height;
-      const buttonTop = y;
-      const buttonBottom = y + 50; // button height
-      const dropdownHeight = 200; // match dropdownList style
-      const margin = 20;
-      // The ideal top of the button so the dropdown fits below
-      const idealButtonTop = Math.max(
-        0,
-        scrollY,
-        buttonBottom - (viewportHeight - dropdownHeight - margin),
-      );
-      // If the button is above the viewport, scroll up to it
-      if (buttonTop < scrollY) {
-        setPendingDropdown(dropdown);
-        scrollViewRef.current.scrollTo({ y: Math.max(0, buttonTop - margin), animated: true });
-      }
-      // If not enough space below, and scrolling up would help, scroll up
-      else if (
-        buttonTop >= scrollY &&
-        buttonBottom + dropdownHeight + margin > scrollY + viewportHeight
-      ) {
-        // Only scroll up, never down
-        const scrollToY = Math.min(
-          scrollY,
-          Math.max(0, buttonBottom - (viewportHeight - dropdownHeight - margin)),
-        );
-        setPendingDropdown(dropdown);
-        scrollViewRef.current.scrollTo({ y: scrollToY, animated: true });
-      }
-      // Otherwise, open immediately
-      else {
-        setShowDropdown && setShowDropdown(true);
-      }
-    },
-    [dealerDropdownY, deviceTypeDropdownY, statusDropdownY, scrollY],
+  const dealers = useSelector((s: RootState) => selectDealers(s));
+  const dealersLoading = useSelector((s: RootState) => selectDealersLoading(s));
+  const dealersError = useSelector((s: RootState) => selectDealersError(s));
+
+  const deviceTypes = useSelector((s: RootState) => selectDeviceTypes(s));
+  const deviceTypesLoading = useSelector((s: RootState) => selectDeviceTypesLoading(s));
+  const deviceTypesError = useSelector((s: RootState) => selectDeviceTypesError(s));
+
+  // Derived dropdown options from Redux data
+  const dealerOptions: DropdownOption<number>[] = useMemo(
+    () => (dealers ?? []).map((d) => ({ label: d.name, value: d.dealerId })),
+    [dealers],
+  );
+
+  const deviceTypeOptions: DropdownOption<number>[] = useMemo(
+    () => (deviceTypes ?? []).map((t) => ({ label: t.modelNumber, value: t.deviceTypeId })),
+    [deviceTypes],
   );
 
   const statusOptions: DropdownOption<number>[] = [
@@ -141,12 +101,16 @@ const RegisterDeviceScreen: React.FC = () => {
     { label: 'Inactive', value: 0 },
   ];
 
-  // Scroll-into-view using y position from onLayout (Fabric compatible)
+  // Fetch dealers + device types with Redux on mount
+  useEffect(() => {
+    dispatch(fetchDealers());
+    dispatch(fetchDeviceTypes());
+  }, [dispatch]);
+
+  // Scroll-into-view helpers (kept same logic)
   const scrollDropdownIntoView1 = useCallback(
     (dropdown: 'dealer' | 'deviceType' | 'status') => {
-      // Dismiss keyboard before any scroll or dropdown open
       if (Platform.OS !== 'web') {
-        // Dynamically import Keyboard to avoid issues on web
         // @ts-ignore
         const { Keyboard } = require('react-native');
         Keyboard.dismiss();
@@ -176,7 +140,6 @@ const RegisterDeviceScreen: React.FC = () => {
       const buttonTop = y;
       const buttonBottom = y + 50; // button height
       const margin = 20;
-      // Use measured dropdown height from dropdown component
       let measuredDropdownHeight = 200;
       if (dropdown === 'dealer') measuredDropdownHeight = dealerDropdownHeight;
       if (dropdown === 'deviceType') measuredDropdownHeight = deviceTypeDropdownHeight;
@@ -184,26 +147,22 @@ const RegisterDeviceScreen: React.FC = () => {
       const maxDropdownHeight = Math.floor(viewportHeight * 0.7);
       const dropdownHeight = Math.min(maxDropdownHeight, measuredDropdownHeight);
 
-      // If the button is above the viewport, scroll up to it
       if (buttonTop < scrollY) {
         setPendingDropdown(dropdown);
         scrollViewRef.current.scrollTo({ y: Math.max(0, buttonTop - margin), animated: true });
         return;
       }
-      // If not enough space below for dropdown, scroll up just enough so dropdown fits
       if (buttonBottom + dropdownHeight + margin > scrollY + viewportHeight) {
         const targetY = Math.max(0, buttonBottom - (viewportHeight - dropdownHeight - margin));
         setPendingDropdown(dropdown);
         scrollViewRef.current.scrollTo({ y: targetY, animated: true });
         return;
       }
-      // If the button is below the viewport, scroll down to it
       if (buttonBottom > scrollY + viewportHeight) {
         setPendingDropdown(dropdown);
         scrollViewRef.current.scrollTo({ y: Math.max(0, buttonTop - margin), animated: true });
         return;
       }
-      // Otherwise, open immediately
       setShowDropdown && setShowDropdown(true);
     },
     [
@@ -214,64 +173,11 @@ const RegisterDeviceScreen: React.FC = () => {
       dealerOptions,
       deviceTypeOptions,
       statusOptions,
+      dealerDropdownHeight,
+      deviceTypeDropdownHeight,
+      statusDropdownHeight,
     ],
   );
-
-  // React Query mutation hook for registering a device
-  const registerMutation = useRegisterDevice();
-
-  useEffect(() => {
-    async function fetchDealersAndDeviceTypes() {
-      setLoadingDealers(true);
-      setLoadingDeviceTypes(true);
-      setDealerError(null);
-      setDeviceTypeError(null);
-      let dealers: any[] = [];
-      let deviceTypes: any[] = [];
-      let token = '';
-      try {
-        token = (await SecureStore.getItemAsync('accessToken')) || '';
-        if (!token) {
-          throw new Error('No access token found. Please log in again.');
-        }
-      } catch (err) {
-        setDealerError('Authentication error. Please log in again.');
-        setDeviceTypeError('Authentication error. Please log in again.');
-        setLoadingDealers(false);
-        setLoadingDeviceTypes(false);
-        return;
-      }
-      try {
-        dealers = await getAllDealers(token);
-        if (!Array.isArray(dealers)) {
-          throw new Error('Invalid dealers API response format');
-        }
-        setDealerOptions(dealers.map((dealer) => ({ label: dealer.name, value: dealer.dealerId })));
-      } catch (err: any) {
-        setDealerError('Failed to load dealers.');
-        setDealerOptions([]);
-        console.error('Error fetching dealers:', err);
-      } finally {
-        setLoadingDealers(false);
-      }
-      try {
-        deviceTypes = await getAllDeviceTypes(token);
-        if (!Array.isArray(deviceTypes)) {
-          throw new Error('Invalid device types API response format');
-        }
-        setDeviceTypeOptions(
-          deviceTypes.map((type) => ({ label: type.modelNumber, value: type.deviceTypeId })),
-        );
-      } catch (err: any) {
-        setDeviceTypeError('Failed to load device types.');
-        setDeviceTypeOptions([]);
-        console.error('Error fetching device types:', err);
-      } finally {
-        setLoadingDeviceTypes(false);
-      }
-    }
-    fetchDealersAndDeviceTypes();
-  }, []);
 
   const isFormValid =
     selectedDealer !== null &&
@@ -279,18 +185,17 @@ const RegisterDeviceScreen: React.FC = () => {
     selectedDeviceType !== null &&
     selectedStatus !== null;
 
-  const formatSerialNumber = (text: string) => {
-    // Remove non-alphanumeric characters and limit to 10
-    return text
+  const formatSerialNumber = (text: string) =>
+    text
       .replace(/[^A-Za-z0-9]/g, '')
       .toUpperCase()
       .slice(0, 10);
-  };
 
   const handleSerialNumberChange = (text: string) => {
-    const formatted = formatSerialNumber(text);
-    setSerialNumber(formatted);
+    setSerialNumber(formatSerialNumber(text));
   };
+
+  const [localError, setLocalError] = useState<string | null>(null);
 
   const handleRegisterDevice = async () => {
     if (!isFormValid) {
@@ -302,17 +207,9 @@ const RegisterDeviceScreen: React.FC = () => {
       return;
     }
 
-    setLoading(true);
-    setError(null);
+    setLocalError(null);
 
     try {
-      const token = await SecureStore.getItemAsync('accessToken');
-      if (!token) {
-        setError('No access token found. Please log in again.');
-        setLoading(false);
-        return;
-      }
-
       const requestData = {
         dealerIds: [selectedDealer!],
         serialNo: serialNumber,
@@ -320,9 +217,8 @@ const RegisterDeviceScreen: React.FC = () => {
         status: selectedStatus!,
       };
 
-      // Use the React Query mutation instead of calling the API helper directly.
-      // mutateAsync will throw on network/error, so we can handle it similarly.
-      await registerMutation.mutateAsync({ token, data: requestData });
+      // Dispatch the Redux thunk; thunk reads token internally.
+      await dispatch(registerDeviceRequest(requestData)).unwrap();
 
       CrossPlatformAlert.alert(
         'Success',
@@ -337,30 +233,14 @@ const RegisterDeviceScreen: React.FC = () => {
       );
     } catch (err: any) {
       console.log('Device registration failed:', err);
-      let errorMessage = 'Failed to register device.';
-      if (err?.description) {
-        errorMessage = err.description;
-      } else if (err?.message) {
-        errorMessage = err.message;
-      }
-      setError(errorMessage);
-    } finally {
-      setLoading(false);
+      const message = err?.message ?? registerError ?? 'Failed to register device.';
+      setLocalError(message);
     }
   };
 
-  const getCurrentDateTime = () => {
-    const now = new Date();
-    const options: Intl.DateTimeFormatOptions = {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true,
-    };
-    return now.toLocaleDateString('en-US', options);
-  };
+  // combined errors for dealer/device-type fetching display
+  const dealerLoadError = dealersError;
+  const deviceTypeLoadError = deviceTypesError;
 
   return (
     <PaperProvider>
@@ -412,10 +292,10 @@ const RegisterDeviceScreen: React.FC = () => {
                 onLayout={(e) => setDealerDropdownY(e.nativeEvent.layout.y)}
               >
                 <Text style={styles.inputLabel}>Dealer *</Text>
-                {loadingDealers ? (
+                {dealersLoading ? (
                   <Text style={{ color: '#9CA3AF', marginBottom: 8 }}>Loading dealers...</Text>
-                ) : dealerError ? (
-                  <Text style={{ color: 'red', marginBottom: 8 }}>{dealerError}</Text>
+                ) : dealerLoadError ? (
+                  <Text style={{ color: 'red', marginBottom: 8 }}>{dealerLoadError}</Text>
                 ) : (
                   <CrossPlatformDropdownGen<number | null>
                     options={dealerOptions}
@@ -452,10 +332,10 @@ const RegisterDeviceScreen: React.FC = () => {
                 onLayout={(e) => setDeviceTypeDropdownY(e.nativeEvent.layout.y)}
               >
                 <Text style={styles.inputLabel}>Device Type *</Text>
-                {loadingDeviceTypes ? (
+                {deviceTypesLoading ? (
                   <Text style={{ color: '#9CA3AF', marginBottom: 8 }}>Loading device types...</Text>
-                ) : deviceTypeError ? (
-                  <Text style={{ color: 'red', marginBottom: 8 }}>{deviceTypeError}</Text>
+                ) : deviceTypeLoadError ? (
+                  <Text style={{ color: 'red', marginBottom: 8 }}>{deviceTypeLoadError}</Text>
                 ) : (
                   <CrossPlatformDropdownGen<number | null>
                     options={deviceTypeOptions}
@@ -487,6 +367,7 @@ const RegisterDeviceScreen: React.FC = () => {
                 />
               </View>
             </View>
+
             {/* System Information Section */}
             <View style={styles.sectionContainer}>
               <Text style={styles.sectionTitle}>System Information</Text>
@@ -501,13 +382,14 @@ const RegisterDeviceScreen: React.FC = () => {
                 </View>
               </View>
             </View>
+
             {/* Register Button */}
             <View style={styles.buttonContainer}>
               <TouchableOpacity
                 testID="register-device-button"
                 style={[styles.registerButton, !isFormValid && styles.registerButtonDisabled]}
                 onPress={handleRegisterDevice}
-                disabled={!isFormValid || registerMutation.isPending}
+                disabled={!isFormValid || registering}
               >
                 <Text style={styles.registerButtonIcon}>+</Text>
                 <Text
@@ -516,10 +398,15 @@ const RegisterDeviceScreen: React.FC = () => {
                     !isFormValid && styles.registerButtonTextDisabled,
                   ]}
                 >
-                  {registerMutation.isPending ? 'Registering...' : 'Register Device'}
+                  {registering ? 'Registering...' : 'Register Device'}
                 </Text>
               </TouchableOpacity>
             </View>
+
+            {/* show error (from reducer or local) */}
+            {localError ? (
+              <Text style={{ color: 'red', textAlign: 'center', marginTop: 12 }}>{localError}</Text>
+            ) : null}
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -660,5 +547,18 @@ const styles = StyleSheet.create({
     color: '#D1D5DB',
   },
 });
+
+function getCurrentDateTime() {
+  const now = new Date();
+  const options: Intl.DateTimeFormatOptions = {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  };
+  return now.toLocaleDateString('en-US', options);
+}
 
 export default RegisterDeviceScreen;

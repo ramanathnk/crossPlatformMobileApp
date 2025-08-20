@@ -14,10 +14,11 @@ import {
 import { MaterialIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
-import * as SecureStore from 'expo-secure-store';
+import { useSelector } from 'react-redux';
 
 import { RegisteredDevice } from '../api/deviceRegistrationApi';
 import { useGetRegisteredDevices } from '../api/deviceRegistrationApiRQ';
+import type { RootState } from '../store';
 
 export interface Device {
   id: string; // stable unique id used by FlatList
@@ -36,38 +37,32 @@ type RegisterDeviceScreenNavigationProp = StackNavigationProp<RootStackParamList
 
 const DevicesScreen: React.FC = () => {
   const [search, setSearch] = useState('');
-  const [authToken, setAuthToken] = useState<string | null | undefined>(undefined);
   const [localError, setLocalError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
   const navigation = useNavigation<RegisterDeviceScreenNavigationProp>();
 
+  // Read token from the redux auth slice (follow the same pattern used elsewhere)
+  const authTokenFromStore = useSelector(
+    (s: RootState) => (s.auth as any)?.token as string | null | undefined,
+  );
+
+  // If token is explicitly null, show local error and navigate to Login.
   useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        const token = await SecureStore.getItemAsync('accessToken');
-        if (!mounted) return;
-        setAuthToken(token ?? null);
-        if (!token) {
-          setLocalError('No access token found. Please log in again.');
-        }
-      } catch (err) {
-        if (!mounted) return;
-        setAuthToken(null);
-        setLocalError('Failed to retrieve access token. Please log in again.');
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, []);
+    if (authTokenFromStore === null) {
+      setLocalError('No access token found. Please log in again.');
+    } else {
+      // clear localError when token exists or is pending
+      setLocalError(null);
+    }
+  }, [authTokenFromStore]);
 
   useEffect(() => {
-    if (authToken === null) {
+    if (authTokenFromStore === null) {
+      // navigate to Login if there's no token
       navigation.navigate('Login' as any);
     }
-  }, [authToken, navigation]);
+  }, [authTokenFromStore, navigation]);
 
   const {
     data: apiDevices,
@@ -75,9 +70,9 @@ const DevicesScreen: React.FC = () => {
     isError: queryIsError,
     error: queryError,
     refetch,
-  } = useGetRegisteredDevices(authToken ?? undefined);
+  } = useGetRegisteredDevices(authTokenFromStore ?? undefined);
 
-  const loading = authToken === undefined || queryLoading;
+  const loading = authTokenFromStore === undefined || queryLoading;
 
   const error =
     localError ??

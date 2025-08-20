@@ -21,21 +21,30 @@ import type {
 import type { DeviceType as ApiDeviceType, DeviceTypeRequestPayload } from '../api/deviceTypeApi';
 import type { Manufacturer } from '../api/manufacturerApi';
 
-import {
-  useGetDealers,
-  useCreateDealer,
-  useUpdateDealer,
-  useDeleteDealer,
-} from '../api/dealerApiRQ';
-import {
-  useGetDeviceTypes,
-  useCreateDeviceType,
-  useUpdateDeviceType,
-  useDeleteDeviceType,
-} from '../api/deviceTypeApiRQ';
-import { useGetManufacturers } from '../api/manufacturerApiRQ';
+import { useDispatch, useSelector } from 'react-redux';
+import type { AppDispatch, RootState } from '../store';
 
-import * as SecureStore from 'expo-secure-store';
+import {
+  fetchDealers,
+  createDealerRequest,
+  updateDealerRequest,
+  deleteDealerRequest,
+  selectDealers,
+  selectDealersLoading,
+  selectDealersError,
+} from '../store/dealerSlice';
+
+import {
+  fetchDeviceTypes,
+  createDeviceTypeRequest,
+  updateDeviceTypeRequest,
+  deleteDeviceTypeRequest,
+  selectDeviceTypes,
+  selectDeviceTypesLoading,
+  selectDeviceTypesError,
+} from '../store/deviceTypeSlice';
+
+import { useGetManufacturers } from '../api/manufacturerApiRQ';
 
 import RecordManagementList from '../components/RecordManagementList';
 import GenericModal from '../components/GenericModal';
@@ -127,8 +136,9 @@ const manufacturerFormFields: FormField[] = [
 ];
 
 const RecordsScreen: React.FC = () => {
+  const dispatch = useDispatch<AppDispatch>();
+
   const [activeTab, setActiveTab] = useState(0);
-  const [authToken, setAuthToken] = useState<string>('');
 
   // General states
   const [submitting, setSubmitting] = useState(false);
@@ -144,48 +154,59 @@ const RecordsScreen: React.FC = () => {
   const [manufacturerFormValues, setManufacturerFormValues] = useState<any | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  // React Query hooks for data + mutations (mutations handle invalidation)
-  const dealersQuery = useGetDealers(authToken ?? undefined);
-  const deviceTypesQuery = useGetDeviceTypes(authToken ?? undefined);
-  const manufacturersQuery = useGetManufacturers(authToken ?? undefined);
+  // Redux selectors for dealers/device types
+  const dealers = useSelector((s: RootState) => selectDealers(s));
+  const dealersLoading = useSelector((s: RootState) => selectDealersLoading(s));
+  const dealersError = useSelector((s: RootState) => selectDealersError(s));
 
-  const createDealerMutation = useCreateDealer(authToken ?? undefined);
-  const updateDealerMutation = useUpdateDealer(authToken ?? undefined);
-  const deleteDealerMutation = useDeleteDealer(authToken ?? undefined);
+  const deviceTypes = useSelector((s: RootState) => selectDeviceTypes(s));
+  const deviceTypesLoading = useSelector((s: RootState) => selectDeviceTypesLoading(s));
+  const deviceTypesError = useSelector((s: RootState) => selectDeviceTypesError(s));
 
-  const createDeviceTypeMutation = useCreateDeviceType(authToken ?? undefined);
-  const updateDeviceTypeMutation = useUpdateDeviceType(authToken ?? undefined);
-  const deleteDeviceTypeMutation = useDeleteDeviceType(authToken ?? undefined);
+  // Manufacturers still via React Query wrapper (read-only)
+  const manufacturersQuery = useGetManufacturers(); // pass token optional in that hook; keeping existing pattern
+  const manufacturers = manufacturersQuery.data ?? [];
+  const manufacturersLoading = manufacturersQuery.isFetching;
 
   // Derived canSave flags
   const canSaveDealer = !!dealerFormValues?.name;
   const canSaveDeviceType = !!deviceTypeFormValues?.name && !!deviceTypeFormValues?.modelNumber;
   const canSaveManufacturer = !!manufacturerFormValues?.name;
 
+  // Fetch lists on mount
   useEffect(() => {
-    (async () => {
-      try {
-        const t = (await SecureStore.getItemAsync('accessToken')) || '';
-        if (!t) console.warn('No access token found. Please log in.');
-        setAuthToken(t);
-      } catch (err) {
-        console.error('Failed to retrieve access token:', err);
-      }
-    })();
-  }, []);
+    dispatch(fetchDealers());
+    dispatch(fetchDeviceTypes());
+    // manufacturersQuery is left to its own hook (if you want to move it to Redux we can)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dispatch]);
 
-  // Helper to run mutations with unified UI state + error handling
-  const performMutation = async (
-    fn: (...args: any[]) => Promise<any>,
-    vars: any,
-    errorTitle = 'Error',
-  ) => {
+  // Helper to run thunks with unified UI state + error handling
+  const performThunk = async (thunkAction: any, arg: any, errorTitle = 'Error') => {
     try {
       setSubmitting(true);
-      await fn(vars);
+      // dispatch(...).unwrap() to throw on rejection
+      await dispatch(thunkAction(arg)).unwrap();
       return true;
     } catch (e: any) {
-      Alert.alert(errorTitle, e?.message ?? 'Operation failed');
+      // Normalize error text:
+      // - if thunk rejected with a string, e will be that string
+      // - if thunk threw an Error, e.message will exist
+      // - if thunk rejected with { payload: '...' } unwrap throws the payload (string)
+      let message = 'Operation failed';
+      if (typeof e === 'string') {
+        message = e;
+      } else if (e && typeof e === 'object') {
+        // check common shapes
+        message =
+          e.message ||
+          e.payload || // some patterns
+          e?.response?.data?.message ||
+          e?.response?.data?.error ||
+          JSON.stringify(e);
+      }
+      //console.error('performThunk failed:', e);
+      Alert.alert(errorTitle, message);
       return false;
     } finally {
       setSubmitting(false);
@@ -196,9 +217,15 @@ const RecordsScreen: React.FC = () => {
   const onRefresh = async () => {
     setRefreshing(true);
     try {
-      if (activeTab === 0 && dealersQuery.refetch) await dealersQuery.refetch();
-      if (activeTab === 1 && deviceTypesQuery.refetch) await deviceTypesQuery.refetch();
-      if (activeTab === 2 && manufacturersQuery.refetch) await manufacturersQuery.refetch();
+      if (activeTab === 0) {
+        await dispatch(fetchDealers()).unwrap();
+      } else if (activeTab === 1) {
+        await dispatch(fetchDeviceTypes()).unwrap();
+      } else if (activeTab === 2) {
+        if (manufacturersQuery.refetch) await manufacturersQuery.refetch();
+      }
+    } catch (e) {
+      // errors handled by slice; no-op here
     } finally {
       setRefreshing(false);
     }
@@ -219,24 +246,16 @@ const RecordsScreen: React.FC = () => {
 
   const handleDealerSubmit = async () => {
     if (!dealerFormValues) return;
-    if (!authToken) {
-      Alert.alert('Error', 'Missing auth token');
-      return;
-    }
 
     if (editingDealer) {
       const recordId = editingDealer.dealerId;
-      await performMutation(
-        (vars) => updateDealerMutation.mutateAsync(vars),
-        { token: authToken, dealerId: recordId, dealer: dealerFormValues },
+      await performThunk(
+        updateDealerRequest,
+        { dealerId: recordId, dealer: dealerFormValues },
         'Failed to update dealer',
       );
     } else {
-      await performMutation(
-        (vars) => createDealerMutation.mutateAsync(vars),
-        { token: authToken, dealer: dealerFormValues },
-        'Failed to create dealer',
-      );
+      await performThunk(createDealerRequest, dealerFormValues, 'Failed to create dealer');
     }
 
     setDealerFormVisible(false);
@@ -254,13 +273,9 @@ const RecordsScreen: React.FC = () => {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
-            if (!authToken) {
-              Alert.alert('Error', 'Missing auth token');
-              return;
-            }
-            await performMutation(
-              (vars) => deleteDealerMutation.mutateAsync(vars),
-              { token: authToken, dealerId: dealer.dealerId },
+            await performThunk(
+              deleteDealerRequest,
+              { dealerId: dealer.dealerId },
               'Failed to delete dealer',
             );
           },
@@ -285,22 +300,18 @@ const RecordsScreen: React.FC = () => {
 
   const handleDeviceTypeSubmit = async () => {
     if (!deviceTypeFormValues) return;
-    if (!authToken) {
-      Alert.alert('Error', 'Missing auth token');
-      return;
-    }
 
     if (editingDeviceType) {
       const recordId = editingDeviceType.deviceTypeId;
-      await performMutation(
-        (vars) => updateDeviceTypeMutation.mutateAsync(vars),
-        { token: authToken, deviceTypeId: recordId, deviceType: deviceTypeFormValues },
+      await performThunk(
+        updateDeviceTypeRequest,
+        { deviceTypeId: recordId, deviceType: deviceTypeFormValues },
         'Failed to update device type',
       );
     } else {
-      await performMutation(
-        (vars) => createDeviceTypeMutation.mutateAsync(vars),
-        { token: authToken, deviceType: deviceTypeFormValues },
+      await performThunk(
+        createDeviceTypeRequest,
+        deviceTypeFormValues,
         'Failed to create device type',
       );
     }
@@ -320,13 +331,9 @@ const RecordsScreen: React.FC = () => {
           text: 'Delete',
           style: 'destructive',
           onPress: async () => {
-            if (!authToken) {
-              Alert.alert('Error', 'Missing auth token');
-              return;
-            }
-            await performMutation(
-              (vars) => deleteDeviceTypeMutation.mutateAsync(vars),
-              { token: authToken, deviceTypeId: deviceType.deviceTypeId },
+            await performThunk(
+              deleteDeviceTypeRequest,
+              { deviceTypeId: deviceType.deviceTypeId },
               'Failed to delete device type',
             );
           },
@@ -353,77 +360,68 @@ const RecordsScreen: React.FC = () => {
     Alert.alert('Not implemented', 'Delete manufacturer is not implemented.');
   };
 
-  // Use query data (fallback to empty arrays)
-  const dealers = dealersQuery.data ?? [];
-  const deviceTypes = deviceTypesQuery.data ?? [];
-  const manufacturers = manufacturersQuery.data ?? [];
-
-  // Per-tab loading using queries' isFetching flags (simpler and more accurate than local loading)
-  const dealersLoading = dealersQuery.isFetching;
-  const deviceTypesLoading = deviceTypesQuery.isFetching;
-  const manufacturersLoading = manufacturersQuery.isFetching;
+  // Per-tab loading flags
+  const dealersBusy = dealersLoading;
+  const deviceTypesBusy = deviceTypesLoading;
+  const manufacturersBusy = manufacturersLoading;
 
   // Filtered lists
   const filteredDealers = useMemo(
-    () => dealers.filter((d) => d.name.toLowerCase().includes(search.toLowerCase())),
+    () => (dealers ?? []).filter((d) => d.name.toLowerCase().includes(search.toLowerCase())),
     [dealers, search],
   );
 
   const filteredDeviceTypes = useMemo(
-    () => deviceTypes.filter((dt) => dt.name.toLowerCase().includes(search.toLowerCase())),
+    () => (deviceTypes ?? []).filter((dt) => dt.name.toLowerCase().includes(search.toLowerCase())),
     [deviceTypes, search],
   );
 
   const filteredManufacturers = useMemo(
-    () => manufacturers.filter((m) => m.name.toLowerCase().includes(search.toLowerCase())),
+    () => (manufacturers ?? []).filter((m) => m.name.toLowerCase().includes(search.toLowerCase())),
     [manufacturers, search],
   );
 
   // Generic render item function
-  const renderItem = ({
-    item,
-    onEdit,
-    onDelete,
-    primaryText,
-    secondaryText,
-    testIDPrefix,
-  }: {
+  const renderItem = (props: {
     item: RecordItem;
     onEdit: (item: RecordItem) => void;
     onDelete: (item: RecordItem) => void;
     primaryText: string;
     secondaryText: string;
     testIDPrefix: string;
-  }) => (
-    <View style={styles.dealerCard}>
-      <Text style={styles.dealerName}>{primaryText}</Text>
-      <Text style={styles.dealerInfo}>{secondaryText}</Text>
-      <View style={styles.dealerActions}>
-        <TouchableOpacity
-          style={styles.iconBtn}
-          onPress={() => onEdit(item)}
-          testID={`edit-${testIDPrefix}-${
-            (item as ApiDealer).dealerId ||
-            (item as ApiDeviceType).deviceTypeId ||
-            (item as Manufacturer).manufacturerId
-          }`}
-        >
-          <MaterialIcons name="edit" size={20} color="#A3A3A3" />
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={styles.iconBtn}
-          onPress={() => onDelete(item)}
-          testID={`delete-${testIDPrefix}-${
-            (item as ApiDealer).dealerId ||
-            (item as ApiDeviceType).deviceTypeId ||
-            (item as Manufacturer).manufacturerId
-          }`}
-        >
-          <MaterialIcons name="delete" size={20} color="#A3A3A3" />
-        </TouchableOpacity>
+  }) => {
+    const { item, onEdit, onDelete, primaryText, secondaryText, testIDPrefix } = props;
+    return (
+      <View style={styles.dealerCard}>
+        <Text style={styles.dealerName}>{primaryText}</Text>
+        <Text style={styles.dealerInfo}>{secondaryText}</Text>
+        <View style={styles.dealerActions}>
+          <TouchableOpacity
+            style={styles.iconBtn}
+            onPress={() => onEdit(item)}
+            testID={`edit-${testIDPrefix}-${
+              (item as ApiDealer).dealerId ||
+              (item as ApiDeviceType).deviceTypeId ||
+              (item as Manufacturer).manufacturerId
+            }`}
+          >
+            <MaterialIcons name="edit" size={20} color="#A3A3A3" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.iconBtn}
+            onPress={() => onDelete(item)}
+            testID={`delete-${testIDPrefix}-${
+              (item as ApiDealer).dealerId ||
+              (item as ApiDeviceType).deviceTypeId ||
+              (item as Manufacturer).manufacturerId
+            }`}
+          >
+            <MaterialIcons name="delete" size={20} color="#A3A3A3" />
+          </TouchableOpacity>
+        </View>
       </View>
-    </View>
-  );
+    );
+  };
 
   return (
     <ScrollView
@@ -464,7 +462,7 @@ const RecordsScreen: React.FC = () => {
         {activeTab === 0 && (
           <RecordManagementList
             data={filteredDealers}
-            loading={dealersLoading}
+            loading={dealersBusy}
             search={search}
             itemLabel="Dealers"
             onSearchChange={setSearch}
@@ -488,7 +486,7 @@ const RecordsScreen: React.FC = () => {
         {activeTab === 1 && (
           <RecordManagementList
             data={filteredDeviceTypes}
-            loading={deviceTypesLoading}
+            loading={deviceTypesBusy}
             search={search}
             itemLabel="Device Types"
             onSearchChange={setSearch}
@@ -510,7 +508,7 @@ const RecordsScreen: React.FC = () => {
         {activeTab === 2 && (
           <RecordManagementList
             data={filteredManufacturers}
-            loading={manufacturersLoading}
+            loading={manufacturersBusy}
             search={search}
             itemLabel="Manufacturers"
             onSearchChange={setSearch}

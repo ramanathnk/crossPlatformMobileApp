@@ -13,6 +13,15 @@ interface ApiErrorData {
   [key: string]: unknown;
 }
 
+/**
+ * Unified API request helper.
+ *
+ * Notes:
+ * - For responses with empty body (e.g. 204 No Content), this returns `null` (as T).
+ *   Callers should treat a null result as "no content" / successful-but-no-body.
+ * - All non-OK responses will throw an object containing `code`, `message`, `description`
+ *   and any parsed server error payload (if present).
+ */
 export async function apiRequest<T>(
   url: string,
   method: 'GET' | 'POST' | 'PUT' | 'DELETE',
@@ -31,34 +40,74 @@ export async function apiRequest<T>(
     body: body ? JSON.stringify(body) : undefined,
   });
 
+  const status = response.status;
+  // Read raw text first so we can safely handle empty bodies without throwing.
+  const rawText = await response.text();
+
   if (!response.ok) {
     let errorMsg = fallbackError;
-    const errorCode: number = response.status;
     let errorData: ApiErrorData = {};
 
-    try {
-      const json = (await response.json()) as unknown;
-      if (typeof json === 'object' && json !== null) {
-        errorData = json as ApiErrorData;
-        errorMsg = getApiErrorMessageByCode(errorCode, errorData, errorMsg);
-        console.log('errorData:', errorData);
-      } else {
+    if (rawText && rawText.trim().length > 0) {
+      try {
+        const parsed = JSON.parse(rawText);
+        if (typeof parsed === 'object' && parsed !== null) {
+          errorData = parsed as ApiErrorData;
+          errorMsg = getApiErrorMessageByCode(status, errorData, errorMsg);
+          console.log('errorData:', errorData);
+        } else {
+          // Unexpected non-object response body
+          errorMsg = NONSTANDARD_ERROR;
+        }
+      } catch (parseErr) {
+        // Couldn't parse error body as JSON; include rawText for debugging
+        console.warn('apiRequest: failed to parse error response as JSON', {
+          url,
+          status,
+          rawText,
+          parseErr,
+        });
         errorMsg = NONSTANDARD_ERROR;
       }
-    } catch {
+    } else {
+      // No body provided by server with an error status
       errorMsg = NONSTANDARD_ERROR;
     }
 
     throw {
-      code: errorCode,
+      code: status,
       error: errorData.error,
       description: errorData.description || errorMsg,
       timestamp: errorData.timestamp,
       message: errorMsg,
+      rawText,
     };
   }
 
-  return response.json() as Promise<T>;
+  // Successful response (2xx)
+  // If body is empty (e.g. 204 No Content or empty string), return null so callers don't attempt JSON.parse on nothing.
+  if (!rawText || rawText.trim().length === 0) {
+    return null as unknown as T;
+  }
+
+  try {
+    const parsed = JSON.parse(rawText) as T;
+    return parsed;
+  } catch (parseErr) {
+    // Clearer error for invalid JSON on successful status
+    // console.error('apiRequest: invalid JSON in successful response', {
+    //   url,
+    //   status,
+    //   rawText,
+    //   parseErr,
+    // });
+    throw {
+      code: status,
+      message: 'Invalid JSON response from server',
+      description: NONSTANDARD_ERROR,
+      rawText,
+    };
+  }
 }
 
 function getApiErrorMessageByCode(

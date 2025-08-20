@@ -39,8 +39,6 @@ const ResetPasswordScreen: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const authState = useSelector((state: RootState) => state.auth);
   const loading = authState.loading;
-  const serverError = authState.error;
-  const serverMessage = authState.message;
 
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -50,19 +48,12 @@ const ResetPasswordScreen: React.FC = () => {
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    // show server errors/messages in local state so UI layout stays the same
-    setError(serverError);
-  }, [serverError]);
+    // Mirror server error into local state for inline display (optional).
+    setError(authState.error ?? null);
+  }, [authState.error]);
 
-  useEffect(() => {
-    setMessage(serverMessage);
-    if (serverMessage) {
-      // navigate to login after a short delay
-      setTimeout(() => {
-        navigation.replace('Login');
-      }, 1200);
-    }
-  }, [serverMessage, navigation]);
+  // NOTE: we intentionally do NOT auto-navigate on authState.message anymore.
+  // Navigation occurs only after user confirms the alert shown below.
 
   // Reset password validation
   const isResetFormValid =
@@ -96,16 +87,58 @@ const ResetPasswordScreen: React.FC = () => {
 
     // Dispatch the redux thunk (which calls the API)
     try {
-      await dispatch(
+      const res = await dispatch(
         resetPasswordThunk({
           email: email ?? '',
           token: token ?? '',
           newPassword,
         }),
       ).unwrap();
-      // success is handled by slice -> message and navigation effect
+
+      const successMessage =
+        (res && (res as any).message) || 'Password reset successful. You can now log in.';
+
+      // Show alert with success message and navigate to Login after user confirmation.
+      CrossPlatformAlert.alert('Success', successMessage, [
+        {
+          text: 'OK',
+          onPress: () => {
+            // Clear any leftover auth slice messages/errors to keep state clean.
+            try {
+              dispatch(clearMessage());
+              dispatch(clearError());
+            } catch (e) {
+              /* ignore */
+            }
+            navigation.navigate('Login');
+          },
+        },
+      ]);
+
+      setMessage(successMessage);
     } catch (err: any) {
-      setError(err?.message || 'Failed to reset password.');
+      // Normalize error message (thunk rejection can be string or object)
+      const errMsg =
+        typeof err === 'string'
+          ? err
+          : err?.message || err?.description || authState.error || 'Failed to reset password.';
+
+      CrossPlatformAlert.alert('Error', errMsg, [
+        {
+          text: 'OK',
+          onPress: () => {
+            try {
+              dispatch(clearMessage());
+              dispatch(clearError());
+            } catch (e) {
+              /* ignore */
+            }
+            navigation.navigate('Login');
+          },
+        },
+      ]);
+
+      setError(errMsg);
     }
   };
 
@@ -184,15 +217,15 @@ const ResetPasswordScreen: React.FC = () => {
               </View>
             </View>
 
-            {/* Error or Success Message */}
-            {(error || serverError) && (
+            {/* Error or Success Message (inline) */}
+            {(error || authState.error) && (
               <Text style={{ color: '#FF3B30', fontWeight: 'bold', marginBottom: 12 }}>
-                {error || serverError}
+                {error || authState.error}
               </Text>
             )}
-            {(message || serverMessage) && (
+            {(message || authState.message) && (
               <Text style={{ color: '#10B981', fontWeight: 'bold', marginBottom: 12 }}>
-                {message || serverMessage}
+                {message || authState.message}
               </Text>
             )}
 
