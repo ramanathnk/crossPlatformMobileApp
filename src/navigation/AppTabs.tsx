@@ -8,8 +8,9 @@ import SettingsScreen from '../screens/SettingsScreen';
 import MaterialIconComponent from '../icons/MaterialIconComponent';
 import HomeIcon from '../../assets/material-icons/home.svg';
 import ConciergeIcon from '../../assets/material-icons/concierge.svg';
-import GroupIcon from '../../assets/material-icons/group.svg';
+import TableEditIcon from '../../assets/material-icons/table_edit.svg';
 import SettingsIcon from '../../assets/material-icons/settings.svg';
+import DeviceRequestsScreen from '../screens/DeviceRequestsScreen';
 
 export type AppTabParamList = {
   Dashboard: undefined;
@@ -49,7 +50,7 @@ const AppTabs: React.FC = () => {
               IconComponent = ConciergeIcon;
               break;
             case 'Records':
-              IconComponent = GroupIcon;
+              IconComponent = TableEditIcon;
               break;
             case 'Settings':
               IconComponent = SettingsIcon;
@@ -62,7 +63,7 @@ const AppTabs: React.FC = () => {
       })}
     >
       <Tab.Screen name="Dashboard" component={DashboardScreen} />
-      <Tab.Screen name="Requests" component={RequestsScreen} />
+      <Tab.Screen name="Requests" component={DeviceRequestsScreen} />
       <Tab.Screen name="Records" component={RecordsScreen} />
       <Tab.Screen name="Settings" component={SettingsScreen} />
     </Tab.Navigator>

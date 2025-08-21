@@ -1,12 +1,5 @@
 import React from 'react';
-import {
-  StyleSheet,
-  Text,
-  View,
-  TouchableOpacity,
-  SafeAreaView,
-  ScrollView,
-} from 'react-native';
+import { StyleSheet, Text, View, TouchableOpacity, SafeAreaView, ScrollView } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import SnaptrackerLogo from '../icons/SnapTrackerLogo';
 
@@ -14,14 +7,14 @@ import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import type { RootStackParamList } from '../../App';
 import MaterialIconComponent from '../icons/MaterialIconComponent';
-
+import RecordsScreen from '../screens/RecordsScreen';
 import TableEditIcon from '../../assets/material-icons/table_edit.svg';
 import AddBoxIcon from '../../assets/material-icons/add_box.svg';
 import MobileCheckIcon from '../../assets/material-icons/mobile_check.svg';
+import ConciergeIcon from '../../assets/material-icons/concierge.svg';
 import PendingActionsIcon from '../../assets/material-icons/pending_actions.svg';
 
 import { colors, spacing, fontSizes, borderRadius, fontWeights } from '../styles/theme';
-import { textStyles, cardStyles } from '../styles/commonStyles';
 
 const DashboardScreen: React.FC = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList, 'RegisterDevice'>>();
@@ -71,15 +64,21 @@ const DashboardScreen: React.FC = () => {
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionTitle}>CORE MODULES</Text>
           <View style={styles.moduleGrid}>
-            <TouchableOpacity style={styles.moduleCard} onPress={() => navigation.navigate('DeviceRequests')}>
+            <TouchableOpacity
+              style={styles.moduleCard}
+              onPress={() => navigation.navigate('DeviceRequests')}
+            >
               <View style={styles.moduleIconContainer}>
-                <MaterialIconComponent Icon={MobileCheckIcon} size={28} color={colors.primary} />
+                <MaterialIconComponent Icon={ConciergeIcon} size={28} color={colors.primary} />
               </View>
               <Text style={styles.moduleTitle}>Device Requests</Text>
               <Text style={styles.moduleSubtitle}>Review & approve</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.moduleCard} onPress={() => navigation.navigate('RegisterDevice')}>
+            <TouchableOpacity
+              style={styles.moduleCard}
+              onPress={() => navigation.navigate('RegisterDevice')}
+            >
               <View style={styles.moduleIconContainer}>
                 <MaterialIconComponent Icon={AddBoxIcon} size={28} color={colors.primary} />
               </View>
@@ -87,7 +86,10 @@ const DashboardScreen: React.FC = () => {
               <Text style={styles.moduleSubtitle}>Add new device</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.moduleCard}>
+            <TouchableOpacity
+              style={styles.moduleCard}
+              onPress={() => navigation.navigate('RecordsScreen')}
+            >
               <View style={styles.moduleIconContainer}>
                 <MaterialIconComponent Icon={TableEditIcon} size={28} color={colors.primary} />
               </View>
@@ -95,9 +97,12 @@ const DashboardScreen: React.FC = () => {
               <Text style={styles.moduleSubtitle}>Edit & update</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.moduleCard} onPress={() => navigation.navigate('Devices')}>
+            <TouchableOpacity
+              style={styles.moduleCard}
+              onPress={() => navigation.navigate('Devices')}
+            >
               <View style={styles.moduleIconContainer}>
-                <MaterialIconComponent Icon={TableEditIcon} size={28} color={colors.primary} />
+                <MaterialIconComponent Icon={MobileCheckIcon} size={28} color={colors.primary} />
               </View>
               <Text style={styles.moduleTitle}>View Devices</Text>
               <Text style={styles.moduleSubtitle}>All registrations</Text>

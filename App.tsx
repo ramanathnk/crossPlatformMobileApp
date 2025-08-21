@@ -13,6 +13,7 @@ import DevicesScreen from './src/screens/DevicesScreen';
 import AppTabs from './src/navigation/AppTabs';
 import DeviceRequestsScreen from './src/screens/DeviceRequestsScreen';
 import store from './src/store';
+import RecordsScreen from './src/screens/RecordsScreen';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -22,6 +23,7 @@ export type RootStackParamList = {
   RegisterDevice: undefined;
   Devices: undefined;
   DeviceRequests: undefined;
+  RecordsScreen: undefined;
 };
 
 const Stack = createStackNavigator<RootStackParamList>();
@@ -40,7 +42,6 @@ const linking = {
         },
       },
       Dashboard: 'dashboard',
-      RegisterDevice: 'register-device',
     },
   },
 };
@@ -64,6 +65,11 @@ export default function App() {
                 name="Devices"
                 component={DevicesScreen}
                 options={{ title: 'All Registered Devices' }}
+              />
+              <Stack.Screen
+                name="RecordsScreen"
+                component={RecordsScreen}
+                options={{ title: 'Records' }}
               />
               <Stack.Screen
                 name="DeviceRequests"
