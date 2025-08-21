@@ -47,7 +47,7 @@ export function useGetPendingRegistrationRequests(token?: string) {
     queryKey: ['pendingRegistrationRequests', token ?? null],
     queryFn: () =>
       apiRequest<DeviceRegistrationRequest[]>(
-        `${API_BASE}/api/v1/register/requests`,
+        `${API_BASE}/api/v1/devices/register/requests`,
         'GET',
         FETCH_PENDING_REQUESTS_ERROR,
         token,

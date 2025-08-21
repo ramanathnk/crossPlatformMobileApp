@@ -1,3 +1,4 @@
+/* Full file with the zIndex fix for the action buttons */
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
@@ -18,133 +19,7 @@ import * as SecureStore from 'expo-secure-store';
 import { colors, spacing, fontSizes, borderRadius, fontWeights } from '../styles/theme';
 import { cardStyles, textStyles } from '../styles/commonStyles';
 
-// ===================================================================================
-// --- MOCK API IMPLEMENTATION ---
-// The following section contains mock data and functions to simulate API calls.
-// This allows the UI to be developed and tested without a live backend.
-// ===================================================================================
-
-// --- Type definitions (normally imported from API files) ---
-export interface DeviceRegistrationRequest {
-  requestId: number;
-  serialNo: string;
-  deviceTypeName: string;
-  osVersion: string | null;
-  buildNumber: string | null;
-  requestedAt: string;
-  notes: string | null;
-}
-
-export interface DeviceType {
-  id: number;
-  name: string;
-}
-
-// --- Helper to simulate network delay ---
-const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-// --- Mock Data Store ---
-const mockPendingRequests: DeviceRegistrationRequest[] = [
-  {
-    requestId: 101,
-    serialNo: 'SN-MOCK-12345',
-    deviceTypeName: 'Scanner X1',
-    osVersion: 'Android 11',
-    buildNumber: 'B-XYZ-001',
-    requestedAt: new Date().toISOString(),
-    notes: 'Device for warehouse inventory.',
-  },
-  {
-    requestId: 102,
-    serialNo: 'SN-MOCK-67890',
-    deviceTypeName: 'Tablet T2',
-    osVersion: 'iOS 15.2',
-    buildNumber: 'B-ABC-002',
-    requestedAt: new Date(Date.now() - 86400000).toISOString(), // Yesterday
-    notes: 'Field agent tablet.',
-  },
-  {
-    requestId: 103,
-    serialNo: 'SN-MOCK-ABCDE',
-    deviceTypeName: 'Scanner X1',
-    osVersion: 'Android 10',
-    buildNumber: 'B-PQR-003',
-    requestedAt: new Date(Date.now() - 172800000).toISOString(), // 2 days ago
-    notes: null, // Test case with no notes
-  },
-];
-
-const mockDeviceTypes: DeviceType[] = [
-  { id: 1, name: 'Scanner X1' },
-  { id: 2, name: 'Tablet T2' },
-  { id: 3, name: 'Handheld H3' },
-];
-
-
-// --- Mock API Function Stubs ---
-
-/**
- * MOCK: Fetches a list of pending device registration requests.
- */
-const getPendingRegistrationRequests = async (token: string): Promise<DeviceRegistrationRequest[]> => {
-  console.log('--- MOCK: Fetching pending requests... ---');
-  await sleep(1000); // Simulate 1-second network delay
-  if (!token) {
-    throw new Error('MOCK: Auth token is required.');
-  }
-  console.log('--- MOCK: Returning mock requests. ---');
-  // Return a copy to prevent direct mutation of the mock data store
-  return Promise.resolve([...mockPendingRequests]);
-};
-
-/**
- * MOCK: Fetches all available device types.
- */
-const getAllDeviceTypes = async (token: string): Promise<DeviceType[]> => {
-  console.log('--- MOCK: Fetching device types... ---');
-  await sleep(500); // Simulate 0.5-second network delay
-  if (!token) {
-    throw new Error('MOCK: Auth token is required.');
-  }
-  console.log('--- MOCK: Returning mock device types. ---');
-  return Promise.resolve([...mockDeviceTypes]);
-};
-
-/**
- * MOCK: Approves a device registration request.
- */
-const approveRegistrationRequest = async (token: string, requestId: number): Promise<void> => {
-  console.log(`--- MOCK: Approving request ID: ${requestId} ---`);
-  await sleep(1500); // Simulate 1.5-second network delay
-  if (!token) {
-    throw new Error('MOCK: Auth token is required.');
-  }
-  // In a real mock, you might remove the item from the array.
-  // Here, we just log it and let the component's `fetchData` call handle the "refresh".
-  console.log(`--- MOCK: Request ${requestId} approved. Component will refetch data. ---`);
-  return Promise.resolve();
-};
-
-/**
- * MOCK: Rejects a device registration request.
- */
-const rejectRegistrationRequest = async (token: string, requestId: number, reason: string): Promise<void> => {
-  console.log(`--- MOCK: Rejecting request ID: ${requestId} with reason: "${reason}" ---`);
-  await sleep(1500); // Simulate 1.5-second network delay
-  if (!token) {
-    throw new Error('MOCK: Auth token is required.');
-  }
-  console.log(`--- MOCK: Request ${requestId} rejected. Component will refetch data. ---`);
-  return Promise.resolve();
-};
-
-// ===================================================================================
-// --- End of MOCK API IMPLEMENTATION ---
-// ===================================================================================
-
-
-// Import API functions and types
-/* COMMENTED OUT - Using mock implementations above
+// Real API imports
 import {
   getPendingRegistrationRequests,
   approveRegistrationRequest,
@@ -152,8 +27,8 @@ import {
   DeviceRegistrationRequest,
 } from '../api/deviceRegistrationApi';
 import { getAllDeviceTypes, DeviceType } from '../api/deviceTypeApi';
-*/
 
+// Navigation types
 type RootStackParamList = {
   MainTabs: undefined;
 };
@@ -172,7 +47,20 @@ interface Request {
   status: 'Pending' | 'Approved' | 'Denied';
 }
 
-// Helper to format API data for the UI
+function extractErrorMessage(err: any, fallback = 'An unknown error occurred.'): string {
+  if (!err) return fallback;
+  if (typeof err === 'string') return err;
+  if (err instanceof Error && err.message) return err.message;
+  if (err?.message) return String(err.message);
+  if (err?.description) return String(err.description);
+  if (err?.error) return String(err.error);
+  try {
+    return JSON.stringify(err);
+  } catch {
+    return fallback;
+  }
+}
+
 const formatRequest = (apiRequest: DeviceRegistrationRequest): Request => ({
   id: apiRequest.requestId.toString(),
   serial: apiRequest.serialNo,
@@ -185,19 +73,17 @@ const formatRequest = (apiRequest: DeviceRegistrationRequest): Request => ({
     day: 'numeric',
   }),
   notes: apiRequest.notes || 'No notes provided.',
-  status: 'Pending', // All requests from this API are pending
+  status: 'Pending',
 });
 
 const DeviceRequestsScreen: React.FC = () => {
   const navigation = useNavigation<NavProp>();
 
-  // State for data, loading, and errors
   const [requests, setRequests] = useState<Request[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [submittingRequestId, setSubmittingRequestId] = useState<string | null>(null);
 
-  // State for filters
   const [statusFilterOpen, setStatusFilterOpen] = useState(false);
   const [statusFilterValue, setStatusFilterValue] = useState<string>('Pending');
   const [statusFilterItems, setStatusFilterItems] = useState([
@@ -212,7 +98,6 @@ const DeviceRequestsScreen: React.FC = () => {
     { label: 'All Device Types', value: 'All' },
   ]);
 
-  // TODO: Dealer dropdown state needs to be wired up if required
   const [dealerOpen, setDealerOpen] = useState(false);
   const [dealerValue, setDealerValue] = useState<string>('');
   const [dealerItems, setDealerItems] = useState([
@@ -221,25 +106,54 @@ const DeviceRequestsScreen: React.FC = () => {
     { label: 'Global Trackers LLC', value: 'Global Trackers LLC' },
   ]);
 
-  // Fetch data from API
   const fetchData = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const token = await SecureStore.getItemAsync('accessToken') || 'mock-token'; // Use a mock token
+      const token = (await SecureStore.getItemAsync('accessToken')) || '';
+      console.log('DeviceRequestsScreen: token from SecureStore:', !!token);
       if (!token) {
         throw new Error('Authentication token not found.');
       }
-      console.log('Before call to getPendingRegistrationRequests');
 
-      // Fetch requests and device types in parallel
-      const [pendingRequests, deviceTypes] = await Promise.all([
-        getPendingRegistrationRequests(token),
-        getAllDeviceTypes(token),
-      ]);
-      console.log('The call for getPendingRegistrationRequests was successful');
-      console.log('Pending Requests:', pendingRequests);
-      console.log('Device Types:', deviceTypes);
+      if (typeof getPendingRegistrationRequests !== 'function') {
+        throw new Error(
+          'getPendingRegistrationRequests is not a function / not correctly imported.',
+        );
+      }
+
+      console.log('DeviceRequestsScreen: calling getPendingRegistrationRequests...');
+      let pendingRequests: DeviceRegistrationRequest[] = [];
+      try {
+        pendingRequests = await getPendingRegistrationRequests(token);
+        console.log(
+          'DeviceRequestsScreen: getPendingRegistrationRequests succeeded, count=',
+          pendingRequests?.length ?? 'unknown',
+          
+        );
+        console.log('DeviceRequestsScreen: pendingRequests:', pendingRequests);
+      } catch (reqErr) {
+        console.error('DeviceRequestsScreen: getPendingRegistrationRequests failed:', reqErr);
+        throw reqErr;
+      }
+
+      let deviceTypes: DeviceType[] = [];
+      if (typeof getAllDeviceTypes === 'function') {
+        try {
+          console.log('DeviceRequestsScreen: calling getAllDeviceTypes...');
+          deviceTypes = await getAllDeviceTypes(token);
+          console.log(
+            'DeviceRequestsScreen: getAllDeviceTypes succeeded, count=',
+            deviceTypes?.length ?? 'unknown',
+          );
+        } catch (dtErr) {
+          console.warn('DeviceRequestsScreen: getAllDeviceTypes failed (continuing):', dtErr);
+          deviceTypes = [];
+        }
+      } else {
+        console.warn('DeviceRequestsScreen: getAllDeviceTypes is not available.');
+      }
+
       setRequests(pendingRequests.map(formatRequest));
 
       const formattedTypes = deviceTypes.map((type: DeviceType) => ({
@@ -248,7 +162,9 @@ const DeviceRequestsScreen: React.FC = () => {
       }));
       setTypeFilterItems([{ label: 'All Device Types', value: 'All' }, ...formattedTypes]);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unknown error occurred.');
+      const msg = extractErrorMessage(err, 'An unknown error occurred.');
+      console.error('DeviceRequestsScreen: fetchData error (final):', err);
+      setError(msg);
     } finally {
       setLoading(false);
     }
@@ -261,14 +177,20 @@ const DeviceRequestsScreen: React.FC = () => {
   const handleApprove = async (requestId: string) => {
     setSubmittingRequestId(requestId);
     try {
-      const token = await SecureStore.getItemAsync('accessToken') || 'mock-token';
+      const token = (await SecureStore.getItemAsync('accessToken')) || '';
       if (!token) throw new Error('Authentication token not found.');
 
+      if (typeof approveRegistrationRequest !== 'function') {
+        throw new Error('approveRegistrationRequest is not a function / not correctly imported.');
+      }
+
       await approveRegistrationRequest(token, parseInt(requestId, 10));
-      Alert.alert('Success (Mock)', 'Device registration has been approved.');
-      fetchData(); // Refresh list
+      Alert.alert('Success', 'Device registration has been approved.');
+      fetchData();
     } catch (err) {
-      Alert.alert('Error (Mock)', err instanceof Error ? err.message : 'Failed to approve request.');
+      const msg = extractErrorMessage(err, 'Failed to approve request.');
+      console.error('DeviceRequestsScreen approve error:', err);
+      Alert.alert('Error', msg);
     } finally {
       setSubmittingRequestId(null);
     }
@@ -279,18 +201,26 @@ const DeviceRequestsScreen: React.FC = () => {
       'Deny Request',
       'Please provide a reason for denying this request.',
       async (reason) => {
-        if (!reason) return; // User cancelled or entered no reason
+        if (!reason) return;
 
         setSubmittingRequestId(requestId);
         try {
-          const token = await SecureStore.getItemAsync('accessToken') || 'mock-token';
+          const token = (await SecureStore.getItemAsync('accessToken')) || '';
           if (!token) throw new Error('Authentication token not found.');
 
+          if (typeof rejectRegistrationRequest !== 'function') {
+            throw new Error(
+              'rejectRegistrationRequest is not a function / not correctly imported.',
+            );
+          }
+
           await rejectRegistrationRequest(token, parseInt(requestId, 10), reason);
-          Alert.alert('Success (Mock)', 'Device registration has been denied.');
-          fetchData(); // Refresh list
+          Alert.alert('Success', 'Device registration has been denied.');
+          fetchData();
         } catch (err) {
-          Alert.alert('Error (Mock)', err instanceof Error ? err.message : 'Failed to deny request.');
+          const msg = extractErrorMessage(err, 'Failed to deny request.');
+          console.error('DeviceRequestsScreen reject error:', err);
+          Alert.alert('Error', msg);
         } finally {
           setSubmittingRequestId(null);
         }
@@ -339,7 +269,6 @@ const DeviceRequestsScreen: React.FC = () => {
               <Text style={cardStyles.detail}>Request Date: {item.date}</Text>
               <Text style={cardStyles.detail}>Notes: {item.notes}</Text>
 
-              {/* This dealer selector is still using mock data as per original code */}
               <Text style={styles.selectLabel}>Select Dealer</Text>
               <View style={[styles.pickerWrapper, { zIndex: 1000 }]}>
                 <DropDownPicker<string>
@@ -384,7 +313,6 @@ const DeviceRequestsScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* Header and Filters are mostly unchanged, but now use state-driven items */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <MaterialIcons name="arrow-back" size={24} color={colors.text} />
@@ -392,7 +320,6 @@ const DeviceRequestsScreen: React.FC = () => {
         <Text style={textStyles.heading}>Device Requests</Text>
       </View>
 
-      {/* Filters */}
       <View style={styles.filters}>
         <View style={[styles.pickerWrapper, { zIndex: statusFilterOpen ? 3000 : 2000 }]}>
           <DropDownPicker<string>
@@ -415,7 +342,7 @@ const DeviceRequestsScreen: React.FC = () => {
           <DropDownPicker<string>
             open={typeFilterOpen}
             value={typeFilterValue}
-            items={typeFilterItems} // Using state-driven items
+            items={typeFilterItems}
             setOpen={setTypeFilterOpen}
             setValue={setTypeFilterValue}
             setItems={setTypeFilterItems}
@@ -425,7 +352,6 @@ const DeviceRequestsScreen: React.FC = () => {
         </View>
       </View>
 
-      {/* Count Bar */}
       <View style={styles.countBar}>
         <Text style={textStyles.subtitle}>{requests.length} Pending Requests</Text>
         <TouchableOpacity onPress={fetchData}>
@@ -439,7 +365,6 @@ const DeviceRequestsScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  // --- Keep all your original styles here ---
   container: { flex: 1, backgroundColor: colors.background },
   scrollContent: {
     paddingHorizontal: spacing.lg,
@@ -505,7 +430,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'flex-end',
     marginTop: spacing.md,
-    zIndex: -1, // Ensure actions are below dealer dropdown
+    // removed negative zIndex which hid the buttons; keep it at default (0)
+    zIndex: 0,
   },
   actionBtn: {
     flex: 1,

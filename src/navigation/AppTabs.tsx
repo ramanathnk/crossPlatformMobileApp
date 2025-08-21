@@ -2,7 +2,6 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import DashboardScreen from '../screens/DashboardScreen';
-import RequestsScreen from '../screens/RequestsScreen';
 import RecordsScreen from '../screens/RecordsScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import MaterialIconComponent from '../icons/MaterialIconComponent';

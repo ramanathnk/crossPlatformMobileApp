@@ -82,14 +82,14 @@ const FETCH_REGISTERED_DEVICES_ERROR = 'Failed to fetch registered devices';
  */
 export async function registerDevice(
   data: RegisterDeviceRequest,
-  token: string
+  token: string,
 ): Promise<RegisterDeviceResponse> {
   return apiRequest<RegisterDeviceResponse>(
     `${API_BASE}/api/v1/devices/register`,
     'POST',
     REGISTER_DEVICE_ERROR,
     token,
-    data
+    data,
   );
 }
 
@@ -97,13 +97,13 @@ export async function registerDevice(
  * Retrieve pending device registration requests
  */
 export async function getPendingRegistrationRequests(
-  token: string
+  token: string,
 ): Promise<DeviceRegistrationRequest[]> {
   return apiRequest<DeviceRegistrationRequest[]>(
-    `${API_BASE}/api/v1/register/requests`,
+    `${API_BASE}/api/v1/devices/register/requests`,
     'GET',
     FETCH_PENDING_REQUESTS_ERROR,
-    token
+    token,
   );
 }
 
@@ -113,14 +113,14 @@ export async function getPendingRegistrationRequests(
 export async function approveRegistrationRequest(
   token: string,
   requestId: number,
-  notes?: string
+  notes?: string,
 ): Promise<DeviceRegistrationRequest> {
   return apiRequest<DeviceRegistrationRequest>(
     `${API_BASE}/api/v1/devices/register/requests/${requestId}/approve`,
     'PUT',
     APPROVE_REQUEST_ERROR,
     token,
-    { notes }
+    { notes },
   );
 }
 
@@ -131,27 +131,25 @@ export async function rejectRegistrationRequest(
   token: string,
   requestId: number,
   rejectionReason: string,
-  notes?: string
+  notes?: string,
 ): Promise<DeviceRegistrationRequest> {
   return apiRequest<DeviceRegistrationRequest>(
     `${API_BASE}/api/v1/devices/register/${requestId}/reject`,
     'PUT',
     REJECT_REQUEST_ERROR,
     token,
-    { rejectionReason, notes }
+    { rejectionReason, notes },
   );
 }
 
 /**
  * Retrieve all registered devices
  */
-export async function getRegisteredDevices(
-  token: string
-): Promise<RegisteredDevice[]> {
+export async function getRegisteredDevices(token: string): Promise<RegisteredDevice[]> {
   return apiRequest<RegisteredDevice[]>(
     `${API_BASE}/api/v1/devices`,
     'GET',
     FETCH_REGISTERED_DEVICES_ERROR,
-    token
+    token,
   );
 }
