@@ -119,7 +119,7 @@ export function useGetRegisteredDevices(token?: string) {
     queryKey: ['registeredDevices', token ?? null],
     queryFn: () =>
       apiRequest<RegisteredDevice[]>(
-        `${API_BASE}/api/v1/devices`,
+        `${API_BASE}/api/v1/devices/register/requests`,
         'GET',
         FETCH_REGISTERED_DEVICES_ERROR,
         token,
