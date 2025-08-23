@@ -99,7 +99,7 @@ export function useRejectRegistrationRequest() {
   >({
     mutationFn: ({ token, requestId, rejectionReason, notes }) =>
       apiRequest<DeviceRegistrationRequest>(
-        `${API_BASE}/api/v1/devices/register/${requestId}/reject`,
+        `${API_BASE}/api/v1/devices/register/requests/${requestId}/reject`,
         'PUT',
         REJECT_REQUEST_ERROR,
         token,
