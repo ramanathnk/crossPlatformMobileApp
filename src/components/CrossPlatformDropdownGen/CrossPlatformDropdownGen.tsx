@@ -16,7 +16,6 @@ import type { LayoutChangeEvent } from 'react-native';
 
 const { width: windowWidth } = Dimensions.get('window');
 
-
 const CrossPlatformDropdownGen = <T,>({
   options,
   onSelect,
@@ -38,6 +37,7 @@ const CrossPlatformDropdownGen = <T,>({
   minWidth = 100,
   disabled = false,
   testID,
+  multiSelect = false,
 }: CrossPlatformDropdownProps<T>) => {
   // Support parent-controlled open/close, fallback to internal state
   const [internalOpen, setInternalOpen] = useState(false);
@@ -60,9 +60,17 @@ const CrossPlatformDropdownGen = <T,>({
         });
         // Scroll selected into view
         if (scrollViewRef.current && selectedValue !== null && selectedValue !== undefined) {
-          const selectedIdx = options.findIndex((opt) => opt.value === selectedValue);
-          if (selectedIdx >= 0) {
-            scrollViewRef.current.scrollTo({ y: selectedIdx * 48, animated: true });
+          if (multiSelect && Array.isArray(selectedValue)) {
+            const firstSelected = selectedValue[0];
+            const selectedIdx = options.findIndex((opt) => opt.value === firstSelected);
+            if (selectedIdx >= 0) {
+              scrollViewRef.current.scrollTo({ y: selectedIdx * 48, animated: true });
+            }
+          } else {
+            const selectedIdx = options.findIndex((opt) => opt.value === selectedValue);
+            if (selectedIdx >= 0) {
+              scrollViewRef.current.scrollTo({ y: selectedIdx * 48, animated: true });
+            }
           }
         }
       }, 0);
@@ -73,6 +81,32 @@ const CrossPlatformDropdownGen = <T,>({
 
   // Web support: use native <select>
   if (Platform.OS === 'web') {
+    if (multiSelect) {
+      return (
+        <select
+          style={{ minWidth, ...style }}
+          value={Array.isArray(selectedValue) ? (selectedValue as any[]).map(String) : []}
+          onChange={(e) => {
+            const selectedOptions = Array.from(e.target.selectedOptions).map((opt: any) => opt.value);
+            // Map back to original value types using options list
+            const vals = selectedOptions
+              .map((v) => options.find((opt) => String(opt.value) === v)?.value)
+              .filter((v) => v !== undefined) as T[];
+            onSelect(vals);
+          }}
+          disabled={disabled}
+          multiple
+          data-testid={testID}
+        >
+          {options.map((opt) => (
+            <option key={String(opt.value)} value={String(opt.value)}>
+              {opt.label}
+            </option>
+          ))}
+        </select>
+      );
+    }
+
     return (
       <select
         style={{ minWidth, ...style }}
@@ -96,9 +130,21 @@ const CrossPlatformDropdownGen = <T,>({
     );
   }
 
-  const handleSelect = (option: DropdownOption<T>) => {
+  const handleSelectSingle = (option: DropdownOption<T>) => {
     onSelect(option.value);
     setOpen(false);
+  };
+
+  const handleToggleMulti = (option: DropdownOption<T>) => {
+    const current = Array.isArray(selectedValue) ? [...(selectedValue as T[])] : [];
+    const idx = current.findIndex((v) => v === option.value);
+    if (idx >= 0) {
+      current.splice(idx, 1);
+    } else {
+      current.push(option.value);
+    }
+    onSelect(current.length > 0 ? (current as unknown as T[]) : ([] as unknown as T[]));
+    // keep dropdown open for multi-select so user can pick multiple items
   };
 
   // Only trigger onOpen (parent scroll) on press, do not open dropdown immediately
@@ -123,20 +169,39 @@ const CrossPlatformDropdownGen = <T,>({
     }
   };
 
+  const isOptionSelected = (value: T) => {
+    if (multiSelect) {
+      return Array.isArray(selectedValue) && (selectedValue as T[]).some((v) => v === value);
+    }
+    return selectedValue === value;
+  };
+
   const renderOption = (option: DropdownOption<T>, index: number) => {
-    const isSelected = selectedValue === option.value;
+    const isSelected = isOptionSelected(option.value);
+
+    // conditional checkbox appearance:
+    // - multiSelect: square checkbox with checkmark
+    // - singleSelect: round radio-like indicator with dot
+    const checkboxInner = multiSelect ? (isSelected ? '✓' : '') : (isSelected ? '●' : '');
+
+    const checkboxStyle = [
+      styles.checkbox,
+      multiSelect ? styles.checkboxMulti : styles.checkboxRound,
+      isSelected && (multiSelect ? styles.checkboxSelectedMulti : styles.checkboxSelected),
+    ];
+
     return (
       <TouchableOpacity
         key={String(option.value)}
-        onPress={() => handleSelect(option)}
+        onPress={() => (multiSelect ? handleToggleMulti(option) : handleSelectSingle(option))}
         style={styles.dropdownItem}
         testID={`${testID}.option.${option.value}`}
       >
         <View style={styles.checkboxContainer}>
-          <View style={[styles.checkbox, isSelected && styles.checkboxSelected]}>
-            {isSelected && <Text style={styles.checkmark}>●</Text>}
+          <View style={checkboxStyle}>
+            {checkboxInner !== '' && <Text style={multiSelect ? styles.checkmarkMulti : styles.checkmark}>{checkboxInner}</Text>}
           </View>
-          <Text style={styles.dropdownItemText}>{option.label}</Text>
+          <Text style={[styles.dropdownItemText, itemTextStyle]}>{option.label}</Text>
         </View>
       </TouchableOpacity>
     );
@@ -184,6 +249,22 @@ const CrossPlatformDropdownGen = <T,>({
     );
   };
 
+  const renderSelectedText = () => {
+    if (multiSelect) {
+      const arr = Array.isArray(selectedValue) ? (selectedValue as T[]) : [];
+      if (!arr || arr.length === 0) return placeholder;
+      const labels = arr
+        .map((v) => options.find((o) => o.value === v)?.label)
+        .filter(Boolean)
+        .join(', ');
+      return labels || placeholder;
+    } else {
+      return selectedValue !== null && selectedValue !== undefined
+        ? options.find((opt) => opt.value === selectedValue)?.label || placeholder
+        : placeholder;
+    }
+  };
+
   return (
     <View
       style={[styles.container, containerStyle]}
@@ -202,14 +283,12 @@ const CrossPlatformDropdownGen = <T,>({
             style={[
               styles.selectedText,
               textStyle,
-              (!selectedValue || selectedValue === null) && styles.placeholderText,
+              (!selectedValue || (Array.isArray(selectedValue) && selectedValue.length === 0)) && styles.placeholderText,
               placeholderStyle,
             ]}
             numberOfLines={1}
           >
-            {selectedValue !== null && selectedValue !== undefined
-              ? options.find((opt) => opt.value === selectedValue)?.label || placeholder
-              : placeholder}
+            {renderSelectedText()}
           </Text>
           {/* Dropdown arrow */}
           <Text style={styles.arrow}>▼</Text>
@@ -290,24 +369,50 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
   },
+
+  // Base checkbox (shared)
   checkbox: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
+    width: 18,
+    height: 18,
     borderWidth: 2,
     borderColor: '#6B7280',
     marginRight: 12,
     justifyContent: 'center',
     alignItems: 'center',
   },
+
+  // round style for single-select radio-like indicator
+  checkboxRound: {
+    borderRadius: 10,
+  },
+
+  // square style for multi-select checkboxes
+  checkboxMulti: {
+    borderRadius: 4,
+  },
+
+  // selected styles
   checkboxSelected: {
     borderColor: '#3B82F6',
     backgroundColor: '#3B82F6',
   },
+  checkboxSelectedMulti: {
+    borderColor: '#3B82F6',
+    backgroundColor: '#3B82F6',
+  },
+
+  // checkmark/dot styles
   checkmark: {
     color: '#FFFFFF',
     fontSize: 8,
   },
+  checkmarkMulti: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    lineHeight: 12,
+    fontWeight: '700',
+  },
+
   dropdownItemText: {
     fontSize: 14,
     color: '#FFFFFF',

@@ -3,10 +3,15 @@ export interface DropdownOption<T = number | null> {
   value: T;
 }
 
+/**
+ * CrossPlatformDropdownProps
+ * - selectedValue may be a single value (T) or an array of values (T[]) when using multiSelect.
+ * - onSelect will be called with either a single value or an array depending on the dropdown mode.
+ */
 export interface CrossPlatformDropdownProps<T = number | null> {
   options: DropdownOption<T>[];
-  selectedValue: T;
-  onSelect: (value: T) => void;
+  selectedValue: T | T[] | null;
+  onSelect: (value: T | T[] | null) => void;
   placeholder: string;
   style?: any;
   onOpen?: () => void;
@@ -27,4 +32,10 @@ export interface CrossPlatformDropdownProps<T = number | null> {
   minWidth?: number;
   disabled?: boolean;
   testID?: string;
+
+  /**
+   * Enable selecting multiple items. When true, selectedValue should be an array (T[]).
+   * onSelect will be called with a T[] of selected values.
+   */
+  multiSelect?: boolean;
 }

@@ -53,7 +53,8 @@ const RegisterDeviceScreen: React.FC = () => {
   const scrollViewRef = useRef<ScrollView>(null);
 
   // Form state
-  const [selectedDealer, setSelectedDealer] = useState<number | null>(null);
+  // allow multiple dealers: use array of dealerIds
+  const [selectedDealers, setSelectedDealers] = useState<number[]>([]);
   const [serialNumber, setSerialNumber] = useState('');
   const [selectedDeviceType, setSelectedDeviceType] = useState<number | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<number | null>(1);
@@ -180,7 +181,7 @@ const RegisterDeviceScreen: React.FC = () => {
   );
 
   const isFormValid =
-    selectedDealer !== null &&
+    selectedDealers.length > 0 &&
     serialNumber.trim().length === 10 &&
     selectedDeviceType !== null &&
     selectedStatus !== null;
@@ -211,7 +212,7 @@ const RegisterDeviceScreen: React.FC = () => {
 
     try {
       const requestData = {
-        dealerIds: [selectedDealer!],
+        dealerIds: selectedDealers, // now multiple dealer ids
         serialNo: serialNumber,
         deviceTypeId: selectedDeviceType!,
         status: selectedStatus!,
@@ -291,21 +292,35 @@ const RegisterDeviceScreen: React.FC = () => {
                 style={styles.inputContainer}
                 onLayout={(e) => setDealerDropdownY(e.nativeEvent.layout.y)}
               >
-                <Text style={styles.inputLabel}>Dealer *</Text>
+                <Text style={styles.inputLabel}>Dealer * (select one or more)</Text>
                 {dealersLoading ? (
                   <Text style={{ color: '#9CA3AF', marginBottom: 8 }}>Loading dealers...</Text>
                 ) : dealerLoadError ? (
                   <Text style={{ color: 'red', marginBottom: 8 }}>{dealerLoadError}</Text>
                 ) : (
-                  <CrossPlatformDropdownGen<number | null>
+                  <CrossPlatformDropdownGen<number>
                     options={dealerOptions}
-                    selectedValue={selectedDealer}
-                    onSelect={setSelectedDealer}
+                    selectedValue={selectedDealers}
+                    onSelect={(val) => {
+                      // onSelect may return a single value (number) or an array (number[])
+                      if (Array.isArray(val)) {
+                        setSelectedDealers(val as number[]);
+                      } else if (val === null || val === undefined) {
+                        setSelectedDealers([]);
+                      } else {
+                        // toggle single selection into array (for safety)
+                        const n = val as number;
+                        setSelectedDealers((prev) =>
+                          prev.includes(n) ? prev.filter((x) => x !== n) : [...prev, n],
+                        );
+                      }
+                    }}
                     placeholder="Select dealers"
                     visible={showDealerDropdown}
                     setVisible={setShowDealerDropdown}
                     onOpen={() => scrollDropdownIntoView1('dealer')}
                     onMeasureAllItemsHeight={setDealerDropdownHeight}
+                    multiSelect
                   />
                 )}
               </View>
@@ -340,7 +355,13 @@ const RegisterDeviceScreen: React.FC = () => {
                   <CrossPlatformDropdownGen<number | null>
                     options={deviceTypeOptions}
                     selectedValue={selectedDeviceType}
-                    onSelect={setSelectedDeviceType}
+                    onSelect={(val) => {
+                      if (Array.isArray(val)) {
+                        setSelectedDeviceType(val.length > 0 ? (val[0] as number) : null);
+                      } else {
+                        setSelectedDeviceType(val as number | null);
+                      }
+                    }}
                     placeholder="Select device type"
                     visible={showDeviceTypeDropdown}
                     setVisible={setShowDeviceTypeDropdown}
@@ -358,7 +379,13 @@ const RegisterDeviceScreen: React.FC = () => {
                 <CrossPlatformDropdownGen<number | null>
                   options={statusOptions}
                   selectedValue={selectedStatus}
-                  onSelect={setSelectedStatus}
+                  onSelect={(val) => {
+                    if (Array.isArray(val)) {
+                      setSelectedStatus(val.length > 0 ? (val[0] as number) : null);
+                    } else {
+                      setSelectedStatus(val as number | null);
+                    }
+                  }}
                   placeholder="Select status"
                   visible={showStatusDropdown}
                   setVisible={setShowStatusDropdown}
