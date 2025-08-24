@@ -47,6 +47,13 @@ type RootStackParamList = {
 };
 type RegisterDeviceScreenNavigationProp = StackNavigationProp<RootStackParamList, 'MainTabs'>;
 
+interface DealerResult {
+  dealerId: number;
+  success: boolean;
+  errorMessage?: string | null;
+  dealerName?: string;
+}
+
 const RegisterDeviceScreen: React.FC = () => {
   const navigation = useNavigation<RegisterDeviceScreenNavigationProp>();
   const dispatch = useDispatch<AppDispatch>();
@@ -85,6 +92,9 @@ const RegisterDeviceScreen: React.FC = () => {
   const deviceTypes = useSelector((s: RootState) => selectDeviceTypes(s));
   const deviceTypesLoading = useSelector((s: RootState) => selectDeviceTypesLoading(s));
   const deviceTypesError = useSelector((s: RootState) => selectDeviceTypesError(s));
+
+  // Local: registration summary results returned by API
+  const [registrationResults, setRegistrationResults] = useState<DealerResult[] | null>(null);
 
   // Derived dropdown options from Redux data
   const dealerOptions: DropdownOption<number>[] = useMemo(
@@ -209,6 +219,7 @@ const RegisterDeviceScreen: React.FC = () => {
     }
 
     setLocalError(null);
+    setRegistrationResults(null);
 
     try {
       const requestData = {
@@ -219,22 +230,67 @@ const RegisterDeviceScreen: React.FC = () => {
       };
 
       // Dispatch the Redux thunk; thunk reads token internally.
-      await dispatch(registerDeviceRequest(requestData)).unwrap();
+      const response: any = await dispatch(registerDeviceRequest(requestData)).unwrap();
 
-      CrossPlatformAlert.alert(
-        'Success',
-        'Device registration request was successfully processed.',
-        [
-          {
-            text: 'OK',
-            style: 'default',
-            onPress: () => navigation.navigate('MainTabs'),
-          },
-        ],
-      );
+      // Response is expected to contain dealerResults array even on success.
+      // Normalize and map dealer names where available.
+      const apiDealerResults: Array<{
+        dealerId: number;
+        success: boolean;
+        errorMessage?: string | null;
+      }> = Array.isArray(response?.dealerResults) ? response.dealerResults : [];
+
+      const mappedResults: DealerResult[] = apiDealerResults.map((r) => {
+        const dealerRecord = (dealers ?? []).find((d: any) => d.dealerId === r.dealerId);
+        return {
+          dealerId: r.dealerId,
+          dealerName: dealerRecord ? dealerRecord.name : `Dealer ${r.dealerId}`,
+          success: Boolean(r.success),
+          errorMessage: r.errorMessage ?? null,
+        };
+      });
+
+      setRegistrationResults(mappedResults);
+
+      // Build a descriptive alert that lists successes and failures (with messages)
+      const successList = mappedResults.filter((r) => r.success).map((r) => `• ${r.dealerName}`);
+      const failedList = mappedResults
+        .filter((r) => !r.success)
+        .map((r) => `• ${r.dealerName}: ${r.errorMessage ?? 'Unknown error'}`);
+
+      const lines: string[] = [];
+      lines.push(`Serial: ${response?.serialNo ?? serialNumber}`);
+      lines.push('');
+
+      // Successes (explicit)
+      lines.push(`Successful registrations (${successList.length}):`);
+      if (successList.length > 0) {
+        lines.push(...successList);
+      } else {
+        lines.push('• None');
+      }
+      lines.push('');
+
+      // Failures (explicit)
+      lines.push(`Failed registrations (${failedList.length}):`);
+      if (failedList.length > 0) {
+        lines.push(...failedList);
+      } else {
+        lines.push('• None');
+      }
+
+      CrossPlatformAlert.alert('Registration Results', lines.join('\n'), [
+        {
+          text: 'OK',
+          style: 'default',
+          onPress: () => navigation.navigate('MainTabs'),
+        },
+      ]);
     } catch (err: any) {
       console.log('Device registration failed:', err);
-      const message = err?.message ?? registerError ?? 'Failed to register device.';
+      // Try to show the server-provided message first
+      const message =
+        err?.description ?? err?.message ?? registerError ?? 'Failed to register device.';
       setLocalError(message);
     }
   };
@@ -434,6 +490,31 @@ const RegisterDeviceScreen: React.FC = () => {
             {localError ? (
               <Text style={{ color: 'red', textAlign: 'center', marginTop: 12 }}>{localError}</Text>
             ) : null}
+
+            {/* registration results summary */}
+            {registrationResults && registrationResults.length > 0 ? (
+              <View style={styles.resultsContainer}>
+                <Text style={styles.resultsTitle}>Registration details</Text>
+                {registrationResults.map((r) => (
+                  <View key={r.dealerId} style={styles.resultRow}>
+                    <Text style={styles.resultDealerName}>
+                      {r.dealerName ?? `Dealer ${r.dealerId}`}
+                    </Text>
+                    <Text
+                      style={[
+                        styles.resultStatus,
+                        r.success ? styles.successText : styles.failText,
+                      ]}
+                    >
+                      {r.success ? 'Registered' : 'Failed'}
+                    </Text>
+                    {!r.success && r.errorMessage ? (
+                      <Text style={styles.resultError}>{r.errorMessage}</Text>
+                    ) : null}
+                  </View>
+                ))}
+              </View>
+            ) : null}
           </ScrollView>
         </KeyboardAvoidingView>
       </SafeAreaView>
@@ -572,6 +653,42 @@ const styles = StyleSheet.create({
   },
   registerButtonTextDisabled: {
     color: '#D1D5DB',
+  },
+
+  // results summary
+  resultsContainer: {
+    marginTop: 20,
+    padding: 12,
+    backgroundColor: '#262f37',
+    borderRadius: 8,
+    borderColor: '#2f3a42',
+    borderWidth: 1,
+  },
+  resultsTitle: {
+    color: '#D1D5DB',
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  resultRow: {
+    marginBottom: 8,
+  },
+  resultDealerName: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
+  resultStatus: {
+    marginTop: 2,
+    fontWeight: '600',
+  },
+  successText: {
+    color: '#10B981',
+  },
+  failText: {
+    color: '#EF4444',
+  },
+  resultError: {
+    color: '#FCA5A5',
+    marginTop: 4,
   },
 });
 
