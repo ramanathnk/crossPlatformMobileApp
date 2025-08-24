@@ -72,7 +72,7 @@ const LoginScreen: React.FC = () => {
       }
       navigation.navigate('MainTabs');
     } catch (err: any) {
-      setLocalError(err?.message || 'Login failed');
+      setLocalError(err?.description || err?.message || 'Login failed');
     }
   };
 

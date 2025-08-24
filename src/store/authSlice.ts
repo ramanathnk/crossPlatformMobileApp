@@ -43,7 +43,7 @@ export const loginThunk = createAsyncThunk<LoginResponse, LoginRequest>(
       }
       return res;
     } catch (err: any) {
-      return thunkAPI.rejectWithValue(err?.message || 'Login failed');
+      return thunkAPI.rejectWithValue(err || 'Login failed');
     }
   },
 );
@@ -71,7 +71,7 @@ export const refreshTokenThunk = createAsyncThunk<RefreshTokenResponse, RefreshT
       }
       return res;
     } catch (err: any) {
-      return thunkAPI.rejectWithValue(err?.message || 'Failed to refresh token');
+      return thunkAPI.rejectWithValue(err || 'Failed to refresh token');
     }
   },
 );
@@ -97,7 +97,7 @@ export const logoutThunk = createAsyncThunk<LogoutResponse, string>(
       }
       return res;
     } catch (err: any) {
-      return thunkAPI.rejectWithValue(err?.message || 'Failed to logout');
+      return thunkAPI.rejectWithValue(err || 'Failed to logout');
     }
   },
 );
