@@ -97,7 +97,8 @@ const LoginScreen: React.FC = () => {
           {/* Logo and App Name */}
           <View style={styles.headerContainer}>
             <View style={styles.logoContainer}>
-              <SnaptrackerLogo width={120} height={50} />
+              {/* smaller logo so the icon and text sit tightly together */}
+              <SnaptrackerLogo width={42} height={42} />
               <Text style={styles.appName}>SnapTracker</Text>
             </View>
           </View>
@@ -201,17 +202,24 @@ const styles = StyleSheet.create({
     minHeight: '100%',
   },
   headerContainer: {
+    // center the header group horizontally
     alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 40,
   },
+  // logoContainer positions icon and name tightly as a centered unit
   logoContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
   },
   appName: {
     fontSize: fontSizes.xxlarge,
     fontWeight: '600',
     color: colors.text,
-    marginTop: 8,
+    marginLeft: 6, // reduce gap so text sits closer to the logo
+    // slightly adjust lineHeight to vertically center text with the icon
+    lineHeight: fontSizes.xxlarge + 4,
   },
   titleSection: {
     alignItems: 'center',
