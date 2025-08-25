@@ -134,7 +134,7 @@ export async function rejectRegistrationRequest(
   notes?: string,
 ): Promise<DeviceRegistrationRequest> {
   return apiRequest<DeviceRegistrationRequest>(
-    `${API_BASE}/api/v1/devices/register/requests/${requestId}/approve`,
+    `${API_BASE}/api/v1/devices/register/requests/${requestId}/reject`,
     'PUT',
     REJECT_REQUEST_ERROR,
     token,
