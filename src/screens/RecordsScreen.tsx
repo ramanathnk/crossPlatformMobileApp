@@ -44,7 +44,16 @@ import {
   selectDeviceTypesError,
 } from '../store/deviceTypeSlice';
 
-import { useGetManufacturers } from '../api/manufacturerApiRQ';
+// Manufacturer slice imports (use Redux thunks/selectors instead of React Query)
+import {
+  fetchManufacturers,
+  createManufacturerRequest,
+  updateManufacturerRequest,
+  deleteManufacturerRequest,
+  selectManufacturers,
+  selectManufacturersLoading,
+  selectManufacturersError,
+} from '../store/manufacturerSliceMock';
 
 import RecordManagementList from '../components/RecordManagementList';
 import GenericModal from '../components/GenericModal';
@@ -154,7 +163,7 @@ const RecordsScreen: React.FC = () => {
   const [manufacturerFormValues, setManufacturerFormValues] = useState<any | null>(null);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Redux selectors for dealers/device types
+  // Redux selectors for dealers/device types/manufacturers
   const dealers = useSelector((s: RootState) => selectDealers(s));
   const dealersLoading = useSelector((s: RootState) => selectDealersLoading(s));
   const dealersError = useSelector((s: RootState) => selectDealersError(s));
@@ -163,10 +172,9 @@ const RecordsScreen: React.FC = () => {
   const deviceTypesLoading = useSelector((s: RootState) => selectDeviceTypesLoading(s));
   const deviceTypesError = useSelector((s: RootState) => selectDeviceTypesError(s));
 
-  // Manufacturers still via React Query wrapper (read-only)
-  const manufacturersQuery = useGetManufacturers(); // pass token optional in that hook; keeping existing pattern
-  const manufacturers = manufacturersQuery.data ?? [];
-  const manufacturersLoading = manufacturersQuery.isFetching;
+  const manufacturers = useSelector((s: RootState) => selectManufacturers(s));
+  const manufacturersLoading = useSelector((s: RootState) => selectManufacturersLoading(s));
+  const manufacturersError = useSelector((s: RootState) => selectManufacturersError(s));
 
   // Derived canSave flags
   const canSaveDealer = !!dealerFormValues?.name;
@@ -177,7 +185,7 @@ const RecordsScreen: React.FC = () => {
   useEffect(() => {
     dispatch(fetchDealers());
     dispatch(fetchDeviceTypes());
-    // manufacturersQuery is left to its own hook (if you want to move it to Redux we can)
+    dispatch(fetchManufacturers());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch]);
 
@@ -189,23 +197,17 @@ const RecordsScreen: React.FC = () => {
       await dispatch(thunkAction(arg)).unwrap();
       return true;
     } catch (e: any) {
-      // Normalize error text:
-      // - if thunk rejected with a string, e will be that string
-      // - if thunk threw an Error, e.message will exist
-      // - if thunk rejected with { payload: '...' } unwrap throws the payload (string)
       let message = 'Operation failed';
       if (typeof e === 'string') {
         message = e;
       } else if (e && typeof e === 'object') {
-        // check common shapes
         message =
           e.message ||
-          e.payload || // some patterns
+          e.payload ||
           e?.response?.data?.message ||
           e?.response?.data?.error ||
           JSON.stringify(e);
       }
-      //console.error('performThunk failed:', e);
       Alert.alert(errorTitle, message);
       return false;
     } finally {
@@ -222,7 +224,7 @@ const RecordsScreen: React.FC = () => {
       } else if (activeTab === 1) {
         await dispatch(fetchDeviceTypes()).unwrap();
       } else if (activeTab === 2) {
-        if (manufacturersQuery.refetch) await manufacturersQuery.refetch();
+        await dispatch(fetchManufacturers()).unwrap();
       }
     } catch (e) {
       // errors handled by slice; no-op here
@@ -343,7 +345,7 @@ const RecordsScreen: React.FC = () => {
     );
   };
 
-  // Handlers for Manufacturers (read-only in current API)
+  // Handlers for Manufacturers (now using Redux slice thunks)
   const openAddManufacturer = () => {
     setEditingManufacturer(null);
     setManufacturerFormValues(null);
@@ -356,8 +358,49 @@ const RecordsScreen: React.FC = () => {
     setManufacturerFormVisible(true);
   };
 
+  const handleManufacturerSubmit = async () => {
+    if (!manufacturerFormValues) return;
+
+    if (editingManufacturer) {
+      const recordId = editingManufacturer.manufacturerId;
+      await performThunk(
+        updateManufacturerRequest,
+        { manufacturerId: recordId, manufacturer: manufacturerFormValues },
+        'Failed to update manufacturer',
+      );
+    } else {
+      await performThunk(
+        createManufacturerRequest,
+        manufacturerFormValues,
+        'Failed to create manufacturer',
+      );
+    }
+
+    setManufacturerFormVisible(false);
+    setEditingManufacturer(null);
+    setManufacturerFormValues(null);
+  };
+
   const confirmDeleteManufacturer = (manufacturer: Manufacturer) => {
-    Alert.alert('Not implemented', 'Delete manufacturer is not implemented.');
+    Alert.alert(
+      'Delete manufacturer',
+      `Are you sure you want to delete "${manufacturer.name}"?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            await performThunk(
+              deleteManufacturerRequest,
+              { manufacturerId: manufacturer.manufacturerId },
+              'Failed to delete manufacturer',
+            );
+          },
+        },
+      ],
+      { cancelable: true },
+    );
   };
 
   // Per-tab loading flags
@@ -575,10 +618,7 @@ const RecordsScreen: React.FC = () => {
           setManufacturerFormVisible(false);
           setEditingManufacturer(null);
         }}
-        onSave={() => {
-          // Manufacturers create/update/delete were not implemented in API previously
-          Alert.alert('Not implemented', 'Create/update manufacturer is not implemented.');
-        }}
+        onSave={handleManufacturerSubmit}
       >
         <FormContent
           initial={editingManufacturer}

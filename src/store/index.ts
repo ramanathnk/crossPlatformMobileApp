@@ -3,6 +3,8 @@ import authReducer from './authSlice';
 import deviceRequestsReducer from './deviceRequestsSlice';
 import dealersReducer from './dealerSlice';
 import deviceTypesReducer from './deviceTypeSlice';
+import manufacturersMockReducer from './manufacturerSliceMock';
+import manufacturerReducer from './manufacturerSlice';
 
 const store = configureStore({
   reducer: {
@@ -10,6 +12,7 @@ const store = configureStore({
     deviceRequests: deviceRequestsReducer,
     dealers: dealersReducer,
     deviceTypes: deviceTypesReducer,
+    manufacturers: manufacturersMockReducer,
   },
 });
 
