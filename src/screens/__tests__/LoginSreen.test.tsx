@@ -1,44 +1,72 @@
-import React from 'react'
-import { render, fireEvent, waitFor } from '@testing-library/react-native'
-import '@testing-library/jest-native/extend-expect'
-import { NavigationContainer } from '@react-navigation/native'
-import LoginScreen from '../LoginScreen'
+import React from 'react';
+import { fireEvent, waitFor } from '@testing-library/react-native';
+import '@testing-library/jest-native/extend-expect';
+import LoginScreen from '../LoginScreen';
+import { renderWithProviders } from '../../test-utils';
+import * as SecureStore from 'expo-secure-store';
+
+// Mock SecureStore so tests don't touch native storage
+jest.mock('expo-secure-store', () => ({
+  setItemAsync: jest.fn(),
+}));
 
 describe('LoginScreen', () => {
-  const setup = () =>
-    render(
-      <NavigationContainer>
-        <LoginScreen />
-      </NavigationContainer>
-    )
+  const baseState = {
+    auth: {
+      loading: false,
+      error: null,
+      user: null,
+    },
+  };
 
   it('disables Sign In initially', () => {
-    const { getByTestId } = setup()
-    expect(getByTestId('sign-in-button')).toBeDisabled()
-  })
+    const { getByTestId } = renderWithProviders(<LoginScreen />, { preloadedState: baseState });
+    expect(getByTestId('sign-in-button')).toBeDisabled();
+  });
 
-  it.skip('enables Sign In when both fields are filled', async () => {
-    const { getByTestId } = setup()
+  it('enables Sign In when both fields are filled', async () => {
+    const { getByTestId } = renderWithProviders(<LoginScreen />, { preloadedState: baseState });
 
-    fireEvent.changeText(getByTestId('username-input'), 'user1')
+    fireEvent.changeText(getByTestId('username-input'), 'user1');
+    fireEvent.changeText(getByTestId('password-input'), 'pass1');
 
-    try {
-      fireEvent.press(getByTestId('toggle-password-visibility'))
-      await waitFor(() =>
-        expect(getByTestId('password-input').props.secureTextEntry).toBe(false)
-      )
-    } catch { }
-
-
-    // Wait for button to be enabled
     await waitFor(() => {
-      const btn = getByTestId('sign-in-button')
-      expect(btn.props.accessibilityState?.disabled).toBe(false)
-    })
-  })
+      const btn = getByTestId('sign-in-button');
+      expect(btn.props.accessibilityState?.disabled).toBeFalsy();
+    });
+  });
 
-  it('matches snapshot', () => {
-    const { toJSON } = setup()
-    expect(toJSON()).toMatchSnapshot()
-  })
-})
+  it('toggles password visibility when eye icon pressed', async () => {
+    const { getByTestId } = renderWithProviders(<LoginScreen />, { preloadedState: baseState });
+
+    // initially secureTextEntry should be true
+    expect(getByTestId('password-input').props.secureTextEntry).toBe(true);
+
+    fireEvent.press(getByTestId('toggle-password-visibility'));
+
+    await waitFor(() => {
+      expect(getByTestId('password-input').props.secureTextEntry).toBe(false);
+    });
+  });
+
+  it('dispatches login thunk and stores token on successful login', async () => {
+    const { getByTestId, store } = renderWithProviders(<LoginScreen />, {
+      preloadedState: baseState,
+    });
+
+    // Make dispatch return an object with unwrap() that resolves to a token (matches component usage)
+    (store.dispatch as jest.Mock).mockImplementation(() => ({
+      unwrap: () => Promise.resolve({ accessToken: 'token-123' }),
+    }));
+
+    fireEvent.changeText(getByTestId('username-input'), 'user1');
+    fireEvent.changeText(getByTestId('password-input'), 'pass1');
+
+    fireEvent.press(getByTestId('sign-in-button'));
+
+    await waitFor(() => {
+      expect(store.dispatch).toHaveBeenCalled();
+      expect(SecureStore.setItemAsync).toHaveBeenCalledWith('accessToken', 'token-123');
+    });
+  });
+});

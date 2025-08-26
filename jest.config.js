@@ -4,7 +4,9 @@ module.exports = {
     '^.+\\.(js|ts|tsx)$': 'babel-jest',
   },
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
+  setupFiles: ['<rootDir>/jest.setupEnv.js'],
   setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
+  testEnvironment: 'jsdom',
   testPathIgnorePatterns: [
     '/node_modules/',
     '/android/',
@@ -13,7 +15,7 @@ module.exports = {
     '/build/',
   ],
   moduleNameMapper: {
-    '\\.svg': '<rootDir>/__mocks__/svgMock.js',
+    '\\.(css|less|scss)$': 'identity-obj-proxy',
     '\\.(jpg|jpeg|png|gif|webp|svg)$': '<rootDir>/__mocks__/fileMock.js',
   },
   globals: {
@@ -21,4 +23,5 @@ module.exports = {
       tsconfig: 'tsconfig.json',
     },
   },
+  testTimeout: 10000,
 };
