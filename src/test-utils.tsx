@@ -6,21 +6,46 @@ import React, { ReactElement } from 'react';
 import { render, RenderOptions } from '@testing-library/react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { Provider } from 'react-redux';
+import type { Store, Dispatch, AnyAction, Observable } from 'redux';
 
-// A tiny fake store that implements the minimal methods Provider expects.
-// getState returns the provided state; dispatch is a jest.fn(); subscribe returns a no-op unsubscribe.
-export function createMockStore(preloadedState: any = {}) {
-  const store = {
-    getState: () => preloadedState,
-    dispatch: jest.fn(),
-    subscribe: () => () => {},
-    replaceReducer: () => {},
+type StateShape = Record<string, unknown>;
+
+type Observer<T> = { next?: (value: T) => void } | ((value: T) => void);
+
+/**
+ * Create a minimal mock Redux store that satisfies the structural requirements of
+ * react-redux's Provider and TypeScript's Store type. This mock is intentionally
+ * tiny: getState returns the supplied preloaded state, dispatch is a jest.fn(),
+ * subscribe returns a no-op unsubscribe, replaceReducer is a no-op, and the
+ * observable symbol is implemented to satisfy the Store interface.
+ */
+export function createMockStore(preloadedState: StateShape = {}): Store<StateShape, AnyAction> {
+  const dispatchMock: Dispatch<AnyAction> = jest.fn() as unknown as Dispatch<AnyAction>;
+
+  let observable!: Observable<StateShape>;
+  observable = {
+    subscribe: (_observer?: Observer<StateShape>) => ({
+      unsubscribe: () => {},
+    }),
+    [Symbol.observable]: () => observable,
   };
+
+  const store: Store<StateShape, AnyAction> = {
+    getState: () => preloadedState,
+    dispatch: dispatchMock,
+    subscribe: (listener: () => void) => {
+      // no-op subscribe; return an unsubscribe function
+      return () => {};
+    },
+    replaceReducer: () => {},
+    [Symbol.observable]: () => observable,
+  };
+
   return store;
 }
 
 type RenderWithProvidersOptions = RenderOptions & {
-  preloadedState?: any;
+  preloadedState?: StateShape;
   // If you want to pass a custom wrapper, you can extend this helper later
 };
 
@@ -32,14 +57,14 @@ export function renderWithProviders(
 
   function Wrapper({ children }: { children?: React.ReactNode }) {
     return (
-      <Provider store={store as any}>
+      <Provider store={store}>
         <NavigationContainer>{children}</NavigationContainer>
       </Provider>
     );
   }
 
   return {
-    ...render(ui, { wrapper: Wrapper as any, ...renderOptions }),
+    ...render(ui, { wrapper: Wrapper, ...renderOptions }),
     store,
   };
 }
