@@ -6,18 +6,16 @@ interface AlertButton {
   onPress?: () => void;
 }
 
+interface AlertOptions {
+  cancelable?: boolean;
+  onDismiss?: () => void;
+}
+
 class CrossPlatformAlert {
-  static alert(
-    title: string,
-    message?: string,
-    buttons?: AlertButton[],
-    options?: any
-  ) {
+  static alert(title: string, message?: string, buttons?: AlertButton[], options?: AlertOptions) {
     if (Platform.OS === 'web') {
-      // For web, use browser's built-in alert/confirm
-      const buttonText = buttons?.[0]?.text || 'OK';
       const fullMessage = message ? `${title}\n\n${message}` : title;
-      
+
       if (buttons && buttons.length > 1) {
         // Use confirm for multiple buttons
         const confirmed = window.confirm(fullMessage);
@@ -35,7 +33,7 @@ class CrossPlatformAlert {
       }
     } else {
       // Use React Native Alert for mobile platforms
-      RNAlert.alert(title, message, buttons, options);
+      RNAlert.alert(title, message, buttons as any, options);
     }
   }
 }
