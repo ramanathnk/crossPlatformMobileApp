@@ -631,193 +631,193 @@ const RecordsScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#10172A',
-    paddingHorizontal: 20,
-    paddingTop: 32,
-  },
-  scrollContent: {
-    paddingBottom: 100, // Increased from 32 to 100
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    color: '#FFF',
-    marginBottom: 4,
-  },
-  subtitle: {
-    color: '#A3A3A3',
-    fontSize: 14,
-    marginBottom: 18,
-  },
-  tabsScrollContainer: {
-    minHeight: 20,
-    alignItems: 'center',
-    paddingRight: 8,
-  },
-  tabsContainer: {
-    flexDirection: 'row',
-    marginBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#232B3E',
-  },
-  tab: {
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    marginRight: 12,
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
   activeTab: {
     borderBottomColor: '#3B82F6',
-  },
-  tabText: {
-    color: '#A3A3A3',
-    fontWeight: '600',
-    fontSize: 15,
   },
   activeTabText: {
     color: '#FFF',
   },
-  dealerCard: {
-    backgroundColor: '#19213A',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-    flexDirection: 'row',
+  addButton: {
     alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  dealerName: {
-    color: '#FFF',
-    fontWeight: 'bold',
-    fontSize: 16,
-    flex: 1,
-  },
-  dealerInfo: {
-    color: '#A3A3A3',
-    fontSize: 13,
-    marginLeft: 12,
-    flex: 1,
-  },
-  dealerActions: {
+    backgroundColor: '#3B82F6',
+    borderRadius: 8,
     flexDirection: 'row',
-    marginLeft: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
   },
-  iconBtn: {
-    marginLeft: 8,
-    padding: 4,
-  },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  modalCard: {
-    backgroundColor: '#0F172A',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#23304D',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  modalTitle: {
+  addButtonText: {
     color: '#FFF',
-    fontWeight: 'bold',
-    fontSize: 18,
+    fontWeight: '600',
+    marginLeft: 4,
+  },
+  button: {
+    borderRadius: 8,
+    marginLeft: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
     marginTop: 16,
   },
-  button: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-    marginLeft: 12,
+  buttonText: {
+    color: '#FFF',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   cancelButton: {
     backgroundColor: '#23304D',
   },
-  saveButton: {
-    backgroundColor: '#3B82F6',
+  container: {
+    backgroundColor: '#10172A',
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 32,
   },
-  buttonText: {
+  dealerActions: {
+    flexDirection: 'row',
+    marginLeft: 12,
+  },
+  dealerCard: {
+    alignItems: 'center',
+    backgroundColor: '#19213A',
+    borderRadius: 12,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+    padding: 16,
+  },
+  dealerInfo: {
+    color: '#A3A3A3',
+    flex: 1,
+    fontSize: 13,
+    marginLeft: 12,
+  },
+  dealerName: {
     color: '#FFF',
-    fontWeight: 'bold',
+    flex: 1,
     fontSize: 16,
+    fontWeight: 'bold',
+  },
+  iconBtn: {
+    marginLeft: 8,
+    padding: 4,
   },
   input: {
     backgroundColor: '#19213A',
     borderRadius: 8,
+    color: '#FFF',
+    fontSize: 15,
+    marginBottom: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    color: '#FFF',
-    marginBottom: 12,
-    fontSize: 15,
   },
   label: {
     color: '#A3A3A3',
-    marginBottom: 4,
     fontSize: 14,
     fontWeight: '600',
+    marginBottom: 4,
   },
   listContainer: {
     flex: 1,
   },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#19213A',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    marginBottom: 16,
-  },
-  searchInput: {
-    flex: 1,
-    height: 40,
-    color: '#FFF',
-    marginLeft: 8,
-  },
-  addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#3B82F6',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  addButtonText: {
-    color: '#FFF',
-    marginLeft: 4,
-    fontWeight: '600',
+  listContent: {
+    paddingBottom: 20,
   },
   loadingContainer: {
+    alignItems: 'center',
     flex: 1,
     justifyContent: 'center',
-    alignItems: 'center',
     marginTop: 50,
   },
   loadingText: {
     color: '#A3A3A3',
     marginTop: 8,
   },
+  modalBackdrop: {
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    flex: 1,
+    justifyContent: 'center',
+    padding: 20,
+  },
+  modalCard: {
+    backgroundColor: '#0F172A',
+    borderColor: '#23304D',
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 16,
+  },
+  modalHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  modalTitle: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+  },
   placeholderText: {
     color: '#A3A3A3',
     fontSize: 16,
-    textAlign: 'center',
     marginTop: 32,
+    textAlign: 'center',
   },
-  listContent: {
-    paddingBottom: 20,
+  saveButton: {
+    backgroundColor: '#3B82F6',
+  },
+  scrollContent: {
+    paddingBottom: 100, // Increased from 32 to 100
+  },
+  searchBar: {
+    alignItems: 'center',
+    backgroundColor: '#19213A',
+    borderRadius: 8,
+    flexDirection: 'row',
+    marginBottom: 16,
+    paddingHorizontal: 12,
+  },
+  searchInput: {
+    color: '#FFF',
+    flex: 1,
+    height: 40,
+    marginLeft: 8,
+  },
+  subtitle: {
+    color: '#A3A3A3',
+    fontSize: 14,
+    marginBottom: 18,
+  },
+  tab: {
+    borderBottomColor: 'transparent',
+    borderBottomWidth: 2,
+    marginRight: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  tabText: {
+    color: '#A3A3A3',
+    fontSize: 15,
+    fontWeight: '600',
+  },
+  tabsContainer: {
+    borderBottomColor: '#232B3E',
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    marginBottom: 16,
+  },
+  tabsScrollContainer: {
+    alignItems: 'center',
+    minHeight: 20,
+    paddingRight: 8,
+  },
+  title: {
+    color: '#FFF',
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 4,
   },
 });
 

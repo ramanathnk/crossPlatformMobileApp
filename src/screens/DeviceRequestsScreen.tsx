@@ -611,24 +611,24 @@ const DeviceRequestsScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.background },
+  container: { backgroundColor: colors.background, flex: 1 },
   scrollContent: {
-    paddingHorizontal: spacing.lg,
     paddingBottom: spacing.xl,
+    paddingHorizontal: spacing.lg,
   },
   header: {
-    flexDirection: 'row',
     alignItems: 'center',
+    flexDirection: 'row',
+    marginBottom: spacing.lg,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
-    marginBottom: spacing.lg,
   },
   backBtn: { marginRight: spacing.md },
   filters: {
     flexDirection: 'row',
     marginBottom: spacing.md,
-    zIndex: 3000,
     paddingHorizontal: spacing.lg,
+    zIndex: 3000,
   },
   pickerWrapper: {
     flex: 1,
@@ -654,22 +654,22 @@ const styles = StyleSheet.create({
   },
   refreshText: { color: colors.primary, fontSize: fontSizes.medium },
   cardTop: {
-    flexDirection: 'row',
     alignItems: 'center',
+    flexDirection: 'row',
     marginBottom: spacing.md,
   },
   badge: {
     borderRadius: borderRadius.md,
+    marginLeft: 'auto',
     paddingHorizontal: spacing.sm,
     paddingVertical: spacing.xs,
-    marginLeft: 'auto',
   },
   badgeText: { color: '#FFF', fontWeight: fontWeights.semibold },
   selectLabel: {
     color: colors.text,
-    marginTop: spacing.md,
-    marginBottom: spacing.xs,
     fontSize: fontSizes.medium,
+    marginBottom: spacing.xs,
+    marginTop: spacing.md,
   },
   actions: {
     flexDirection: 'row',
@@ -678,16 +678,16 @@ const styles = StyleSheet.create({
     zIndex: 0,
   },
   actionBtn: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 8,
     alignItems: 'center',
+    borderRadius: 8,
+    flex: 1,
     marginLeft: 8,
+    paddingVertical: 12,
   },
   actionBtnDisabled: {
     opacity: 0.5,
   },
-  deny: { backgroundColor: '#1F2937', borderWidth: 1, borderColor: '#6B7280' },
+  deny: { backgroundColor: '#1F2937', borderColor: '#6B7280', borderWidth: 1 },
   approve: { backgroundColor: '#3B82F6' },
   actionTextDeny: { color: '#6B7280', fontWeight: '600' },
   actionTextApprove: { color: '#FFF', fontWeight: '600' },
@@ -703,22 +703,22 @@ const styles = StyleSheet.create({
   },
   // modal styles
   modalBackdrop: {
-    flex: 1,
     backgroundColor: 'rgba(0,0,0,0.4)',
+    flex: 1,
     justifyContent: 'center',
     paddingHorizontal: 24,
   },
   modalContainer: {
     backgroundColor: colors.card,
     borderRadius: 8,
-    padding: 16,
     elevation: 6,
+    padding: 16,
   },
   modalTitle: {
+    color: colors.text,
     fontSize: fontSizes.large,
     fontWeight: '700',
     marginBottom: 8,
-    color: colors.text,
   },
   modalSubtitle: {
     color: colors.text,
@@ -726,10 +726,10 @@ const styles = StyleSheet.create({
   },
   modalInput: {
     backgroundColor: '#fff',
-    minHeight: 80,
     borderRadius: 6,
-    padding: 8,
     marginBottom: 12,
+    minHeight: 80,
+    padding: 8,
     textAlignVertical: 'top',
   },
   modalActions: {
@@ -737,10 +737,10 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   modalBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 10,
     borderRadius: 6,
     marginLeft: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
   },
   modalCancel: {
     backgroundColor: 'transparent',
@@ -757,15 +757,15 @@ const styles = StyleSheet.create({
   },
   errorText: {
     color: 'red',
-    textAlign: 'center',
-    marginTop: 20,
     fontSize: fontSizes.large,
+    marginTop: 20,
+    textAlign: 'center',
   },
   emptyText: {
     color: colors.text,
-    textAlign: 'center',
-    marginTop: 20,
     fontSize: fontSizes.large,
+    marginTop: 20,
+    textAlign: 'center',
   },
 });
 

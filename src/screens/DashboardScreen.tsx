@@ -128,120 +128,74 @@ const DashboardScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: colors.background,
-    paddingBottom: spacing.sm,
-  },
-  scrollContainer: {
-    flexGrow: 1,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.xl,
-  },
-  headerRow: {
-    flexDirection: 'row',
+  activityList: {
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: spacing.sm,
-  },
-  logoTextRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.md,
+    padding: spacing.lg,
   },
   appName: {
+    color: colors.text,
     fontSize: fontSizes.xlarge,
     fontWeight: fontWeights.semibold,
-    color: colors.text,
     marginLeft: spacing.sm,
   },
-  logoutButton: {
-    width: 40,
-    height: 40,
+  bottomNav: {
     backgroundColor: colors.card,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+    borderRadius: borderRadius.lg,
+    flexDirection: 'row',
+    marginTop: 'auto',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.md,
   },
-  logoutText: {
-    fontSize: fontSizes.large,
-    fontWeight: fontWeights.semibold,
-    color: colors.text,
+  container: {
+    backgroundColor: colors.background,
+    flex: 1,
+    paddingBottom: spacing.sm,
   },
   dashboardHeader: {
     marginBottom: spacing.lg,
   },
-  dashboardTitle: {
-    fontSize: fontSizes.xxlarge,
-    fontWeight: fontWeights.bold,
-    color: colors.text,
-    marginBottom: spacing.xs,
-  },
   dashboardSubtitle: {
-    fontSize: fontSizes.medium,
     color: colors.muted,
+    fontSize: fontSizes.medium,
   },
-  statsRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: spacing.lg,
-    gap: spacing.md,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: '#2D3748',
-    borderRadius: borderRadius.lg,
-    padding: spacing.lg,
-    alignItems: 'center',
-    marginHorizontal: spacing.xs,
-    shadowColor: '#000',
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  statIconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: borderRadius.md,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: spacing.md - 4,
-  },
-  statIconPending: {
-    backgroundColor: colors.accent,
-  },
-  statIconRegistered: {
-    backgroundColor: '#10B981',
-  },
-  statNumber: {
+  dashboardTitle: {
+    color: colors.text,
     fontSize: fontSizes.xxlarge,
     fontWeight: fontWeights.bold,
-    color: colors.text,
     marginBottom: spacing.xs,
   },
-  statLabel: {
-    fontSize: fontSizes.small,
-    color: colors.muted,
-    textAlign: 'center',
-  },
-  sectionContainer: {
-    marginBottom: spacing.xl,
-  },
-  sectionHeader: {
+  headerRow: {
+    alignItems: 'center',
     flexDirection: 'row',
     justifyContent: 'space-between',
+    marginBottom: spacing.sm,
+  },
+  logoTextRow: {
     alignItems: 'center',
-    marginBottom: spacing.md,
+    flexDirection: 'row',
   },
-  sectionTitle: {
-    fontSize: fontSizes.small,
+  logoutButton: {
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    borderRadius: 20,
+    height: 40,
+    justifyContent: 'center',
+    width: 40,
+  },
+  logoutText: {
+    color: colors.text,
+    fontSize: fontSizes.large,
     fontWeight: fontWeights.semibold,
-    color: colors.muted,
-    letterSpacing: 1,
   },
-  viewAllText: {
-    fontSize: fontSizes.medium,
-    color: colors.primary,
+  moduleCard: {
+    alignItems: 'center',
+    backgroundColor: colors.card,
+    borderRadius: borderRadius.md,
+    marginBottom: spacing.md,
+    padding: spacing.md,
+    width: '47%',
   },
   moduleGrid: {
     flexDirection: 'row',
@@ -249,64 +203,110 @@ const styles = StyleSheet.create({
     gap: spacing.md,
     justifyContent: 'space-between',
   },
-  moduleCard: {
-    width: '47%',
-    backgroundColor: colors.card,
-    borderRadius: borderRadius.md,
-    padding: spacing.md,
-    alignItems: 'center',
-    marginBottom: spacing.md,
-  },
   moduleIconContainer: {
-    width: 48,
-    height: 48,
+    alignItems: 'center',
     backgroundColor: colors.border,
     borderRadius: borderRadius.md,
+    height: 48,
     justifyContent: 'center',
-    alignItems: 'center',
     marginBottom: spacing.md - 4,
+    width: 48,
+  },
+  moduleSubtitle: {
+    color: colors.muted,
+    fontSize: fontSizes.small,
+    textAlign: 'center',
   },
   moduleTitle: {
+    color: colors.text,
     fontSize: fontSizes.medium,
     fontWeight: fontWeights.semibold,
-    color: colors.text,
     marginBottom: spacing.xs,
     textAlign: 'center',
   },
-  moduleSubtitle: {
-    fontSize: fontSizes.small,
-    color: colors.muted,
-    textAlign: 'center',
-  },
-  activityList: {
-    backgroundColor: colors.card,
-    borderRadius: borderRadius.md,
-    padding: spacing.lg,
-    alignItems: 'center',
-  },
-  noActivityText: {
-    fontSize: fontSizes.medium,
-    color: colors.muted,
-  },
-  bottomNav: {
-    flexDirection: 'row',
-    backgroundColor: colors.card,
-    borderRadius: borderRadius.lg,
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.sm,
-    marginTop: 'auto',
-  },
   navItem: {
-    flex: 1,
     alignItems: 'center',
+    flex: 1,
     paddingVertical: spacing.sm,
   },
   navLabel: {
-    fontSize: fontSizes.small,
     color: colors.muted,
+    fontSize: fontSizes.small,
   },
   navLabelActive: {
     color: colors.primary,
+  },
+  noActivityText: {
+    color: colors.muted,
+    fontSize: fontSizes.medium,
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    paddingBottom: spacing.xl,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xl,
+  },
+  sectionContainer: {
+    marginBottom: spacing.xl,
+  },
+  sectionHeader: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: spacing.md,
+  },
+  sectionTitle: {
+    color: colors.muted,
+    fontSize: fontSizes.small,
+    fontWeight: fontWeights.semibold,
+    letterSpacing: 1,
+  },
+  statCard: {
+    alignItems: 'center',
+    backgroundColor: '#2D3748',
+    borderRadius: borderRadius.lg,
+    elevation: 2,
+    flex: 1,
+    marginHorizontal: spacing.xs,
+    padding: spacing.lg,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+  },
+  statIconContainer: {
+    alignItems: 'center',
+    borderRadius: borderRadius.md,
+    height: 48,
+    justifyContent: 'center',
+    marginBottom: spacing.md - 4,
+    width: 48,
+  },
+  statIconPending: {
+    backgroundColor: colors.accent,
+  },
+  statIconRegistered: {
+    backgroundColor: '#10B981',
+  },
+  statLabel: {
+    color: colors.muted,
+    fontSize: fontSizes.small,
+    textAlign: 'center',
+  },
+  statNumber: {
+    color: colors.text,
+    fontSize: fontSizes.xxlarge,
+    fontWeight: fontWeights.bold,
+    marginBottom: spacing.xs,
+  },
+  statsRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    justifyContent: 'space-between',
+    marginBottom: spacing.lg,
+  },
+  viewAllText: {
+    color: colors.primary,
+    fontSize: fontSizes.medium,
   },
 });
 

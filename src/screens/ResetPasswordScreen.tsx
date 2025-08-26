@@ -260,114 +260,114 @@ const ResetPasswordScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
+  appName: {
+    color: '#FFFFFF',
+    fontSize: 24,
+    fontWeight: '600',
+    marginTop: 8,
+  },
+  backToLoginText: {
+    color: '#3B82F6',
+    fontSize: 14,
+    marginTop: 16,
+    textAlign: 'center',
+    textDecorationLine: 'underline',
+  },
   container: {
-    flex: 1,
     backgroundColor: '#1F2937',
-  },
-  keyboardAvoidingView: {
     flex: 1,
   },
-  scrollContainer: {
-    flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingTop: 40,
-    paddingBottom: 60,
+  eyeIcon: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 4,
+    position: 'absolute',
+    right: 16,
+    top: 14,
+  },
+  formContainer: {
+    flex: 1,
   },
   headerContainer: {
     alignItems: 'center',
     marginBottom: 40,
   },
-  logoContainer: {
-    alignItems: 'center',
-  },
-  appName: {
-    fontSize: 24,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginTop: 8,
-  },
-  titleSection: {
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#9CA3AF',
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  formContainer: {
-    flex: 1,
-  },
   inputContainer: {
     marginBottom: 20,
   },
   inputLabel: {
-    fontSize: 14,
     color: '#D1D5DB',
-    marginBottom: 8,
+    fontSize: 14,
     fontWeight: '500',
+    marginBottom: 8,
+  },
+  keyboardAvoidingView: {
+    flex: 1,
+  },
+  logoContainer: {
+    alignItems: 'center',
   },
   passwordContainer: {
     position: 'relative',
   },
-  passwordInput: {
-    backgroundColor: '#374151',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    paddingRight: 50,
-    fontSize: 16,
-    color: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#4B5563',
-  },
   passwordHint: {
-    fontSize: 12,
     color: '#9CA3AF',
+    fontSize: 12,
     marginTop: 4,
   },
-  eyeIcon: {
-    position: 'absolute',
-    right: 16,
-    top: 14,
-    padding: 4,
-    justifyContent: 'center',
-    alignItems: 'center',
+  passwordInput: {
+    backgroundColor: '#374151',
+    borderColor: '#4B5563',
+    borderRadius: 8,
+    borderWidth: 1,
+    color: '#FFFFFF',
+    fontSize: 16,
+    paddingHorizontal: 16,
+    paddingRight: 50,
+    paddingVertical: 14,
   },
   resetButton: {
+    alignItems: 'center',
     backgroundColor: '#3B82F6',
     borderRadius: 8,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 8,
     marginBottom: 24,
+    marginTop: 8,
+    paddingVertical: 16,
   },
   resetButtonDisabled: {
     backgroundColor: '#6B7280',
     opacity: 0.6,
   },
   resetButtonText: {
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
   },
   resetButtonTextDisabled: {
     color: '#D1D5DB',
   },
-  backToLoginText: {
+  scrollContainer: {
+    flexGrow: 1,
+    paddingBottom: 60,
+    paddingHorizontal: 24,
+    paddingTop: 40,
+  },
+  subtitle: {
+    color: '#9CA3AF',
     fontSize: 14,
-    color: '#3B82F6',
+    lineHeight: 20,
     textAlign: 'center',
-    textDecorationLine: 'underline',
-    marginTop: 16,
+  },
+  title: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '600',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  titleSection: {
+    alignItems: 'center',
+    marginBottom: 40,
   },
 });
 

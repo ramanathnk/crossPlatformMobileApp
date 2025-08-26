@@ -63,39 +63,11 @@ const GenericModal = ({
 };
 
 const styles = StyleSheet.create({
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    justifyContent: 'center',
-    padding: 20,
-  },
-  scrollContent: {
-    flexGrow: 1,
-    justifyContent: 'center',
-  },
-  modalCard: {
-    backgroundColor: '#0F172A',
-    borderRadius: 12,
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#23304D',
-  },
-  modalTitle: {
-    color: '#FFF',
-    fontWeight: 'bold',
-    fontSize: 18,
-    marginBottom: 12,
-  },
-  modalActions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: 4,
-  },
   btn: {
-    paddingHorizontal: 14,
-    paddingVertical: 10,
     borderRadius: 8,
     marginLeft: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
   },
   btnPrimary: {
     backgroundColor: '#3B82F6',
@@ -106,11 +78,39 @@ const styles = StyleSheet.create({
   },
   btnSecondary: {
     backgroundColor: 'transparent',
-    borderWidth: 1,
     borderColor: '#334155',
+    borderWidth: 1,
   },
   btnSecondaryText: {
     color: '#E2E8F0',
+  },
+  modalActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 4,
+  },
+  modalBackdrop: {
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    flex: 1,
+    justifyContent: 'center',
+    padding: 20,
+  },
+  modalCard: {
+    backgroundColor: '#0F172A',
+    borderColor: '#23304D',
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: 16,
+  },
+  modalTitle: {
+    color: '#FFF',
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
   },
 });
 

@@ -19,8 +19,8 @@ const MaterialIconImage: React.FC<MaterialIconImageProps> = ({
 
 const styles = StyleSheet.create({
   icon: {
-    justifyContent: 'center',
     alignItems: 'center',
+    justifyContent: 'center',
   },
 });
 

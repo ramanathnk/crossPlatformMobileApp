@@ -525,84 +525,84 @@ const RegisterDeviceScreen: React.FC = () => {
 const styles = StyleSheet.create({
   dropdownMenu: {
     backgroundColor: '#374151',
-    borderRadius: 8,
     borderColor: '#4B5563',
+    borderRadius: 8,
     borderWidth: 1,
   },
   container: {
-    flex: 1,
     backgroundColor: '#1F2937',
+    flex: 1,
   },
   keyboardAvoidingView: {
     flex: 1,
   },
   scrollContainer: {
     flexGrow: 1,
+    paddingBottom: 60,
     paddingHorizontal: 24,
-    paddingTop: 20,
-    paddingBottom: 60, // Consistent with other screens
+    paddingTop: 20, // Consistent with other screens
   },
   header: {
-    flexDirection: 'row',
     alignItems: 'flex-start',
+    flexDirection: 'row',
     marginBottom: 32,
   },
   backButton: {
-    width: 40,
+    alignItems: 'center',
     height: 40,
     justifyContent: 'center',
-    alignItems: 'center',
     marginRight: 16,
+    width: 40,
   },
   backArrow: {
-    fontSize: 24,
     color: '#FFFFFF',
+    fontSize: 24,
     fontWeight: '600',
   },
   headerTitleContainer: {
     flex: 1,
   },
   headerTitle: {
+    color: '#FFFFFF',
     fontSize: 20,
     fontWeight: '600',
-    color: '#FFFFFF',
     marginBottom: 4,
   },
   headerSubtitle: {
-    fontSize: 14,
     color: '#9CA3AF',
+    fontSize: 14,
   },
   sectionContainer: {
     marginBottom: 32,
   },
   sectionTitle: {
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
     marginBottom: 20,
   },
   inputContainer: {
     marginBottom: 20,
   },
   inputLabel: {
-    fontSize: 14,
     color: '#D1D5DB',
-    marginBottom: 8,
+    fontSize: 14,
     fontWeight: '500',
+    marginBottom: 8,
   },
   textInput: {
     backgroundColor: '#374151',
+    borderColor: '#4B5563',
     borderRadius: 8,
+    borderWidth: 1,
+    color: '#FFFFFF',
+    fontSize: 16,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    fontSize: 16,
-    color: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#4B5563',
   },
   inputHint: {
-    fontSize: 12,
     color: '#9CA3AF',
+    fontSize: 12,
     marginTop: 4,
   },
   systemInfoContainer: {
@@ -614,13 +614,13 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   systemInfoLabel: {
-    fontSize: 12,
     color: '#9CA3AF',
+    fontSize: 12,
     marginBottom: 4,
   },
   systemInfoValue: {
-    fontSize: 14,
     color: '#FFFFFF',
+    fontSize: 14,
     fontWeight: '500',
   },
   buttonContainer: {
@@ -628,28 +628,28 @@ const styles = StyleSheet.create({
     paddingTop: 16,
   },
   registerButton: {
+    alignItems: 'center',
     backgroundColor: '#3B82F6',
     borderRadius: 12,
-    paddingVertical: 16,
-    paddingHorizontal: 24,
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 16,
   },
   registerButtonDisabled: {
     backgroundColor: '#6B7280',
     opacity: 0.6,
   },
   registerButtonIcon: {
-    fontSize: 20,
     color: '#FFFFFF',
+    fontSize: 20,
     fontWeight: '600',
     marginRight: 8,
   },
   registerButtonText: {
+    color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
-    color: '#FFFFFF',
   },
   registerButtonTextDisabled: {
     color: '#D1D5DB',
@@ -657,12 +657,12 @@ const styles = StyleSheet.create({
 
   // results summary
   resultsContainer: {
+    backgroundColor: '#262f37',
+    borderColor: '#2f3a42',
+    borderRadius: 8,
+    borderWidth: 1,
     marginTop: 20,
     padding: 12,
-    backgroundColor: '#262f37',
-    borderRadius: 8,
-    borderColor: '#2f3a42',
-    borderWidth: 1,
   },
   resultsTitle: {
     color: '#D1D5DB',
@@ -677,8 +677,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   resultStatus: {
-    marginTop: 2,
     fontWeight: '600',
+    marginTop: 2,
   },
   successText: {
     color: '#10B981',

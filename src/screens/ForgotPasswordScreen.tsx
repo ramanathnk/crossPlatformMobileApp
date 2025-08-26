@@ -176,92 +176,92 @@ const ForgotPasswordScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#1F2937',
-  },
-  keyboardAvoidingView: {
-    flex: 1,
-  },
-  scrollContainer: {
-    flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 60,
-    minHeight: '100%',
-  },
-  headerContainer: {
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  logoContainer: {
-    alignItems: 'center',
-  },
   appName: {
+    color: '#FFFFFF',
     fontSize: 24,
     fontWeight: '600',
-    color: '#FFFFFF',
     marginTop: 8,
   },
-  titleSection: {
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  title: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  subtitle: {
+  backToLoginText: {
+    color: '#3B82F6',
     fontSize: 14,
-    color: '#9CA3AF',
+    paddingVertical: 8,
     textAlign: 'center',
-    lineHeight: 20,
+    textDecorationLine: 'underline',
+  },
+  container: {
+    backgroundColor: '#1F2937',
+    flex: 1,
   },
   formContainer: {
     flex: 0,
     minHeight: 200,
   },
+  headerContainer: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
   inputContainer: {
     marginBottom: 24,
   },
   inputLabel: {
-    fontSize: 14,
     color: '#D1D5DB',
-    marginBottom: 8,
+    fontSize: 14,
     fontWeight: '500',
+    marginBottom: 8,
+  },
+  keyboardAvoidingView: {
+    flex: 1,
+  },
+  logoContainer: {
+    alignItems: 'center',
+  },
+  resetButton: {
+    alignItems: 'center',
+    backgroundColor: '#3B82F6',
+    borderRadius: 8,
+    marginBottom: 32,
+    marginTop: 8,
+    paddingVertical: 16,
+  },
+  resetButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    minHeight: '100%',
+    paddingBottom: 60,
+    paddingHorizontal: 24,
+    paddingTop: 60,
+  },
+  subtitle: {
+    color: '#9CA3AF',
+    fontSize: 14,
+    lineHeight: 20,
+    textAlign: 'center',
   },
   textInput: {
     backgroundColor: '#374151',
+    borderColor: '#4B5563',
     borderRadius: 8,
+    borderWidth: 1,
+    color: '#FFFFFF',
+    fontSize: 16,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    fontSize: 16,
+  },
+  title: {
     color: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#4B5563',
-  },
-  resetButton: {
-    backgroundColor: '#3B82F6',
-    borderRadius: 8,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginBottom: 32,
-    marginTop: 8,
-  },
-  resetButtonText: {
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: '600',
-    color: '#FFFFFF',
-  },
-  backToLoginText: {
-    fontSize: 14,
-    color: '#3B82F6',
+    marginBottom: 8,
     textAlign: 'center',
-    textDecorationLine: 'underline',
-    paddingVertical: 8,
+  },
+  titleSection: {
+    alignItems: 'center',
+    marginBottom: 40,
   },
 });
 

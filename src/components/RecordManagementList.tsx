@@ -64,29 +64,6 @@ const RecordManagementList = <T,>({
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingTop: 16,
-  },
-  searchInput: {
-    backgroundColor: '#19213A',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    color: '#FFF',
-    marginBottom: 16,
-    fontSize: 15,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 12,
-    justifyContent: 'space-between',
-  },
-  count: {
-    color: '#A3A3A3',
-    fontSize: 15,
-  },
   addButton: {
     backgroundColor: '#3B82F6',
     borderRadius: 8,
@@ -95,8 +72,31 @@ const styles = StyleSheet.create({
   },
   addButtonText: {
     color: '#FFF',
-    fontWeight: 'bold',
     fontSize: 15,
+    fontWeight: 'bold',
+  },
+  container: {
+    flex: 1,
+    paddingTop: 16,
+  },
+  count: {
+    color: '#A3A3A3',
+    fontSize: 15,
+  },
+  header: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+  },
+  searchInput: {
+    backgroundColor: '#19213A',
+    borderRadius: 8,
+    color: '#FFF',
+    fontSize: 15,
+    marginBottom: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
 });
 

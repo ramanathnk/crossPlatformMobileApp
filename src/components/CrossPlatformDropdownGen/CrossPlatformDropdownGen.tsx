@@ -306,53 +306,53 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   touchable: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    justifyContent: 'center',
     alignItems: 'flex-start',
-    borderWidth: 1,
+    backgroundColor: '#374151',
     borderColor: '#4B5563',
     borderRadius: 8,
-    backgroundColor: '#374151',
-    zIndex: 10,
+    borderWidth: 1,
     flexDirection: 'row',
+    justifyContent: 'center',
     minHeight: 48,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    zIndex: 10,
   },
   disabledTouchable: {
     backgroundColor: '#23272f',
     borderColor: '#222',
   },
   row: {
-    flexDirection: 'row',
     alignItems: 'center',
-    width: '100%',
+    flexDirection: 'row',
     justifyContent: 'space-between',
+    width: '100%',
   },
   selectedText: {
-    fontSize: 16,
     color: '#fff',
     flex: 1,
+    fontSize: 16,
   },
   placeholderText: {
     color: '#9CA3AF',
   },
   arrow: {
-    marginLeft: 8,
-    fontSize: 16,
     color: '#9CA3AF',
+    fontSize: 16,
+    marginLeft: 8,
   },
   dropdown: {
-    position: 'absolute',
     backgroundColor: '#374151',
-    borderWidth: 1,
     borderColor: '#4B5563',
     borderRadius: 8,
+    borderWidth: 1,
     elevation: 4,
-    zIndex: 9,
+    position: 'absolute',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
+    zIndex: 9,
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
@@ -360,25 +360,25 @@ const styles = StyleSheet.create({
     zIndex: 8,
   },
   dropdownItem: {
+    borderBottomColor: '#4B5563',
+    borderBottomWidth: 1,
     paddingHorizontal: 16,
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#4B5563',
   },
   checkboxContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
+    flexDirection: 'row',
   },
 
   // Base checkbox (shared)
   checkbox: {
-    width: 18,
-    height: 18,
-    borderWidth: 2,
-    borderColor: '#6B7280',
-    marginRight: 12,
-    justifyContent: 'center',
     alignItems: 'center',
+    borderColor: '#6B7280',
+    borderWidth: 2,
+    height: 18,
+    justifyContent: 'center',
+    marginRight: 12,
+    width: 18,
   },
 
   // round style for single-select radio-like indicator
@@ -393,12 +393,12 @@ const styles = StyleSheet.create({
 
   // selected styles
   checkboxSelected: {
-    borderColor: '#3B82F6',
     backgroundColor: '#3B82F6',
+    borderColor: '#3B82F6',
   },
   checkboxSelectedMulti: {
-    borderColor: '#3B82F6',
     backgroundColor: '#3B82F6',
+    borderColor: '#3B82F6',
   },
 
   // checkmark/dot styles
@@ -409,14 +409,14 @@ const styles = StyleSheet.create({
   checkmarkMulti: {
     color: '#FFFFFF',
     fontSize: 12,
-    lineHeight: 12,
     fontWeight: '700',
+    lineHeight: 12,
   },
 
   dropdownItemText: {
-    fontSize: 14,
     color: '#FFFFFF',
     flex: 1,
+    fontSize: 14,
   },
   scrollViewContent: {
     paddingBottom: 8,

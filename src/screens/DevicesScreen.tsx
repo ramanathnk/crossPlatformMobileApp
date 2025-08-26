@@ -209,121 +209,121 @@ const DevicesScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#1F2937',
-  },
-  scrollContainer: {
-    flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingTop: 20,
-    paddingBottom: 60,
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    marginBottom: 32,
+  backArrow: {
+    color: '#FFFFFF',
+    fontSize: 24,
+    fontWeight: '600',
   },
   backButton: {
-    width: 40,
+    alignItems: 'center',
     height: 40,
     justifyContent: 'center',
-    alignItems: 'center',
     marginRight: 16,
+    width: 40,
   },
-  backArrow: {
-    fontSize: 24,
-    color: '#FFFFFF',
-    fontWeight: '600',
-  },
-  headerTitleContainer: {
-    flex: 1,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: '#FFFFFF',
-    marginBottom: 4,
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    color: '#9CA3AF',
-  },
-  sectionContainer: {
-    marginBottom: 32,
-  },
-  textInput: {
+  card: {
     backgroundColor: '#374151',
-    borderRadius: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    fontSize: 16,
-    color: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#4B5563',
-  },
-  toolbar: {
+    borderRadius: 12,
     flexDirection: 'row',
-    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+    padding: 16,
   },
-  toolBtn: {
+  cardLeft: {
+    alignItems: 'center',
     flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 24,
   },
-  toolText: {
-    color: '#FFFFFF',
-    marginLeft: 4,
+  cardText: {
+    marginLeft: 12,
+  },
+  container: {
+    backgroundColor: '#1F2937',
+    flex: 1,
   },
   count: {
     color: '#9CA3AF',
     marginLeft: 'auto',
   },
-  card: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    backgroundColor: '#374151',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 12,
-  },
-  cardLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  cardText: {
-    marginLeft: 12,
-  },
-  serial: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-    fontSize: 16,
-  },
-  model: {
+  date: {
+    alignSelf: 'flex-start',
     color: '#9CA3AF',
-    fontSize: 14,
+    fontSize: 12,
   },
   dealer: {
     color: '#9CA3AF',
     fontSize: 12,
     marginTop: 4,
   },
-  date: {
+  emptyText: {
     color: '#9CA3AF',
-    fontSize: 12,
-    alignSelf: 'flex-start',
+    fontSize: 16,
+    marginTop: 20,
+    textAlign: 'center',
   },
   errorText: {
     color: '#EF4444',
     fontSize: 16,
-    textAlign: 'center',
     marginTop: 20,
+    textAlign: 'center',
   },
-  emptyText: {
+  header: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    marginBottom: 32,
+  },
+  headerSubtitle: {
     color: '#9CA3AF',
+    fontSize: 14,
+  },
+  headerTitle: {
+    color: '#FFFFFF',
+    fontSize: 20,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  headerTitleContainer: {
+    flex: 1,
+  },
+  model: {
+    color: '#9CA3AF',
+    fontSize: 14,
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    paddingBottom: 60,
+    paddingHorizontal: 24,
+    paddingTop: 20,
+  },
+  sectionContainer: {
+    marginBottom: 32,
+  },
+  serial: {
+    color: '#FFFFFF',
     fontSize: 16,
-    textAlign: 'center',
-    marginTop: 20,
+    fontWeight: 'bold',
+  },
+  textInput: {
+    backgroundColor: '#374151',
+    borderColor: '#4B5563',
+    borderRadius: 8,
+    borderWidth: 1,
+    color: '#FFFFFF',
+    fontSize: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  toolBtn: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    marginRight: 24,
+  },
+  toolText: {
+    color: '#FFFFFF',
+    marginLeft: 4,
+  },
+  toolbar: {
+    alignItems: 'center',
+    flexDirection: 'row',
   },
 });
 

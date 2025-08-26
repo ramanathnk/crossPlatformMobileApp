@@ -188,18 +188,18 @@ const LoginScreen: React.FC = () => {
 };
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     backgroundColor: colors.background,
+    flex: 1,
   },
   keyboardAvoidingView: {
     flex: 1,
   },
   scrollContainer: {
     flexGrow: 1,
+    minHeight: '100%',
+    paddingBottom: 60,
     paddingHorizontal: spacing.lg,
     paddingTop: 60,
-    paddingBottom: 60,
-    minHeight: '100%',
   },
   headerContainer: {
     // center the header group horizontally
@@ -209,8 +209,8 @@ const styles = StyleSheet.create({
   },
   // logoContainer positions icon and name tightly as a centered unit
   logoContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
+    flexDirection: 'row',
     justifyContent: 'center',
   },
   appName: {
@@ -226,17 +226,17 @@ const styles = StyleSheet.create({
     marginBottom: 40,
   },
   title: {
+    color: colors.text,
     fontSize: fontSizes.xlarge,
     fontWeight: '600',
-    color: colors.text,
     marginBottom: 8,
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: fontSizes.medium,
     color: colors.muted,
-    textAlign: 'center',
+    fontSize: fontSizes.medium,
     lineHeight: 20,
+    textAlign: 'center',
   },
   formContainer: {
     flex: 0,
@@ -253,12 +253,12 @@ const styles = StyleSheet.create({
     paddingRight: 50,
   },
   eyeIcon: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 4,
     position: 'absolute',
     right: 16,
     top: 14,
-    padding: 4,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   signInButton: {
     ...buttonStyles.primary,
@@ -273,11 +273,11 @@ const styles = StyleSheet.create({
     ...buttonStyles.textDisabled,
   },
   forgotPasswordText: {
-    fontSize: fontSizes.medium,
     color: colors.primary,
+    fontSize: fontSizes.medium,
+    paddingVertical: spacing.sm,
     textAlign: 'center',
     textDecorationLine: 'underline',
-    paddingVertical: spacing.sm,
   },
   error: {
     ...errorStyles.error,
