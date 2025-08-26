@@ -12,7 +12,6 @@ describe('CrossPlatformAlert', () => {
 
     const onPress = jest.fn();
     // Provide window.alert mock
-    // @ts-ignore
     window.alert = jest.fn();
 
     CrossPlatformAlert.alert('Title', 'message', [{ text: 'OK', onPress }]);
@@ -28,7 +27,6 @@ describe('CrossPlatformAlert', () => {
     const secondOnPress = jest.fn();
 
     // Simulate user clicking "confirm" (true)
-    // @ts-ignore
     window.confirm = jest.fn().mockReturnValue(true);
 
     CrossPlatformAlert.alert('Title', 'msg', [
@@ -48,7 +46,6 @@ describe('CrossPlatformAlert', () => {
     const secondOnPress = jest.fn();
 
     // Simulate user clicking "cancel" (false)
-    // @ts-ignore
     window.confirm = jest.fn().mockReturnValue(false);
 
     CrossPlatformAlert.alert('Title', 'msg', [

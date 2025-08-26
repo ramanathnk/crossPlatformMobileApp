@@ -1,18 +1,12 @@
-import { Platform, Alert as RNAlert } from 'react-native';
-
-interface AlertButton {
-  text: string;
-  style?: 'default' | 'cancel' | 'destructive';
-  onPress?: () => void;
-}
-
-interface AlertOptions {
-  cancelable?: boolean;
-  onDismiss?: () => void;
-}
+import { Platform, Alert as RNAlert, type AlertButton as RNAlertButton, type AlertOptions as RNAlertOptions } from 'react-native';
 
 class CrossPlatformAlert {
-  static alert(title: string, message?: string, buttons?: AlertButton[], options?: AlertOptions) {
+  static alert(
+    title: string,
+    message?: string,
+    buttons?: RNAlertButton[],
+    options?: RNAlertOptions
+  ) {
     if (Platform.OS === 'web') {
       const fullMessage = message ? `${title}\n\n${message}` : title;
 
@@ -33,7 +27,7 @@ class CrossPlatformAlert {
       }
     } else {
       // Use React Native Alert for mobile platforms
-      RNAlert.alert(title, message, buttons as any, options);
+      RNAlert.alert(title, message, buttons, options);
     }
   }
 }
