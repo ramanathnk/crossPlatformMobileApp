@@ -10,8 +10,6 @@ import type { Store, Dispatch, AnyAction, Observable } from 'redux';
 
 type StateShape = Record<string, unknown>;
 
-type Observer<T> = { next?: (value: T) => void } | ((value: T) => void);
-
 /**
  * Create a minimal mock Redux store that satisfies the structural requirements of
  * react-redux's Provider and TypeScript's Store type. This mock is intentionally
@@ -22,18 +20,20 @@ type Observer<T> = { next?: (value: T) => void } | ((value: T) => void);
 export function createMockStore(preloadedState: StateShape = {}): Store<StateShape, AnyAction> {
   const dispatchMock: Dispatch<AnyAction> = jest.fn() as unknown as Dispatch<AnyAction>;
 
-  let observable!: Observable<StateShape>;
-  observable = {
-    subscribe: (_observer?: Observer<StateShape>) => ({
+  const observable: Observable<StateShape> = {
+    subscribe: () => ({
       unsubscribe: () => {},
     }),
-    [Symbol.observable]: () => observable,
+    [Symbol.observable]: function () {
+      // return the observable itself; using `this` avoids referencing the variable
+      return this as unknown as Observable<StateShape>;
+    },
   };
 
   const store: Store<StateShape, AnyAction> = {
     getState: () => preloadedState,
     dispatch: dispatchMock,
-    subscribe: (listener: () => void) => {
+    subscribe: () => {
       // no-op subscribe; return an unsubscribe function
       return () => {};
     },
