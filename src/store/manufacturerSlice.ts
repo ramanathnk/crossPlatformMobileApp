@@ -34,13 +34,16 @@ const initialState: ManufacturersState = {
  * Normalize server / thrown error into a string message.
  * Looks for structured fields commonly set by apiRequest.
  */
-function extractErrorMessage(err: any, fallback: string) {
+function extractErrorMessage(err: unknown, fallback: string): string {
   if (!err) return fallback;
   if (typeof err === 'string') return err;
-  if (err?.description) return err.description;
-  if (err?.message) return err.message;
-  if (err?.error) return String(err.error);
-  if (err?.rawText) return String(err.rawText);
+  if (typeof err === 'object' && err !== null) {
+    const e = err as Record<string, unknown>;
+    if (typeof e.description === 'string') return e.description;
+    if (typeof e.message === 'string') return e.message;
+    if (e.error !== undefined) return String(e.error);
+    if (typeof e.rawText === 'string') return e.rawText;
+  }
   return fallback;
 }
 
@@ -49,22 +52,21 @@ function extractErrorMessage(err: any, fallback: string) {
  */
 
 // Fetch all manufacturers: thunk reads token from SecureStore internally
-export const fetchManufacturers = createAsyncThunk<
-  Manufacturer[],
-  void,
-  { rejectValue: string }
->('manufacturers/fetch', async (_, thunkAPI) => {
-  try {
-    const token = (await SecureStore.getItemAsync('accessToken')) || '';
-    if (!token) {
-      return thunkAPI.rejectWithValue('No access token found. Please log in again.');
+export const fetchManufacturers = createAsyncThunk<Manufacturer[], void, { rejectValue: string }>(
+  'manufacturers/fetch',
+  async (_, thunkAPI) => {
+    try {
+      const token = (await SecureStore.getItemAsync('accessToken')) || '';
+      if (!token) {
+        return thunkAPI.rejectWithValue('No access token found. Please log in again.');
+      }
+      const res = await getAllManufacturers(token);
+      return res;
+    } catch (err: unknown) {
+      return thunkAPI.rejectWithValue(extractErrorMessage(err, 'Failed to fetch manufacturers'));
     }
-    const res = await getAllManufacturers(token);
-    return res;
-  } catch (err: any) {
-    return thunkAPI.rejectWithValue(extractErrorMessage(err, 'Failed to fetch manufacturers'));
-  }
-});
+  },
+);
 
 // Create manufacturer
 export const createManufacturerRequest = createAsyncThunk<
@@ -79,7 +81,7 @@ export const createManufacturerRequest = createAsyncThunk<
     }
     const res = await createManufacturer(token, payload);
     return res;
-  } catch (err: any) {
+  } catch (err: unknown) {
     return thunkAPI.rejectWithValue(extractErrorMessage(err, 'Failed to create manufacturer'));
   }
 });
@@ -97,7 +99,7 @@ export const updateManufacturerRequest = createAsyncThunk<
     }
     const res = await updateManufacturer(token, payload.manufacturerId, payload.manufacturer);
     return res;
-  } catch (err: any) {
+  } catch (err: unknown) {
     return thunkAPI.rejectWithValue(extractErrorMessage(err, 'Failed to update manufacturer'));
   }
 });
@@ -117,7 +119,7 @@ export const deleteManufacturerRequest = createAsyncThunk<
     await deleteManufacturer(token, payload.manufacturerId);
     // return the id so reducer can remove it
     return payload.manufacturerId;
-  } catch (err: any) {
+  } catch (err: unknown) {
     return thunkAPI.rejectWithValue(extractErrorMessage(err, 'Failed to delete manufacturer'));
   }
 });
@@ -146,8 +148,7 @@ const manufacturersSlice = createSlice({
     );
     builder.addCase(fetchManufacturers.rejected, (state, action) => {
       state.loading = false;
-      state.error =
-        (action.payload as string) || action.error?.message || 'Failed to fetch manufacturers';
+      state.error = action.payload ?? action.error?.message ?? 'Failed to fetch manufacturers';
     });
 
     // createManufacturerRequest
@@ -168,8 +169,7 @@ const manufacturersSlice = createSlice({
     );
     builder.addCase(createManufacturerRequest.rejected, (state, action) => {
       state.creating = false;
-      state.error =
-        (action.payload as string) || action.error?.message || 'Failed to create manufacturer';
+      state.error = action.payload ?? action.error?.message ?? 'Failed to create manufacturer';
     });
 
     // updateManufacturerRequest
@@ -192,8 +192,7 @@ const manufacturersSlice = createSlice({
     );
     builder.addCase(updateManufacturerRequest.rejected, (state, action) => {
       state.submittingId = null;
-      state.error =
-        (action.payload as string) || action.error?.message || 'Failed to update manufacturer';
+      state.error = action.payload ?? action.error?.message ?? 'Failed to update manufacturer';
     });
 
     // deleteManufacturerRequest
@@ -201,35 +200,36 @@ const manufacturersSlice = createSlice({
       state.submittingId = action.meta.arg.manufacturerId;
       state.error = null;
     });
-    builder.addCase(
-      deleteManufacturerRequest.fulfilled,
-      (state, action: PayloadAction<number>) => {
-        const deletedId = action.payload;
-        state.items = state.items.filter((m) => m.manufacturerId !== deletedId);
-        state.submittingId = null;
-        state.error = null;
-      },
-    );
+    builder.addCase(deleteManufacturerRequest.fulfilled, (state, action: PayloadAction<number>) => {
+      const deletedId = action.payload;
+      state.items = state.items.filter((m) => m.manufacturerId !== deletedId);
+      state.submittingId = null;
+      state.error = null;
+    });
     builder.addCase(deleteManufacturerRequest.rejected, (state, action) => {
       state.submittingId = null;
-      state.error =
-        (action.payload as string) || action.error?.message || 'Failed to delete manufacturer';
+      state.error = action.payload ?? action.error?.message ?? 'Failed to delete manufacturer';
     });
   },
 });
 
 export const { clearManufacturersError } = manufacturersSlice.actions;
 
+// Local RootState type for selector typing. Replace or import your app RootState if available.
+type RootState = {
+  manufacturers: ManufacturersState;
+};
+
 // Selectors
-export const selectManufacturersState = (state: any) =>
-  state.manufacturers as ManufacturersState;
-export const selectManufacturers = (state: any) => selectManufacturersState(state).items;
-export const selectManufacturersLoading = (state: any) =>
+export const selectManufacturersState = (state: RootState): ManufacturersState =>
+  state.manufacturers;
+export const selectManufacturers = (state: RootState) => selectManufacturersState(state).items;
+export const selectManufacturersLoading = (state: RootState) =>
   selectManufacturersState(state).loading;
-export const selectManufacturersCreating = (state: any) =>
+export const selectManufacturersCreating = (state: RootState) =>
   selectManufacturersState(state).creating;
-export const selectManufacturersSubmittingId = (state: any) =>
+export const selectManufacturersSubmittingId = (state: RootState) =>
   selectManufacturersState(state).submittingId;
-export const selectManufacturersError = (state: any) => selectManufacturersState(state).error;
+export const selectManufacturersError = (state: RootState) => selectManufacturersState(state).error;
 
 export default manufacturersSlice.reducer;

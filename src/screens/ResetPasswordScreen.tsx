@@ -20,6 +20,45 @@ import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../store';
 import { resetPasswordThunk, clearError, clearMessage } from '../store/authSlice';
 
+/**
+ * Small helpers to safely read string properties from unknown values and normalize errors.
+ */
+function getStringProp(obj: unknown, key: string): string | null {
+  if (obj && typeof obj === 'object') {
+    const v = (obj as Record<string, unknown>)[key];
+    return typeof v === 'string' ? v : null;
+  }
+  return null;
+}
+
+function extractErrorMessage(err: unknown, fallback = 'An error occurred'): string {
+  if (!err) return fallback;
+  if (typeof err === 'string') return err;
+  if (err instanceof Error && err.message) return err.message;
+  const msg = getStringProp(err, 'message') ?? getStringProp(err, 'description');
+  return msg ?? fallback;
+}
+
+/**
+ * Centralized color tokens to satisfy react-native/no-color-literals and keep consistent styles.
+ */
+const COLORS = {
+  white: '#FFFFFF',
+  primary: '#3B82F6',
+  muted: '#9CA3AF',
+  inputBg: '#374151',
+  inputBorder: '#4B5563',
+  bg: '#1F2937',
+  textMuted: '#D1D5DB',
+  success: '#10B981',
+  danger: '#FF3B30',
+  disabledBg: '#6B7280',
+  resultsBg: '#262f37',
+  resultsBorder: '#2f3a42',
+  fail: '#EF4444',
+  resultError: '#FCA5A5',
+};
+
 type RootStackParamList = {
   Login: undefined;
   ResetPassword: { token: string; email: string };
@@ -96,7 +135,7 @@ const ResetPasswordScreen: React.FC = () => {
       ).unwrap();
 
       const successMessage =
-        (res && (res as any).message) || 'Password reset successful. You can now log in.';
+        getStringProp(res, 'message') ?? 'Password reset successful. You can now log in.';
 
       // Show alert with success message and navigate to Login after user confirmation.
       CrossPlatformAlert.alert('Success', successMessage, [
@@ -107,7 +146,7 @@ const ResetPasswordScreen: React.FC = () => {
             try {
               dispatch(clearMessage());
               dispatch(clearError());
-            } catch (e) {
+            } catch {
               /* ignore */
             }
             navigation.navigate('Login');
@@ -116,12 +155,9 @@ const ResetPasswordScreen: React.FC = () => {
       ]);
 
       setMessage(successMessage);
-    } catch (err: any) {
+    } catch (err: unknown) {
       // Normalize error message (thunk rejection can be string or object)
-      const errMsg =
-        typeof err === 'string'
-          ? err
-          : err?.message || err?.description || authState.error || 'Failed to reset password.';
+      const errMsg = extractErrorMessage(err, authState.error ?? 'Failed to reset password.');
 
       CrossPlatformAlert.alert('Error', errMsg, [
         {
@@ -130,7 +166,7 @@ const ResetPasswordScreen: React.FC = () => {
             try {
               dispatch(clearMessage());
               dispatch(clearError());
-            } catch (e) {
+            } catch {
               /* ignore */
             }
             navigation.navigate('Login');
@@ -177,7 +213,7 @@ const ResetPasswordScreen: React.FC = () => {
                 <TextInput
                   style={styles.passwordInput}
                   placeholder="Enter new password"
-                  placeholderTextColor="#6B7280"
+                  placeholderTextColor={COLORS.muted}
                   value={newPassword}
                   onChangeText={setNewPassword}
                   secureTextEntry={!showNewPassword}
@@ -188,7 +224,7 @@ const ResetPasswordScreen: React.FC = () => {
                   style={styles.eyeIcon}
                   onPress={() => setShowNewPassword(!showNewPassword)}
                 >
-                  <EyeIcon visible={showNewPassword} size={20} color="#9CA3AF" />
+                  <EyeIcon visible={showNewPassword} size={20} color={COLORS.muted} />
                 </TouchableOpacity>
               </View>
               <Text style={styles.passwordHint}>Min. 8 characters</Text>
@@ -201,7 +237,7 @@ const ResetPasswordScreen: React.FC = () => {
                 <TextInput
                   style={styles.passwordInput}
                   placeholder="Confirm your password"
-                  placeholderTextColor="#6B7280"
+                  placeholderTextColor={COLORS.muted}
                   value={confirmPassword}
                   onChangeText={setConfirmPassword}
                   secureTextEntry={!showConfirmPassword}
@@ -212,21 +248,17 @@ const ResetPasswordScreen: React.FC = () => {
                   style={styles.eyeIcon}
                   onPress={() => setShowConfirmPassword(!showConfirmPassword)}
                 >
-                  <EyeIcon visible={showConfirmPassword} size={20} color="#9CA3AF" />
+                  <EyeIcon visible={showConfirmPassword} size={20} color={COLORS.muted} />
                 </TouchableOpacity>
               </View>
             </View>
 
             {/* Error or Success Message (inline) */}
             {(error || authState.error) && (
-              <Text style={{ color: '#FF3B30', fontWeight: 'bold', marginBottom: 12 }}>
-                {error || authState.error}
-              </Text>
+              <Text style={styles.inlineErrorText}>{error || authState.error}</Text>
             )}
             {(message || authState.message) && (
-              <Text style={{ color: '#10B981', fontWeight: 'bold', marginBottom: 12 }}>
-                {message || authState.message}
-              </Text>
+              <Text style={styles.inlineSuccessText}>{message || authState.message}</Text>
             )}
 
             {/* Reset Password Button */}
@@ -261,20 +293,20 @@ const ResetPasswordScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   appName: {
-    color: '#FFFFFF',
+    color: COLORS.white,
     fontSize: 24,
     fontWeight: '600',
     marginTop: 8,
   },
   backToLoginText: {
-    color: '#3B82F6',
+    color: COLORS.primary,
     fontSize: 14,
     marginTop: 16,
     textAlign: 'center',
     textDecorationLine: 'underline',
   },
   container: {
-    backgroundColor: '#1F2937',
+    backgroundColor: COLORS.bg,
     flex: 1,
   },
   eyeIcon: {
@@ -292,11 +324,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 40,
   },
+
+  // Moved inline message styles up so style keys are in ascending order relative to titleSection
+  inlineErrorText: {
+    color: COLORS.danger,
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
+  inlineSuccessText: {
+    color: COLORS.success,
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
+
   inputContainer: {
     marginBottom: 20,
   },
   inputLabel: {
-    color: '#D1D5DB',
+    color: COLORS.textMuted,
     fontSize: 14,
     fontWeight: '500',
     marginBottom: 8,
@@ -311,16 +356,16 @@ const styles = StyleSheet.create({
     position: 'relative',
   },
   passwordHint: {
-    color: '#9CA3AF',
+    color: COLORS.muted,
     fontSize: 12,
     marginTop: 4,
   },
   passwordInput: {
-    backgroundColor: '#374151',
-    borderColor: '#4B5563',
+    backgroundColor: COLORS.inputBg,
+    borderColor: COLORS.inputBorder,
     borderRadius: 8,
     borderWidth: 1,
-    color: '#FFFFFF',
+    color: COLORS.white,
     fontSize: 16,
     paddingHorizontal: 16,
     paddingRight: 50,
@@ -328,23 +373,23 @@ const styles = StyleSheet.create({
   },
   resetButton: {
     alignItems: 'center',
-    backgroundColor: '#3B82F6',
+    backgroundColor: COLORS.primary,
     borderRadius: 8,
     marginBottom: 24,
     marginTop: 8,
     paddingVertical: 16,
   },
   resetButtonDisabled: {
-    backgroundColor: '#6B7280',
+    backgroundColor: COLORS.disabledBg,
     opacity: 0.6,
   },
   resetButtonText: {
-    color: '#FFFFFF',
+    color: COLORS.white,
     fontSize: 16,
     fontWeight: '600',
   },
   resetButtonTextDisabled: {
-    color: '#D1D5DB',
+    color: COLORS.textMuted,
   },
   scrollContainer: {
     flexGrow: 1,
@@ -353,13 +398,13 @@ const styles = StyleSheet.create({
     paddingTop: 40,
   },
   subtitle: {
-    color: '#9CA3AF',
+    color: COLORS.muted,
     fontSize: 14,
     lineHeight: 20,
     textAlign: 'center',
   },
   title: {
-    color: '#FFFFFF',
+    color: COLORS.white,
     fontSize: 20,
     fontWeight: '600',
     marginBottom: 8,

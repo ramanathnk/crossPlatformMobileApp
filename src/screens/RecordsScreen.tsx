@@ -1,3 +1,4 @@
+/* eslint-disable react/prop-types */
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   View,
@@ -6,19 +7,13 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  ActivityIndicator,
   Alert,
   RefreshControl,
-  FlatList,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 
-import type {
-  Dealer as ApiDealer,
-  DealerCreateRequest,
-  DealerUpdateRequest,
-} from '../api/dealerApi';
-import type { DeviceType as ApiDeviceType, DeviceTypeRequestPayload } from '../api/deviceTypeApi';
+import type { Dealer as ApiDealer } from '../api/dealerApi';
+import type { DeviceType as ApiDeviceType } from '../api/deviceTypeApi';
 import type { Manufacturer } from '../api/manufacturerApi';
 
 import { useDispatch, useSelector } from 'react-redux';
@@ -31,7 +26,6 @@ import {
   deleteDealerRequest,
   selectDealers,
   selectDealersLoading,
-  selectDealersError,
 } from '../store/dealerSlice';
 
 import {
@@ -41,10 +35,8 @@ import {
   deleteDeviceTypeRequest,
   selectDeviceTypes,
   selectDeviceTypesLoading,
-  selectDeviceTypesError,
 } from '../store/deviceTypeSlice';
 
-// Manufacturer slice imports (use Redux thunks/selectors instead of React Query)
 import {
   fetchManufacturers,
   createManufacturerRequest,
@@ -52,25 +44,15 @@ import {
   deleteManufacturerRequest,
   selectManufacturers,
   selectManufacturersLoading,
-  selectManufacturersError,
 } from '../store/manufacturerSliceMock';
 
 import RecordManagementList from '../components/RecordManagementList';
 import GenericModal from '../components/GenericModal';
 
-type DealerFormValues = DealerCreateRequest;
-interface DeviceTypeFormValues {
-  name: string;
-  manufacturerId: number;
-  modelNumber: string;
-}
-
-// Define a union type for all possible record items
 type RecordItem = ApiDealer | ApiDeviceType | Manufacturer;
 
 const TAB_LABELS = ['Dealers', 'Device Types', 'Manufacturers'];
 
-// Define a common interface for form field configuration
 interface FormField {
   label: string;
   placeholder: string;
@@ -79,19 +61,28 @@ interface FormField {
   keyboardType?: 'default' | 'numeric' | 'email-address' | 'phone-pad' | 'url';
 }
 
-const FormContent = ({
+/**
+ * Generic FormContent component.
+ *
+ * Make the component generic (T) so onChange can accept a React setState dispatch for the matching state.
+ * This resolves the type incompatibility when passing setDealerFormValues / setDeviceTypeFormValues / setManufacturerFormValues.
+ */
+const FormContent = <
+  T extends Record<string, unknown> | ApiDealer | ApiDeviceType | Manufacturer | null,
+>({
   initial,
   fields,
   onChange,
 }: {
-  initial?: { [key: string]: any } | null;
+  initial?: T | null;
   fields: FormField[];
-  onChange: (values: { [key: string]: any }) => void;
+  // onChange is typed to accept a React state setter for T | null
+  onChange: React.Dispatch<React.SetStateAction<T | null>>;
 }) => {
-  const [formValues, setFormValues] = useState(initial ?? {});
+  const [formValues, setFormValues] = useState<T | null>(initial ?? null);
 
   useEffect(() => {
-    setFormValues(initial ?? {});
+    setFormValues(initial ?? null);
   }, [initial]);
 
   useEffect(() => {
@@ -99,19 +90,33 @@ const FormContent = ({
   }, [formValues, onChange]);
 
   const handleChange = (key: string, value: string) => {
-    setFormValues((prev) => ({ ...prev, [key]: value }));
+    setFormValues((prev) => {
+      // Start from previous value if object-like, otherwise start with empty record
+      const base = prev && typeof prev === 'object' ? { ...(prev as Record<string, unknown>) } : {};
+      // assign new value (cast to any to mutate record)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (base as any)[key] = value;
+      // cast back to T
+      return base as unknown as T;
+    });
   };
 
   return (
     <>
       {fields.map((field) => (
         <View key={field.key}>
-          {field.label && <Text style={styles.label}>{field.label}</Text>}
+          {field.label ? <Text style={styles.label}>{field.label}</Text> : null}
           <TextInput
             style={styles.input}
             placeholder={field.placeholder}
-            placeholderTextColor="#A3A3A3"
-            value={formValues[field.key] ? String(formValues[field.key]) : ''}
+            placeholderTextColor={COLORS.muted}
+            value={
+              formValues &&
+              typeof formValues === 'object' &&
+              field.key in (formValues as Record<string, unknown>)
+                ? String((formValues as Record<string, unknown>)[field.key])
+                : ''
+            }
             onChangeText={(text) => handleChange(field.key, text)}
             autoCapitalize={field.autoCapitalize || 'none'}
             keyboardType={field.keyboardType || 'default'}
@@ -148,8 +153,6 @@ const RecordsScreen: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
 
   const [activeTab, setActiveTab] = useState(0);
-
-  // General states
   const [submitting, setSubmitting] = useState(false);
   const [search, setSearch] = useState('');
   const [dealerFormVisible, setDealerFormVisible] = useState(false);
@@ -158,55 +161,89 @@ const RecordsScreen: React.FC = () => {
   const [editingDealer, setEditingDealer] = useState<ApiDealer | null>(null);
   const [editingDeviceType, setEditingDeviceType] = useState<ApiDeviceType | null>(null);
   const [editingManufacturer, setEditingManufacturer] = useState<Manufacturer | null>(null);
-  const [dealerFormValues, setDealerFormValues] = useState<any | null>(null);
-  const [deviceTypeFormValues, setDeviceTypeFormValues] = useState<any | null>(null);
-  const [manufacturerFormValues, setManufacturerFormValues] = useState<any | null>(null);
+
+  // State types now accept both the typed API model or a free-form record (so assigning editingX directly is allowed)
+  const [dealerFormValues, setDealerFormValues] = useState<
+    Record<string, unknown> | ApiDealer | null
+  >(null);
+  const [deviceTypeFormValues, setDeviceTypeFormValues] = useState<
+    Record<string, unknown> | ApiDeviceType | null
+  >(null);
+  const [manufacturerFormValues, setManufacturerFormValues] = useState<
+    Record<string, unknown> | Manufacturer | null
+  >(null);
+
   const [refreshing, setRefreshing] = useState(false);
 
-  // Redux selectors for dealers/device types/manufacturers
   const dealers = useSelector((s: RootState) => selectDealers(s));
   const dealersLoading = useSelector((s: RootState) => selectDealersLoading(s));
-  const dealersError = useSelector((s: RootState) => selectDealersError(s));
 
   const deviceTypes = useSelector((s: RootState) => selectDeviceTypes(s));
   const deviceTypesLoading = useSelector((s: RootState) => selectDeviceTypesLoading(s));
-  const deviceTypesError = useSelector((s: RootState) => selectDeviceTypesError(s));
 
   const manufacturers = useSelector((s: RootState) => selectManufacturers(s));
   const manufacturersLoading = useSelector((s: RootState) => selectManufacturersLoading(s));
-  const manufacturersError = useSelector((s: RootState) => selectManufacturersError(s));
 
-  // Derived canSave flags
-  const canSaveDealer = !!dealerFormValues?.name;
-  const canSaveDeviceType = !!deviceTypeFormValues?.name && !!deviceTypeFormValues?.modelNumber;
-  const canSaveManufacturer = !!manufacturerFormValues?.name;
+  const canSaveDealer =
+    !!dealerFormValues &&
+    typeof dealerFormValues === 'object' &&
+    !!(dealerFormValues as Record<string, unknown>)['name'];
 
-  // Fetch lists on mount
+  const canSaveDeviceType =
+    !!deviceTypeFormValues &&
+    typeof deviceTypeFormValues === 'object' &&
+    !!(deviceTypeFormValues as Record<string, unknown>)['name'] &&
+    !!(deviceTypeFormValues as Record<string, unknown>)['modelNumber'];
+
+  const canSaveManufacturer =
+    !!manufacturerFormValues &&
+    typeof manufacturerFormValues === 'object' &&
+    !!(manufacturerFormValues as Record<string, unknown>)['name'];
+
   useEffect(() => {
     dispatch(fetchDealers());
     dispatch(fetchDeviceTypes());
     dispatch(fetchManufacturers());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch]);
 
-  // Helper to run thunks with unified UI state + error handling
-  const performThunk = async (thunkAction: any, arg: any, errorTitle = 'Error') => {
+  const performThunk = async (
+    thunkAction: unknown,
+    arg: unknown,
+    errorTitle = 'Error',
+  ): Promise<boolean> => {
     try {
       setSubmitting(true);
-      // dispatch(...).unwrap() to throw on rejection
-      await dispatch(thunkAction(arg)).unwrap();
+      // Build the action by calling the thunk action creator with the argument,
+      // then dispatch that action. This matches how createAsyncThunk / RTK thunks are used.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const action = (thunkAction as any)(arg);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const dispatched = (dispatch as any)(action);
+      // If the dispatched value supports .unwrap() (createAsyncThunk), await it.
+      if (dispatched && typeof dispatched.unwrap === 'function') {
+        await dispatched.unwrap();
+      } else {
+        // Otherwise await the dispatched promise (if it is a promise)
+         
+        await dispatched;
+      }
       return true;
-    } catch (e: any) {
+    } catch (err: unknown) {
       let message = 'Operation failed';
-      if (typeof e === 'string') {
-        message = e;
-      } else if (e && typeof e === 'object') {
+      if (typeof err === 'string') {
+        message = err;
+      } else if (err instanceof Error && err.message) {
+        message = err.message;
+      } else if (err && typeof err === 'object') {
+        const e = err as Record<string, unknown>;
+         
         message =
-          e.message ||
-          e.payload ||
-          e?.response?.data?.message ||
-          e?.response?.data?.error ||
-          JSON.stringify(e);
+          (typeof e.payload === 'string' && (e.payload as string)) ||
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ((e.response as any)?.data?.message as string) ||
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ((e.response as any)?.data?.error as string) ||
+          JSON.stringify(err);
       }
       Alert.alert(errorTitle, message);
       return false;
@@ -215,7 +252,6 @@ const RecordsScreen: React.FC = () => {
     }
   };
 
-  // Pull-to-refresh: trigger refetch for the active tab
   const onRefresh = async () => {
     setRefreshing(true);
     try {
@@ -223,32 +259,30 @@ const RecordsScreen: React.FC = () => {
         await dispatch(fetchDealers()).unwrap();
       } else if (activeTab === 1) {
         await dispatch(fetchDeviceTypes()).unwrap();
-      } else if (activeTab === 2) {
+      } else {
         await dispatch(fetchManufacturers()).unwrap();
       }
-    } catch (e) {
-      // errors handled by slice; no-op here
+    } catch {
+      // slice-level errors handled elsewhere
     } finally {
       setRefreshing(false);
     }
   };
 
-  // Handlers for Dealers
+  // Dealers handlers
   const openAddDealer = () => {
     setEditingDealer(null);
     setDealerFormValues(null);
     setDealerFormVisible(true);
   };
-
   const openEditDealer = (dealer: ApiDealer) => {
     setEditingDealer(dealer);
+    // set typed model directly (allowed by the updated state type)
     setDealerFormValues(dealer);
     setDealerFormVisible(true);
   };
-
   const handleDealerSubmit = async () => {
     if (!dealerFormValues) return;
-
     if (editingDealer) {
       const recordId = editingDealer.dealerId;
       await performThunk(
@@ -259,12 +293,10 @@ const RecordsScreen: React.FC = () => {
     } else {
       await performThunk(createDealerRequest, dealerFormValues, 'Failed to create dealer');
     }
-
     setDealerFormVisible(false);
     setEditingDealer(null);
     setDealerFormValues(null);
   };
-
   const confirmDeleteDealer = (dealer: ApiDealer) => {
     Alert.alert(
       'Delete dealer',
@@ -287,22 +319,19 @@ const RecordsScreen: React.FC = () => {
     );
   };
 
-  // Handlers for Device Types
+  // Device type handlers
   const openAddDeviceType = () => {
     setEditingDeviceType(null);
     setDeviceTypeFormValues(null);
     setDeviceTypeFormVisible(true);
   };
-
   const openEditDeviceType = (deviceType: ApiDeviceType) => {
     setEditingDeviceType(deviceType);
     setDeviceTypeFormValues(deviceType);
     setDeviceTypeFormVisible(true);
   };
-
   const handleDeviceTypeSubmit = async () => {
     if (!deviceTypeFormValues) return;
-
     if (editingDeviceType) {
       const recordId = editingDeviceType.deviceTypeId;
       await performThunk(
@@ -317,12 +346,10 @@ const RecordsScreen: React.FC = () => {
         'Failed to create device type',
       );
     }
-
     setDeviceTypeFormVisible(false);
     setEditingDeviceType(null);
     setDeviceTypeFormValues(null);
   };
-
   const confirmDeleteDeviceType = (deviceType: ApiDeviceType) => {
     Alert.alert(
       'Delete device type',
@@ -345,22 +372,19 @@ const RecordsScreen: React.FC = () => {
     );
   };
 
-  // Handlers for Manufacturers (now using Redux slice thunks)
+  // Manufacturer handlers
   const openAddManufacturer = () => {
     setEditingManufacturer(null);
     setManufacturerFormValues(null);
     setManufacturerFormVisible(true);
   };
-
   const openEditManufacturer = (manufacturer: Manufacturer) => {
     setEditingManufacturer(manufacturer);
     setManufacturerFormValues(manufacturer);
     setManufacturerFormVisible(true);
   };
-
   const handleManufacturerSubmit = async () => {
     if (!manufacturerFormValues) return;
-
     if (editingManufacturer) {
       const recordId = editingManufacturer.manufacturerId;
       await performThunk(
@@ -375,12 +399,10 @@ const RecordsScreen: React.FC = () => {
         'Failed to create manufacturer',
       );
     }
-
     setManufacturerFormVisible(false);
     setEditingManufacturer(null);
     setManufacturerFormValues(null);
   };
-
   const confirmDeleteManufacturer = (manufacturer: Manufacturer) => {
     Alert.alert(
       'Delete manufacturer',
@@ -403,12 +425,10 @@ const RecordsScreen: React.FC = () => {
     );
   };
 
-  // Per-tab loading flags
   const dealersBusy = dealersLoading;
   const deviceTypesBusy = deviceTypesLoading;
   const manufacturersBusy = manufacturersLoading;
 
-  // Filtered lists
   const filteredDealers = useMemo(
     () => (dealers ?? []).filter((d) => d.name.toLowerCase().includes(search.toLowerCase())),
     [dealers, search],
@@ -424,7 +444,6 @@ const RecordsScreen: React.FC = () => {
     [manufacturers, search],
   );
 
-  // Generic render item function
   const renderItem = (props: {
     item: RecordItem;
     onEdit: (item: RecordItem) => void;
@@ -434,6 +453,10 @@ const RecordsScreen: React.FC = () => {
     testIDPrefix: string;
   }) => {
     const { item, onEdit, onDelete, primaryText, secondaryText, testIDPrefix } = props;
+    const id =
+      (item as ApiDealer).dealerId ||
+      (item as ApiDeviceType).deviceTypeId ||
+      (item as Manufacturer).manufacturerId;
     return (
       <View style={styles.dealerCard}>
         <Text style={styles.dealerName}>{primaryText}</Text>
@@ -442,24 +465,16 @@ const RecordsScreen: React.FC = () => {
           <TouchableOpacity
             style={styles.iconBtn}
             onPress={() => onEdit(item)}
-            testID={`edit-${testIDPrefix}-${
-              (item as ApiDealer).dealerId ||
-              (item as ApiDeviceType).deviceTypeId ||
-              (item as Manufacturer).manufacturerId
-            }`}
+            testID={`edit-${testIDPrefix}-${id}`}
           >
-            <MaterialIcons name="edit" size={20} color="#A3A3A3" />
+            <MaterialIcons name="edit" size={20} color={COLORS.muted} />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.iconBtn}
             onPress={() => onDelete(item)}
-            testID={`delete-${testIDPrefix}-${
-              (item as ApiDealer).dealerId ||
-              (item as ApiDeviceType).deviceTypeId ||
-              (item as Manufacturer).manufacturerId
-            }`}
+            testID={`delete-${testIDPrefix}-${id}`}
           >
-            <MaterialIcons name="delete" size={20} color="#A3A3A3" />
+            <MaterialIcons name="delete" size={20} color={COLORS.muted} />
           </TouchableOpacity>
         </View>
       </View>
@@ -476,7 +491,6 @@ const RecordsScreen: React.FC = () => {
         <Text style={styles.title}>Manage Records</Text>
         <Text style={styles.subtitle}>Manage foundational data for the application</Text>
 
-        {/* Tabs */}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -501,7 +515,6 @@ const RecordsScreen: React.FC = () => {
           </View>
         </ScrollView>
 
-        {/* Dealers Tab */}
         {activeTab === 0 && (
           <RecordManagementList
             data={filteredDealers}
@@ -513,19 +526,16 @@ const RecordsScreen: React.FC = () => {
             renderItem={({ item }) =>
               renderItem({
                 item,
-                onEdit: (item) => openEditDealer(item as ApiDealer),
-                onDelete: (item) => confirmDeleteDealer(item as ApiDealer),
-                primaryText: item.name,
-                secondaryText: `ID: ${(item as ApiDealer).dealerId} • ${
-                  (item as ApiDealer).activeDevices ?? 0
-                }/${(item as ApiDealer).totalDevices ?? 0} Active`,
+                onEdit: (i) => openEditDealer(i as ApiDealer),
+                onDelete: (i) => confirmDeleteDealer(i as ApiDealer),
+                primaryText: (item as ApiDealer).name,
+                secondaryText: `ID: ${(item as ApiDealer).dealerId} • ${(item as ApiDealer).activeDevices ?? 0}/${(item as ApiDealer).totalDevices ?? 0} Active`,
                 testIDPrefix: 'dealer',
               })
             }
           />
         )}
 
-        {/* Device Types Tab */}
         {activeTab === 1 && (
           <RecordManagementList
             data={filteredDeviceTypes}
@@ -537,8 +547,8 @@ const RecordsScreen: React.FC = () => {
             renderItem={({ item }) =>
               renderItem({
                 item,
-                onEdit: (item) => openEditDeviceType(item as ApiDeviceType),
-                onDelete: (item) => confirmDeleteDeviceType(item as ApiDeviceType),
+                onEdit: (i) => openEditDeviceType(i as ApiDeviceType),
+                onDelete: (i) => confirmDeleteDeviceType(i as ApiDeviceType),
                 primaryText: (item as ApiDeviceType).name,
                 secondaryText: `ID: ${(item as ApiDeviceType).deviceTypeId} • ${(item as ApiDeviceType).modelNumber}`,
                 testIDPrefix: 'device-type',
@@ -547,7 +557,6 @@ const RecordsScreen: React.FC = () => {
           />
         )}
 
-        {/* Manufacturers Tab */}
         {activeTab === 2 && (
           <RecordManagementList
             data={filteredManufacturers}
@@ -559,8 +568,8 @@ const RecordsScreen: React.FC = () => {
             renderItem={({ item }) =>
               renderItem({
                 item,
-                onEdit: (item) => openEditManufacturer(item as Manufacturer),
-                onDelete: (item) => confirmDeleteManufacturer(item as Manufacturer),
+                onEdit: (i) => openEditManufacturer(i as Manufacturer),
+                onDelete: (i) => confirmDeleteManufacturer(i as Manufacturer),
                 primaryText: (item as Manufacturer).name,
                 secondaryText: `ID: ${(item as Manufacturer).manufacturerId}`,
                 testIDPrefix: 'manufacturer',
@@ -570,7 +579,6 @@ const RecordsScreen: React.FC = () => {
         )}
       </View>
 
-      {/* Generic Modal for Dealers */}
       <GenericModal
         visible={dealerFormVisible}
         title={editingDealer ? 'Edit Dealer' : 'Add Dealer'}
@@ -582,14 +590,14 @@ const RecordsScreen: React.FC = () => {
         }}
         onSave={handleDealerSubmit}
       >
-        <FormContent
+        {/* explicitly pass the setter which matches the generic T for this usage */}
+        <FormContent<Record<string, unknown> | ApiDealer | null>
           initial={editingDealer}
           fields={dealerFormFields}
           onChange={setDealerFormValues}
         />
       </GenericModal>
 
-      {/* Generic Modal for Device Types */}
       <GenericModal
         visible={deviceTypeFormVisible}
         title={editingDeviceType ? 'Edit Device Type' : 'Add Device Type'}
@@ -601,14 +609,13 @@ const RecordsScreen: React.FC = () => {
         }}
         onSave={handleDeviceTypeSubmit}
       >
-        <FormContent
+        <FormContent<Record<string, unknown> | ApiDeviceType | null>
           initial={editingDeviceType}
           fields={deviceTypeFormFields}
           onChange={setDeviceTypeFormValues}
         />
       </GenericModal>
 
-      {/* Generic Modal for Manufacturers */}
       <GenericModal
         visible={manufacturerFormVisible}
         title={editingManufacturer ? 'Edit Manufacturer' : 'Add Manufacturer'}
@@ -620,7 +627,7 @@ const RecordsScreen: React.FC = () => {
         }}
         onSave={handleManufacturerSubmit}
       >
-        <FormContent
+        <FormContent<Record<string, unknown> | Manufacturer | null>
           initial={editingManufacturer}
           fields={manufacturerFormFields}
           onChange={setManufacturerFormValues}
@@ -630,47 +637,28 @@ const RecordsScreen: React.FC = () => {
   );
 };
 
+const COLORS = {
+  bg: '#10172A',
+  panel: '#19213A',
+  muted: '#A3A3A3',
+  text: '#FFFFFF',
+  primary: '#3B82F6',
+  border: '#232B3E',
+  modalBg: '#0F172A',
+  modalBorder: '#23304D',
+  danger: '#FF3B30',
+  transparent: 'transparent',
+};
+
 const styles = StyleSheet.create({
   activeTab: {
-    borderBottomColor: '#3B82F6',
+    borderBottomColor: COLORS.primary,
   },
   activeTabText: {
-    color: '#FFF',
-  },
-  addButton: {
-    alignItems: 'center',
-    backgroundColor: '#3B82F6',
-    borderRadius: 8,
-    flexDirection: 'row',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-  },
-  addButtonText: {
-    color: '#FFF',
-    fontWeight: '600',
-    marginLeft: 4,
-  },
-  button: {
-    borderRadius: 8,
-    marginLeft: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-  },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: 16,
-  },
-  buttonText: {
-    color: '#FFF',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  cancelButton: {
-    backgroundColor: '#23304D',
+    color: COLORS.text,
   },
   container: {
-    backgroundColor: '#10172A',
+    backgroundColor: COLORS.bg,
     flex: 1,
     paddingHorizontal: 20,
     paddingTop: 32,
@@ -681,7 +669,7 @@ const styles = StyleSheet.create({
   },
   dealerCard: {
     alignItems: 'center',
-    backgroundColor: '#19213A',
+    backgroundColor: COLORS.panel,
     borderRadius: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -689,13 +677,13 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   dealerInfo: {
-    color: '#A3A3A3',
+    color: COLORS.muted,
     flex: 1,
     fontSize: 13,
     marginLeft: 12,
   },
   dealerName: {
-    color: '#FFF',
+    color: COLORS.text,
     flex: 1,
     fontSize: 16,
     fontWeight: 'bold',
@@ -705,105 +693,42 @@ const styles = StyleSheet.create({
     padding: 4,
   },
   input: {
-    backgroundColor: '#19213A',
+    backgroundColor: COLORS.panel,
     borderRadius: 8,
-    color: '#FFF',
+    color: COLORS.text,
     fontSize: 15,
     marginBottom: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
   label: {
-    color: '#A3A3A3',
+    color: COLORS.muted,
     fontSize: 14,
     fontWeight: '600',
     marginBottom: 4,
   },
-  listContainer: {
-    flex: 1,
-  },
-  listContent: {
-    paddingBottom: 20,
-  },
-  loadingContainer: {
-    alignItems: 'center',
-    flex: 1,
-    justifyContent: 'center',
-    marginTop: 50,
-  },
-  loadingText: {
-    color: '#A3A3A3',
-    marginTop: 8,
-  },
-  modalBackdrop: {
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    flex: 1,
-    justifyContent: 'center',
-    padding: 20,
-  },
-  modalCard: {
-    backgroundColor: '#0F172A',
-    borderColor: '#23304D',
-    borderRadius: 12,
-    borderWidth: 1,
-    padding: 16,
-  },
-  modalHeader: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  modalTitle: {
-    color: '#FFF',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  placeholderText: {
-    color: '#A3A3A3',
-    fontSize: 16,
-    marginTop: 32,
-    textAlign: 'center',
-  },
-  saveButton: {
-    backgroundColor: '#3B82F6',
-  },
   scrollContent: {
-    paddingBottom: 100, // Increased from 32 to 100
-  },
-  searchBar: {
-    alignItems: 'center',
-    backgroundColor: '#19213A',
-    borderRadius: 8,
-    flexDirection: 'row',
-    marginBottom: 16,
-    paddingHorizontal: 12,
-  },
-  searchInput: {
-    color: '#FFF',
-    flex: 1,
-    height: 40,
-    marginLeft: 8,
+    paddingBottom: 100,
   },
   subtitle: {
-    color: '#A3A3A3',
+    color: COLORS.muted,
     fontSize: 14,
     marginBottom: 18,
   },
   tab: {
-    borderBottomColor: 'transparent',
+    borderBottomColor: COLORS.transparent,
     borderBottomWidth: 2,
     marginRight: 12,
     paddingHorizontal: 16,
     paddingVertical: 8,
   },
   tabText: {
-    color: '#A3A3A3',
+    color: COLORS.muted,
     fontSize: 15,
     fontWeight: '600',
   },
   tabsContainer: {
-    borderBottomColor: '#232B3E',
+    borderBottomColor: COLORS.border,
     borderBottomWidth: 1,
     flexDirection: 'row',
     marginBottom: 16,
@@ -814,7 +739,7 @@ const styles = StyleSheet.create({
     paddingRight: 8,
   },
   title: {
-    color: '#FFF',
+    color: COLORS.text,
     fontSize: 22,
     fontWeight: 'bold',
     marginBottom: 4,

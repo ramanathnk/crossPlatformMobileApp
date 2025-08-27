@@ -27,8 +27,8 @@ import * as SecureStore from 'expo-secure-store';
 import { colors, spacing, fontSizes, borderRadius, fontWeights } from '../styles/theme';
 import { cardStyles, textStyles } from '../styles/commonStyles';
 
-import { DeviceRegistrationRequest } from '../api/deviceRegistrationApi';
-import { getAllDeviceTypes, DeviceType } from '../api/deviceTypeApi';
+import type { DeviceRegistrationRequest } from '../api/deviceRegistrationApi';
+import { getAllDeviceTypes, type DeviceType } from '../api/deviceTypeApi';
 
 // Redux slice thunks & selectors - update path if your slice is located elsewhere
 import {
@@ -40,6 +40,8 @@ import {
   selectDeviceRequestsError,
 } from '../store/deviceRequestsSlice';
 
+import type { AppDispatch, RootState } from '../store';
+
 type RootStackParamList = {
   MainTabs: undefined;
 };
@@ -50,6 +52,8 @@ interface DeviceDealer {
   requestId: string;
 }
 
+type RequestStatus = 'Pending' | 'Approved' | 'Rejected';
+
 interface DeviceGroup {
   deviceKey: string;
   serial: string;
@@ -58,18 +62,47 @@ interface DeviceGroup {
   build: string;
   date: string;
   notes: string;
-  status: 'Pending' | 'Approved' | 'Rejected';
+  status: RequestStatus;
   requestIds: string[]; // all requestIds in group
   dealers: DeviceDealer[]; // dealer + requestId pairs (deduplicated by requestId)
 }
 
-function extractErrorMessage(err: any, fallback = 'An unknown error occurred.'): string {
+type StatusFilterValue = RequestStatus;
+
+// Local color constants to avoid color literals in styles
+const APPROVED_COLOR = '#10B981'; // green icon/badge
+const REJECTED_COLOR = '#EF4444'; // red icon/badge
+const WHITE = '#FFFFFF';
+const GREY_400 = '#9CA3AF';
+const GREY_600 = '#6B7280';
+const DARK_BG_800 = '#1F2937';
+const BACKDROP = 'rgba(0,0,0,0.4)';
+const ERROR_RED = 'red';
+const TRANSPARENT = 'transparent';
+
+// Some API payloads include fields that aren't on DeviceRegistrationRequest type.
+// This helper captures the optional fields we read safely.
+type MaybeRequestExtras = {
+  serialNo?: string;
+  deviceTypeName?: string;
+  osVersion?: string;
+  buildNumber?: string;
+  requestedAt?: string;
+  notes?: string;
+  dealerName?: string;
+  dealer?: string;
+  supplierName?: string;
+  status?: string;
+};
+
+function extractErrorMessage(err: unknown, fallback = 'An unknown error occurred.'): string {
   if (!err) return fallback;
   if (typeof err === 'string') return err;
   if (err instanceof Error && err.message) return err.message;
-  if (err?.message) return String(err.message);
-  if (err?.description) return String(err.description);
-  if (err?.error) return String(err.error);
+  const e = err as { message?: unknown; description?: unknown; error?: unknown };
+  if (e?.message) return String(e.message);
+  if (e?.description) return String(e.description);
+  if (e?.error) return String(e.error);
   try {
     return JSON.stringify(err);
   } catch {
@@ -77,7 +110,7 @@ function extractErrorMessage(err: any, fallback = 'An unknown error occurred.'):
   }
 }
 
-const normalizeStatus = (apiStatus?: any): DeviceGroup['status'] => {
+const normalizeStatus = (apiStatus?: unknown): RequestStatus => {
   if (!apiStatus) return 'Pending';
   const s = String(apiStatus).toLowerCase();
   if (s === 'approved' || s === 'approve') return 'Approved';
@@ -94,28 +127,21 @@ const formatDateFromApi = (iso?: string) =>
       })
     : 'N/A';
 
-const APPROVED_COLOR = '#10B981'; // green
-const REJECTED_COLOR = '#EF4444'; // red
-
 const DeviceRequestsScreen: React.FC = () => {
   const navigation = useNavigation<NavProp>();
-  const dispatch = useDispatch<any>();
+  const dispatch = useDispatch<AppDispatch>();
 
   // Redux-backed source data
-  const allRequests = useSelector((state: any) => selectPendingRequests(state)) as
-    | DeviceRegistrationRequest[]
-    | undefined;
-  const loading = useSelector((state: any) => selectDeviceRequestsLoading(state)) as boolean;
-  const error = useSelector((state: any) => selectDeviceRequestsError(state)) as string | null;
+  const allRequests = useSelector((state: RootState) => selectPendingRequests(state));
+  const loading = useSelector((state: RootState) => selectDeviceRequestsLoading(state));
+  const error = useSelector((state: RootState) => selectDeviceRequestsError(state));
 
   // Local UI state
   const [deviceGroups, setDeviceGroups] = useState<DeviceGroup[]>([]);
   const [statusFilterOpen, setStatusFilterOpen] = useState(false);
-  const [statusFilterValue, setStatusFilterValue] = useState<'Pending' | 'Approved' | 'Rejected'>(
-    'Pending',
-  );
+  const [statusFilterValue, setStatusFilterValue] = useState<StatusFilterValue>('Pending');
   const [statusFilterItems, setStatusFilterItems] = useState<
-    Array<{ label: string; value: 'Pending' | 'Approved' | 'Rejected' }>
+    Array<{ label: string; value: StatusFilterValue }>
   >([
     { label: 'Pending', value: 'Pending' },
     { label: 'Approved', value: 'Approved' },
@@ -124,7 +150,7 @@ const DeviceRequestsScreen: React.FC = () => {
 
   const [typeFilterOpen, setTypeFilterOpen] = useState(false);
   const [typeFilterValue, setTypeFilterValue] = useState<string>('All');
-  const [typeFilterItems, setTypeFilterItems] = useState([
+  const [typeFilterItems, setTypeFilterItems] = useState<Array<{ label: string; value: string }>>([
     { label: 'All Device Types', value: 'All' },
   ]);
 
@@ -190,19 +216,19 @@ const DeviceRequestsScreen: React.FC = () => {
     const src = allRequests ?? [];
 
     const mapped = src.map((r) => {
-      const dealerName =
-        (r as any).dealerName ?? (r as any).dealer ?? (r as any).supplierName ?? '';
+      const rr = r as DeviceRegistrationRequest & MaybeRequestExtras;
+      const dealerName = rr.dealerName ?? rr.dealer ?? rr.supplierName ?? '';
       return {
         raw: r,
-        requestId: String(r.requestId),
-        serial: (r as any).serialNo ?? '',
-        deviceTypeName: (r as any).deviceTypeName ?? '',
-        osVersion: (r as any).osVersion ?? 'N/A',
-        buildNumber: (r as any).buildNumber ?? 'N/A',
-        requestedAt: (r as any).requestedAt,
-        notes: (r as any).notes ?? '',
+        requestId: String(rr.requestId),
+        serial: rr.serialNo ?? '',
+        deviceTypeName: rr.deviceTypeName ?? '',
+        osVersion: rr.osVersion ?? 'N/A',
+        buildNumber: rr.buildNumber ?? 'N/A',
+        requestedAt: rr.requestedAt,
+        notes: rr.notes ?? '',
         dealerName,
-        status: normalizeStatus((r as any).status),
+        status: normalizeStatus(rr.status),
       };
     });
 
@@ -260,7 +286,6 @@ const DeviceRequestsScreen: React.FC = () => {
       }
       return next;
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [allRequests, statusFilterValue, typeFilterValue]);
 
   const setDeviceDealerState = (
@@ -343,7 +368,9 @@ const DeviceRequestsScreen: React.FC = () => {
 
   const renderContent = () => {
     if (loading) {
-      return <ActivityIndicator size="large" color={colors.primary} style={{ marginTop: 50 }} />;
+      return (
+        <ActivityIndicator size="large" color={colors.primary} style={styles.loadingIndicator} />
+      );
     }
     if (error) {
       return <Text style={styles.errorText}>{error}</Text>;
@@ -377,16 +404,20 @@ const DeviceRequestsScreen: React.FC = () => {
             // Choose icon & color depending on status
             let iconName: React.ComponentProps<typeof MaterialIcons>['name'] = 'schedule';
             let iconColor = colors.accent;
-            let badgeColor = colors.accent;
             if (item.status === 'Approved') {
               iconName = 'check-circle';
               iconColor = APPROVED_COLOR;
-              badgeColor = APPROVED_COLOR;
             } else if (item.status === 'Rejected') {
               iconName = 'cancel';
               iconColor = REJECTED_COLOR;
-              badgeColor = REJECTED_COLOR;
             }
+
+            const badgeStyle =
+              item.status === 'Approved'
+                ? styles.badgeApproved
+                : item.status === 'Rejected'
+                  ? styles.badgeRejected
+                  : styles.badgePending;
 
             const disableActions = isSubmitting || !selectedRequestId;
 
@@ -395,7 +426,7 @@ const DeviceRequestsScreen: React.FC = () => {
                 <View style={styles.cardTop}>
                   <MaterialIcons name={iconName} size={20} color={iconColor} />
                   <Text style={cardStyles.title}>{item.serial}</Text>
-                  <View style={[styles.badge, { backgroundColor: badgeColor }]}>
+                  <View style={[styles.badge, badgeStyle]}>
                     <Text style={styles.badgeText}>{item.status}</Text>
                   </View>
                 </View>
@@ -407,30 +438,39 @@ const DeviceRequestsScreen: React.FC = () => {
                 <Text style={cardStyles.detail}>Notes: {item.notes}</Text>
 
                 {/* Dealers: dropdown only for Pending status */}
-                <Text style={[styles.selectLabel, { marginTop: spacing.md }]}>Dealers</Text>
+                <Text style={[styles.selectLabel, styles.mtMd]}>Dealers</Text>
 
                 {item.status === 'Pending' ? (
-                  <View style={[styles.pickerWrapper, { zIndex: 1000 }]}>
+                  <View style={[styles.pickerWrapper, styles.zIndex1000]}>
                     <DropDownPicker<string>
                       open={stateForDevice.open}
                       value={stateForDevice.value}
                       items={[{ label: '-- Select Dealer --', value: '' }, ...stateForDevice.items]}
-                      setOpen={(val: React.SetStateAction<boolean>) => {
+                      setOpen={(val) => {
                         const isOpen =
                           typeof val === 'function'
                             ? (val as (p: boolean) => boolean)(stateForDevice.open)
-                            : val;
-                        setDeviceDealerState(item.deviceKey, { open: isOpen as boolean });
+                            : (val as boolean);
+                        setDeviceDealerState(item.deviceKey, { open: isOpen });
                       }}
-                      setValue={(cbOrVal: any) => {
+                      setValue={(cbOrVal) => {
                         const newVal =
-                          typeof cbOrVal === 'function' ? cbOrVal(stateForDevice.value) : cbOrVal;
+                          typeof cbOrVal === 'function'
+                            ? (cbOrVal as (curr: string) => string)(stateForDevice.value)
+                            : (cbOrVal as string);
                         const v = newVal == null ? '' : String(newVal);
                         setDeviceDealerState(item.deviceKey, { value: v });
                       }}
-                      setItems={(newItems: any) =>
-                        setDeviceDealerState(item.deviceKey, { items: newItems })
-                      }
+                      setItems={(newItems) => {
+                        const nextItems =
+                          typeof newItems === 'function'
+                            ? (newItems(stateForDevice.items) as Array<{
+                                label: string;
+                                value: string;
+                              }>)
+                            : (newItems as Array<{ label: string; value: string }>);
+                        setDeviceDealerState(item.deviceKey, { items: nextItems });
+                      }}
                       style={styles.dealerPicker}
                       dropDownContainerStyle={styles.dealerPickerDropdown}
                       placeholder="-- Select Dealer --"
@@ -473,7 +513,7 @@ const DeviceRequestsScreen: React.FC = () => {
                       disabled={disableActions}
                     >
                       {isSubmitting ? (
-                        <ActivityIndicator size="small" color="#FFF" />
+                        <ActivityIndicator size="small" color={WHITE} />
                       ) : (
                         <Text
                           style={
@@ -525,7 +565,7 @@ const DeviceRequestsScreen: React.FC = () => {
                   style={[
                     styles.modalBtn,
                     styles.modalSubmit,
-                    { opacity: denyModalReason.trim() ? 1 : 0.5 },
+                    !denyModalReason.trim() && styles.disabledOpacity,
                   ]}
                   onPress={submitDenyFromModal}
                   disabled={!denyModalReason.trim()}
@@ -550,23 +590,37 @@ const DeviceRequestsScreen: React.FC = () => {
       </View>
 
       <View style={styles.filters}>
-        <View style={[styles.pickerWrapper, { zIndex: statusFilterOpen ? 3000 : 2000 }]}>
-          <DropDownPicker<'Pending' | 'Approved' | 'Rejected'>
+        <View
+          style={[styles.pickerWrapper, statusFilterOpen ? styles.zIndex3000 : styles.zIndex2000]}
+        >
+          <DropDownPicker<StatusFilterValue>
             open={statusFilterOpen}
             value={statusFilterValue}
             items={statusFilterItems}
-            setOpen={(val: React.SetStateAction<boolean>) => {
+            setOpen={(val) => {
               const isOpen =
                 typeof val === 'function'
                   ? (val as (p: boolean) => boolean)(statusFilterOpen)
-                  : val;
-              setStatusFilterOpen(isOpen as boolean);
+                  : (val as boolean);
+              setStatusFilterOpen(isOpen);
             }}
-            setValue={(cbOrVal: any) => {
-              const newVal = typeof cbOrVal === 'function' ? cbOrVal(statusFilterValue) : cbOrVal;
-              setStatusFilterValue(newVal as 'Pending' | 'Approved' | 'Rejected');
+            setValue={(cbOrVal) => {
+              const newVal =
+                typeof cbOrVal === 'function'
+                  ? (cbOrVal as (curr: StatusFilterValue) => StatusFilterValue)(statusFilterValue)
+                  : (cbOrVal as StatusFilterValue);
+              setStatusFilterValue(newVal);
             }}
-            setItems={setStatusFilterItems}
+            setItems={(itemsOrFn) => {
+              const next =
+                typeof itemsOrFn === 'function'
+                  ? (itemsOrFn(statusFilterItems) as Array<{
+                      label: string;
+                      value: StatusFilterValue;
+                    }>)
+                  : (itemsOrFn as Array<{ label: string; value: StatusFilterValue }>);
+              setStatusFilterItems(next);
+            }}
             style={styles.picker}
             dropDownContainerStyle={styles.pickerDropdown}
           />
@@ -575,23 +629,35 @@ const DeviceRequestsScreen: React.FC = () => {
         <View
           style={[
             styles.pickerWrapper,
-            { marginLeft: spacing.md, zIndex: typeFilterOpen ? 3000 : 1000 },
+            styles.mlMd,
+            typeFilterOpen ? styles.zIndex3000 : styles.zIndex1000,
           ]}
         >
           <DropDownPicker<string>
             open={typeFilterOpen}
             value={typeFilterValue}
             items={typeFilterItems}
-            setOpen={(val: React.SetStateAction<boolean>) => {
+            setOpen={(val) => {
               const isOpen =
-                typeof val === 'function' ? (val as (p: boolean) => boolean)(typeFilterOpen) : val;
-              setTypeFilterOpen(isOpen as boolean);
+                typeof val === 'function'
+                  ? (val as (p: boolean) => boolean)(typeFilterOpen)
+                  : (val as boolean);
+              setTypeFilterOpen(isOpen);
             }}
-            setValue={(cbOrVal: any) => {
-              const newVal = typeof cbOrVal === 'function' ? cbOrVal(typeFilterValue) : cbOrVal;
-              setTypeFilterValue(newVal as string);
+            setValue={(cbOrVal) => {
+              const newVal =
+                typeof cbOrVal === 'function'
+                  ? (cbOrVal as (curr: string) => string)(typeFilterValue)
+                  : (cbOrVal as string);
+              setTypeFilterValue(newVal);
             }}
-            setItems={setTypeFilterItems}
+            setItems={(itemsOrFn) => {
+              const next =
+                typeof itemsOrFn === 'function'
+                  ? (itemsOrFn(typeFilterItems) as Array<{ label: string; value: string }>)
+                  : (itemsOrFn as Array<{ label: string; value: string }>);
+              setTypeFilterItems(next);
+            }}
             style={styles.picker}
             dropDownContainerStyle={styles.pickerDropdown}
           />
@@ -611,72 +677,7 @@ const DeviceRequestsScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { backgroundColor: colors.background, flex: 1 },
-  scrollContent: {
-    paddingBottom: spacing.xl,
-    paddingHorizontal: spacing.lg,
-  },
-  header: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    marginBottom: spacing.lg,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.md,
-  },
-  backBtn: { marginRight: spacing.md },
-  filters: {
-    flexDirection: 'row',
-    marginBottom: spacing.md,
-    paddingHorizontal: spacing.lg,
-    zIndex: 3000,
-  },
-  pickerWrapper: {
-    flex: 1,
-  },
-  picker: {
-    backgroundColor: colors.card,
-    borderColor: colors.border,
-    minHeight: 44,
-  },
-  pickerDropdown: {
-    backgroundColor: colors.card,
-    borderColor: colors.border,
-    position: 'absolute',
-  },
-  pickerText: {
-    color: colors.text,
-  },
-  countBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: spacing.lg,
-    paddingHorizontal: spacing.lg,
-  },
-  refreshText: { color: colors.primary, fontSize: fontSizes.medium },
-  cardTop: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    marginBottom: spacing.md,
-  },
-  badge: {
-    borderRadius: borderRadius.md,
-    marginLeft: 'auto',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-  },
-  badgeText: { color: '#FFF', fontWeight: fontWeights.semibold },
-  selectLabel: {
-    color: colors.text,
-    fontSize: fontSizes.medium,
-    marginBottom: spacing.xs,
-    marginTop: spacing.md,
-  },
-  actions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginTop: spacing.md,
-    zIndex: 0,
-  },
+  // Keep keys sorted to satisfy react-native/sort-styles
   actionBtn: {
     alignItems: 'center',
     borderRadius: 8,
@@ -687,11 +688,39 @@ const styles = StyleSheet.create({
   actionBtnDisabled: {
     opacity: 0.5,
   },
-  deny: { backgroundColor: '#1F2937', borderColor: '#6B7280', borderWidth: 1 },
-  approve: { backgroundColor: '#3B82F6' },
-  actionTextDeny: { color: '#6B7280', fontWeight: '600' },
-  actionTextApprove: { color: '#FFF', fontWeight: '600' },
-  actionTextDisabled: { color: '#9CA3AF', fontWeight: '600' },
+  actionTextApprove: { color: WHITE, fontWeight: '600' },
+  actionTextDeny: { color: GREY_600, fontWeight: '600' },
+  actionTextDisabled: { color: GREY_400, fontWeight: '600' },
+  actions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: spacing.md,
+    zIndex: 0,
+  },
+  approve: { backgroundColor: colors.primary },
+  backBtn: { marginRight: spacing.md },
+  badge: {
+    borderRadius: borderRadius.md,
+    marginLeft: 'auto',
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  badgeApproved: { backgroundColor: APPROVED_COLOR },
+  badgePending: { backgroundColor: colors.accent },
+  badgeRejected: { backgroundColor: REJECTED_COLOR },
+  badgeText: { color: WHITE, fontWeight: fontWeights.semibold },
+  cardTop: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    marginBottom: spacing.md,
+  },
+  container: { backgroundColor: colors.background, flex: 1 },
+  countBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: spacing.lg,
+    paddingHorizontal: spacing.lg,
+  },
   dealerPicker: {
     backgroundColor: colors.card,
     borderColor: colors.border,
@@ -701,40 +730,46 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     position: 'absolute',
   },
-  // modal styles
-  modalBackdrop: {
-    backgroundColor: 'rgba(0,0,0,0.4)',
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 24,
-  },
-  modalContainer: {
-    backgroundColor: colors.card,
-    borderRadius: 8,
-    elevation: 6,
-    padding: 16,
-  },
-  modalTitle: {
+  deny: { backgroundColor: DARK_BG_800, borderColor: GREY_600, borderWidth: 1 },
+  disabledOpacity: { opacity: 0.5 },
+  emptyText: {
     color: colors.text,
     fontSize: fontSizes.large,
-    fontWeight: '700',
-    marginBottom: 8,
+    marginTop: 20,
+    textAlign: 'center',
   },
-  modalSubtitle: {
-    color: colors.text,
-    marginBottom: 8,
+  errorText: {
+    color: ERROR_RED,
+    fontSize: fontSizes.large,
+    marginTop: 20,
+    textAlign: 'center',
   },
-  modalInput: {
-    backgroundColor: '#fff',
-    borderRadius: 6,
-    marginBottom: 12,
-    minHeight: 80,
-    padding: 8,
-    textAlignVertical: 'top',
+  filters: {
+    flexDirection: 'row',
+    marginBottom: spacing.md,
+    paddingHorizontal: spacing.lg,
+    zIndex: 3000,
   },
+  header: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    marginBottom: spacing.lg,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+  },
+  loadingIndicator: {
+    marginTop: 50,
+  },
+  mlMd: { marginLeft: spacing.md },
   modalActions: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
+  },
+  modalBackdrop: {
+    backgroundColor: BACKDROP,
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 24,
   },
   modalBtn: {
     borderRadius: 6,
@@ -743,30 +778,69 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   modalCancel: {
-    backgroundColor: 'transparent',
+    backgroundColor: TRANSPARENT,
   },
   modalCancelText: {
     color: colors.text,
+  },
+  modalContainer: {
+    backgroundColor: colors.card,
+    borderRadius: 8,
+    elevation: 6,
+    padding: 16,
+  },
+  modalInput: {
+    backgroundColor: WHITE,
+    borderRadius: 6,
+    marginBottom: 12,
+    minHeight: 80,
+    padding: 8,
+    textAlignVertical: 'top',
   },
   modalSubmit: {
     backgroundColor: colors.primary,
   },
   modalSubmitText: {
-    color: '#fff',
+    color: WHITE,
     fontWeight: '600',
   },
-  errorText: {
-    color: 'red',
-    fontSize: fontSizes.large,
-    marginTop: 20,
-    textAlign: 'center',
+  modalSubtitle: {
+    color: colors.text,
+    marginBottom: 8,
   },
-  emptyText: {
+  modalTitle: {
     color: colors.text,
     fontSize: fontSizes.large,
-    marginTop: 20,
-    textAlign: 'center',
+    fontWeight: '700',
+    marginBottom: 8,
   },
+  mtMd: { marginTop: spacing.md },
+  picker: {
+    backgroundColor: colors.card,
+    borderColor: colors.border,
+    minHeight: 44,
+  },
+  pickerDropdown: {
+    backgroundColor: colors.card,
+    borderColor: colors.border,
+    position: 'absolute',
+  },
+  pickerWrapper: {
+    flex: 1,
+  },
+  refreshText: { color: colors.primary, fontSize: fontSizes.medium },
+  scrollContent: {
+    paddingBottom: spacing.xl,
+    paddingHorizontal: spacing.lg,
+  },
+  selectLabel: {
+    color: colors.text,
+    fontSize: fontSizes.medium,
+    marginBottom: spacing.xs,
+  },
+  zIndex1000: { zIndex: 1000 },
+  zIndex2000: { zIndex: 2000 },
+  zIndex3000: { zIndex: 3000 },
 });
 
 export default DeviceRequestsScreen;

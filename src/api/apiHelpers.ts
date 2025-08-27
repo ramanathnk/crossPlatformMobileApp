@@ -14,13 +14,25 @@ interface ApiErrorData {
 }
 
 /**
+ * Utility to mask long tokens for logs.
+ */
+function maskToken(value?: string) {
+  if (!value) return '<none>';
+  // Keep prefix if "Bearer " is present but mask the token part.
+  if (value.startsWith('Bearer ')) {
+    const t = value.slice(7);
+    if (t.length <= 8) return `Bearer ${'*'.repeat(4)}`;
+    return `Bearer ${t.slice(0, 6)}...${t.slice(-4)}`;
+  }
+  return value.length <= 10 ? '***' : `${value.slice(0, 6)}...${value.slice(-4)}`;
+}
+
+/**
  * Unified API request helper.
  *
- * Notes:
- * - For responses with empty body (e.g. 204 No Content), this returns `null` (as T).
- *   Callers should treat a null result as "no content" / successful-but-no-body.
- * - All non-OK responses will throw an object containing `code`, `message`, `description`
- *   and any parsed server error payload (if present).
+ * - Only sets Content-Type when a body is provided.
+ * - Does not send a request body when `body` is undefined or when it's an empty object.
+ * - Adds debug logging of outgoing request (masked Authorization + body) when not in production.
  */
 export async function apiRequest<T>(
   url: string,
@@ -29,15 +41,46 @@ export async function apiRequest<T>(
   token?: string,
   body?: object,
 ): Promise<T> {
-  const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
-  };
+  // Treat empty plain object as "no body"
+  const hasBody =
+    body !== undefined &&
+    !(Object.prototype.toString.call(body) === '[object Object]' && Object.keys(body).length === 0);
+
+  const headers: Record<string, string> = {};
+  if (hasBody) {
+    headers['Content-Type'] = 'application/json';
+  }
   if (token) headers.Authorization = `Bearer ${token}`;
+
+  // --- DEBUG LOGGING: show outgoing request details (masked token + body) ---
+  // Only log when not in production. Use console.debug (or console.log) so logs are visible in RN dev.
+  if (process.env.NODE_ENV !== 'production') {
+    // Original (possibly structured) body
+    const originalBody = body;
+    // The actual JSON string we will send (or undefined)
+    const bodyString = hasBody ? JSON.stringify(body) : undefined;
+
+    // Mask Authorization header for logs
+    const maskedHeaders = { ...headers };
+    if (maskedHeaders.Authorization) {
+      maskedHeaders.Authorization = maskToken(maskedHeaders.Authorization);
+    }
+
+    console.debug('[apiRequest] OUTGOING', {
+      method,
+      url,
+      headers: maskedHeaders,
+      // Print the structured object and the string to see exactly what will be transmitted
+      bodyObject: originalBody,
+      bodyString,
+    });
+  }
+  // -------------------------------------------------------------------------
 
   const response = await fetch(url, {
     method,
     headers,
-    body: body ? JSON.stringify(body) : undefined,
+    body: hasBody ? JSON.stringify(body) : undefined,
   });
 
   const status = response.status;
@@ -95,12 +138,6 @@ export async function apiRequest<T>(
     return parsed;
   } catch (parseErr) {
     // Clearer error for invalid JSON on successful status
-    // console.error('apiRequest: invalid JSON in successful response', {
-    //   url,
-    //   status,
-    //   rawText,
-    //   parseErr,
-    // });
     throw {
       code: status,
       message: 'Invalid JSON response from server',

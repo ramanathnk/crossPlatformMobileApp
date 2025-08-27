@@ -38,7 +38,8 @@ const AppTabs: React.FC = () => {
           fontSize: 12,
           color: '#9CA3AF',
         },
-        tabBarIcon: ({ focused, color, size }) => {
+        // only destructure the prop we use (focused) to avoid unused-var lint errors
+        tabBarIcon: ({ focused }) => {
           let IconComponent;
           const iconColor = focused ? '#3B82F6' : '#9CA3AF';
           switch (route.name) {

@@ -4,7 +4,8 @@ import deviceRequestsReducer from './deviceRequestsSlice';
 import dealersReducer from './dealerSlice';
 import deviceTypesReducer from './deviceTypeSlice';
 import manufacturersMockReducer from './manufacturerSliceMock';
-import manufacturerReducer from './manufacturerSlice';
+// Use the below import when calling the actual api
+//import manufacturerReducer from './manufacturerSlice';
 
 const store = configureStore({
   reducer: {

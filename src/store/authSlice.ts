@@ -16,6 +16,33 @@ import {
 } from '../api/types';
 import * as thunk from './apiThunkFactory';
 
+/**
+ * Helpers to safely extract properties from unknown payloads and normalize errors.
+ */
+function getStringProp(obj: unknown, key: string): string | null {
+  if (typeof obj === 'object' && obj !== null) {
+    const val = (obj as Record<string, unknown>)[key];
+    return typeof val === 'string' ? val : null;
+  }
+  return null;
+}
+
+function extractErrorMessage(err: unknown, fallback: string): string {
+  if (!err) return fallback;
+  if (typeof err === 'string') return err;
+  if (err instanceof Error && err.message) return err.message;
+
+  if (typeof err === 'object' && err !== null) {
+    const e = err as Record<string, unknown>;
+    if (typeof e.description === 'string') return e.description;
+    if (typeof e.message === 'string') return e.message;
+    if (e.error !== undefined) return String(e.error);
+    if (typeof e.rawText === 'string') return e.rawText;
+  }
+
+  return fallback;
+}
+
 // -------------------- Thunks (some custom to persist tokens) -------------------- //
 
 /**
@@ -33,17 +60,18 @@ export const loginThunk = createAsyncThunk<LoginResponse, LoginRequest>(
         payload as object,
       );
       // persist token if returned
-      if (res && (res as any).accessToken) {
+      const token = getStringProp(res, 'accessToken');
+      if (token) {
         try {
-          await SecureStore.setItemAsync('accessToken', (res as any).accessToken);
-        } catch (e) {
+          await SecureStore.setItemAsync('accessToken', token);
+        } catch (e: unknown) {
           // don't block success if SecureStore fails; just log
           console.warn('Failed to persist accessToken in SecureStore', e);
         }
       }
       return res;
-    } catch (err: any) {
-      return thunkAPI.rejectWithValue(err || 'Login failed');
+    } catch (err: unknown) {
+      return thunkAPI.rejectWithValue(extractErrorMessage(err, 'Login failed'));
     }
   },
 );
@@ -62,16 +90,17 @@ export const refreshTokenThunk = createAsyncThunk<RefreshTokenResponse, RefreshT
         undefined,
         payload as object,
       );
-      if (res && (res as any).accessToken) {
+      const token = getStringProp(res, 'accessToken');
+      if (token) {
         try {
-          await SecureStore.setItemAsync('accessToken', (res as any).accessToken);
-        } catch (e) {
+          await SecureStore.setItemAsync('accessToken', token);
+        } catch (e: unknown) {
           console.warn('Failed to persist refreshed accessToken in SecureStore', e);
         }
       }
       return res;
-    } catch (err: any) {
-      return thunkAPI.rejectWithValue(err || 'Failed to refresh token');
+    } catch (err: unknown) {
+      return thunkAPI.rejectWithValue(extractErrorMessage(err, 'Failed to refresh token'));
     }
   },
 );
@@ -92,12 +121,12 @@ export const logoutThunk = createAsyncThunk<LogoutResponse, string>(
       // remove persisted token on successful logout
       try {
         await SecureStore.deleteItemAsync('accessToken');
-      } catch (e) {
+      } catch (e: unknown) {
         console.warn('Failed to delete accessToken from SecureStore', e);
       }
       return res;
-    } catch (err: any) {
-      return thunkAPI.rejectWithValue(err || 'Failed to logout');
+    } catch (err: unknown) {
+      return thunkAPI.rejectWithValue(extractErrorMessage(err, 'Failed to logout'));
     }
   },
 );
@@ -150,11 +179,11 @@ const authSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
-    // login: store token from response.accessToken (if present) and message (guarded via any)
+    // login: store token from response.accessToken (if present) and message (guarded via safe accessor)
     thunk.attachThunkHandlers(builder, loginThunk, {
-      getToken: (payload: any) => (payload ? ((payload as any).accessToken ?? null) : null),
-      // message may not exist on LoginResponse in your typings; use a safe any-accessor
-      getMessage: (payload: any) => (payload ? ((payload as any).message ?? null) : null),
+      getToken: (payload: unknown) => getStringProp(payload, 'accessToken'),
+      // message may not exist on LoginResponse in your typings; use a safe accessor
+      getMessage: (payload: unknown) => getStringProp(payload, 'message'),
       defaultRejectedMessage: 'Login failed',
     });
 
@@ -162,21 +191,19 @@ const authSlice = createSlice({
     thunk.attachThunkHandlers(builder, forgotPasswordThunk, {
       // If the forgot-password response contains a token (ephemeral reset token), store it in state.token.
       // This token will be used to allow the user to reset the password and will be cleared once reset is successful.
-      getToken: (payload: any) => (payload ? ((payload as any).token ?? null) : null),
+      getToken: (payload: unknown) => getStringProp(payload, 'token'),
       // Only store a success message when the payload actually includes a token.
-      getMessage: (payload: any) =>
-        payload && (payload as any).token
-          ? ((payload as ForgotPasswordResponse).message ?? 'Password reset email sent')
+      getMessage: (payload: unknown) =>
+        getStringProp(payload, 'token')
+          ? (getStringProp(payload, 'message') ?? 'Password reset email sent')
           : null,
       defaultRejectedMessage: 'Failed to initiate password reset',
     });
 
     // verify reset token: message only
     thunk.attachThunkHandlers(builder, verifyResetTokenThunk, {
-      getMessage: (payload: any) =>
-        payload
-          ? ((payload as VerifyResetTokenResponse).message ?? 'Token verified')
-          : 'Token verified',
+      getMessage: (payload: unknown) =>
+        payload ? (getStringProp(payload, 'message') ?? 'Token verified') : 'Token verified',
       defaultRejectedMessage: 'Failed to verify reset token',
     });
 
@@ -191,16 +218,15 @@ const authSlice = createSlice({
 
     // refresh token: update token if returned (don't assume a message property exists)
     thunk.attachThunkHandlers(builder, refreshTokenThunk, {
-      getToken: (payload: any) =>
-        payload ? ((payload as RefreshTokenResponse).accessToken ?? null) : null,
+      getToken: (payload: unknown) => getStringProp(payload, 'accessToken'),
       defaultRejectedMessage: 'Failed to refresh token',
     });
 
     // logout: clear token on fulfilled
     thunk.attachThunkHandlers(builder, logoutThunk, {
       clearTokenOnFulfilled: true,
-      getMessage: (payload: any) =>
-        payload ? ((payload as LogoutResponse).message ?? 'Logged out') : 'Logged out',
+      getMessage: (payload: unknown) =>
+        payload ? (getStringProp(payload, 'message') ?? 'Logged out') : 'Logged out',
       defaultRejectedMessage: 'Failed to logout',
     });
   },

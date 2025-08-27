@@ -1,13 +1,14 @@
 import React from 'react';
 import { Image, View, StyleSheet } from 'react-native';
 
-const SnaptrackerLogo: React.FC<{ width?: number; height?: number }> = ({ width = 220, height = 100 }) => (
+import SnapTrackerLogoImg from '../../assets/SnapTrackerLogoNew1024.png';
+
+const SnaptrackerLogo: React.FC<{ width?: number; height?: number }> = ({
+  width = 220,
+  height = 100,
+}) => (
   <View style={styles.container}>
-    <Image
-      source={require('../../assets/SnapTrackerLogoNew1024.png')}
-      style={{ width, height }}
-      resizeMode="contain"
-    />
+    <Image source={SnapTrackerLogoImg} style={{ width, height }} resizeMode="contain" />
   </View>
 );
 

@@ -43,13 +43,16 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 /**
  * Error normalization helper (keeps same shape/behavior as the real slice).
  */
-function extractErrorMessage(err: any, fallback: string) {
+function extractErrorMessage(err: unknown, fallback: string): string {
   if (!err) return fallback;
   if (typeof err === 'string') return err;
-  if (err?.description) return err.description;
-  if (err?.message) return err.message;
-  if (err?.error) return String(err.error);
-  if (err?.rawText) return String(err.rawText);
+  if (typeof err === 'object' && err !== null) {
+    const e = err as Record<string, unknown>;
+    if (typeof e.description === 'string') return e.description;
+    if (typeof e.message === 'string') return e.message;
+    if (e.error !== undefined) return String(e.error);
+    if (typeof e.rawText === 'string') return e.rawText;
+  }
   return fallback;
 }
 
@@ -66,7 +69,7 @@ export const fetchManufacturers = createAsyncThunk<Manufacturer[], void, { rejec
       await delay(200);
       // Return a cloned array to avoid accidental external mutation
       return mockManufacturers.map((m) => ({ ...m }));
-    } catch (err: any) {
+    } catch (err: unknown) {
       return thunkAPI.rejectWithValue(extractErrorMessage(err, 'Failed to fetch manufacturers'));
     }
   },
@@ -95,7 +98,7 @@ export const createManufacturerRequest = createAsyncThunk<
     mockManufacturers = [newManufacturer, ...mockManufacturers];
     // return a clone
     return { ...newManufacturer };
-  } catch (err: any) {
+  } catch (err: unknown) {
     return thunkAPI.rejectWithValue(extractErrorMessage(err, 'Failed to create manufacturer'));
   }
 });
@@ -122,7 +125,7 @@ export const updateManufacturerRequest = createAsyncThunk<
       m.manufacturerId === manufacturerId ? updated : m,
     );
     return { ...updated };
-  } catch (err: any) {
+  } catch (err: unknown) {
     return thunkAPI.rejectWithValue(extractErrorMessage(err, 'Failed to update manufacturer'));
   }
 });
@@ -143,7 +146,7 @@ export const deleteManufacturerRequest = createAsyncThunk<
     mockManufacturers = mockManufacturers.filter((m) => m.manufacturerId !== manufacturerId);
     // return the id so reducers can remove it
     return manufacturerId;
-  } catch (err: any) {
+  } catch (err: unknown) {
     return thunkAPI.rejectWithValue(extractErrorMessage(err, 'Failed to delete manufacturer'));
   }
 });
@@ -274,14 +277,21 @@ const manufacturersSlice = createSlice({
 
 export const { clearManufacturersError, resetManufacturersMock } = manufacturersSlice.actions;
 
+// Local RootState type for selector typing in tests
+type RootState = {
+  manufacturers: ManufacturersState;
+};
+
 // Selectors (adjusted to match the store key 'manufacturers' used in your index.ts)
-export const selectManufacturersState = (state: any) =>
-  state.manufacturers as ManufacturersState;
-export const selectManufacturers = (state: any) => selectManufacturersState(state).items;
-export const selectManufacturersLoading = (state: any) => selectManufacturersState(state).loading;
-export const selectManufacturersCreating = (state: any) => selectManufacturersState(state).creating;
-export const selectManufacturersSubmittingId = (state: any) =>
+export const selectManufacturersState = (state: RootState): ManufacturersState =>
+  state.manufacturers;
+export const selectManufacturers = (state: RootState) => selectManufacturersState(state).items;
+export const selectManufacturersLoading = (state: RootState) =>
+  selectManufacturersState(state).loading;
+export const selectManufacturersCreating = (state: RootState) =>
+  selectManufacturersState(state).creating;
+export const selectManufacturersSubmittingId = (state: RootState) =>
   selectManufacturersState(state).submittingId;
-export const selectManufacturersError = (state: any) => selectManufacturersState(state).error;
+export const selectManufacturersError = (state: RootState) => selectManufacturersState(state).error;
 
 export default manufacturersSlice.reducer;

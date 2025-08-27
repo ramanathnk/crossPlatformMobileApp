@@ -29,6 +29,34 @@ const initialState: DeviceTypesState = {
 };
 
 /**
+ * Normalize server / thrown error into a string message.
+ * Safe with unknown input (no `any`).
+ */
+function extractErrorMessage(err: unknown, fallback: string): string {
+  if (!err) return fallback;
+  if (typeof err === 'string') return err;
+  if (typeof err === 'object' && err !== null) {
+    const e = err as Record<string, unknown>;
+    if (typeof e.description === 'string') return e.description;
+    if (typeof e.message === 'string') return e.message;
+    if (e.error !== undefined) return String(e.error);
+    if (typeof e.rawText === 'string') return e.rawText;
+    // try nested response.data.message/data.error
+    const response = e.response as Record<string, unknown> | undefined;
+    if (response) {
+      const data = response.data as Record<string, unknown> | undefined;
+      if (data) {
+        if (typeof data.message === 'string') return data.message;
+        if (typeof data.error === 'string') return data.error;
+        if (data.message !== undefined) return String(data.message);
+        if (data.error !== undefined) return String(data.error);
+      }
+    }
+  }
+  return fallback;
+}
+
+/**
  * Thunks
  */
 export const fetchDeviceTypes = createAsyncThunk<DeviceType[], void, { rejectValue: string }>(
@@ -39,8 +67,8 @@ export const fetchDeviceTypes = createAsyncThunk<DeviceType[], void, { rejectVal
       if (!token) throw new Error('No access token found. Please log in again.');
       const res = await getAllDeviceTypes(token);
       return res;
-    } catch (err: any) {
-      return thunkAPI.rejectWithValue(err?.message ?? 'Failed to fetch device types');
+    } catch (err: unknown) {
+      return thunkAPI.rejectWithValue(extractErrorMessage(err, 'Failed to fetch device types'));
     }
   },
 );
@@ -55,8 +83,8 @@ export const createDeviceTypeRequest = createAsyncThunk<
     if (!token) throw new Error('No access token found. Please log in again.');
     const res = await createDeviceType(token, payload);
     return res;
-  } catch (err: any) {
-    return thunkAPI.rejectWithValue(err?.message ?? 'Failed to create device type');
+  } catch (err: unknown) {
+    return thunkAPI.rejectWithValue(extractErrorMessage(err, 'Failed to create device type'));
   }
 });
 
@@ -70,8 +98,8 @@ export const updateDeviceTypeRequest = createAsyncThunk<
     if (!token) throw new Error('No access token found. Please log in again.');
     const res = await updateDeviceType(token, payload.deviceTypeId, payload.deviceType);
     return res;
-  } catch (err: any) {
-    return thunkAPI.rejectWithValue(err?.message ?? 'Failed to update device type');
+  } catch (err: unknown) {
+    return thunkAPI.rejectWithValue(extractErrorMessage(err, 'Failed to update device type'));
   }
 });
 
@@ -85,20 +113,34 @@ export const deleteDeviceTypeRequest = createAsyncThunk<
     if (!token) throw new Error('No access token found. Please log in again.');
     await deleteDeviceType(token, payload.deviceTypeId);
     return payload.deviceTypeId;
-  } catch (err: any) {
-    const status = err?.response?.status;
-    const msg = err?.message ?? '';
-    if (status === 204 || /Unexpected end of input|JSON Parse error|Unexpected token/u.test(msg)) {
+  } catch (err: unknown) {
+    // Safely inspect nested properties without `any`
+    let status: number | undefined;
+    let msg: string | undefined;
+
+    if (typeof err === 'object' && err !== null) {
+      const e = err as Record<string, unknown>;
+      const response = e.response as Record<string, unknown> | undefined;
+      if (response && typeof response.status === 'number') {
+        status = response.status;
+      }
+      if (typeof e.message === 'string') {
+        msg = e.message;
+      } else if (response && typeof response.data === 'object' && response.data !== null) {
+        const data = response.data as Record<string, unknown>;
+        if (typeof data.message === 'string') msg = data.message;
+        else if (typeof data.error === 'string') msg = data.error;
+      }
+    }
+
+    const parseErrorPattern = /Unexpected end of input|JSON Parse error|Unexpected token/u;
+    if (status === 204 || (msg && parseErrorPattern.test(msg))) {
+      // Treat empty-body JSON parse errors as success (server returned 204/empty)
       console.warn('deleteDeviceTypeRequest: treated JSON-parse-empty-body as success', { err });
       return payload.deviceTypeId;
     }
 
-    const serverMessage =
-      err?.response?.data?.message ??
-      err?.response?.data?.error ??
-      err?.message ??
-      'Failed to delete device type';
-    //console.error('deleteDeviceTypeRequest error:', err);
+    const serverMessage = msg ?? extractErrorMessage(err, 'Failed to delete device type');
     return thunkAPI.rejectWithValue(serverMessage);
   }
 });
@@ -194,13 +236,19 @@ const deviceTypesSlice = createSlice({
 
 export const { clearDeviceTypesError } = deviceTypesSlice.actions;
 
+// Local RootState type for selector typing. Replace/import your app RootState if available.
+type RootState = {
+  deviceTypes: DeviceTypesState;
+};
+
 // Selectors
-export const selectDeviceTypesState = (state: any) => state.deviceTypes as DeviceTypesState;
-export const selectDeviceTypes = (state: any) => selectDeviceTypesState(state).items;
-export const selectDeviceTypesLoading = (state: any) => selectDeviceTypesState(state).loading;
-export const selectDeviceTypesCreating = (state: any) => selectDeviceTypesState(state).creating;
-export const selectDeviceTypesSubmittingId = (state: any) =>
+export const selectDeviceTypesState = (state: RootState): DeviceTypesState => state.deviceTypes;
+export const selectDeviceTypes = (state: RootState) => selectDeviceTypesState(state).items;
+export const selectDeviceTypesLoading = (state: RootState) => selectDeviceTypesState(state).loading;
+export const selectDeviceTypesCreating = (state: RootState) =>
+  selectDeviceTypesState(state).creating;
+export const selectDeviceTypesSubmittingId = (state: RootState) =>
   selectDeviceTypesState(state).submittingId;
-export const selectDeviceTypesError = (state: any) => selectDeviceTypesState(state).error;
+export const selectDeviceTypesError = (state: RootState) => selectDeviceTypesState(state).error;
 
 export default deviceTypesSlice.reducer;

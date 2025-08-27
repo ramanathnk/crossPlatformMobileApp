@@ -33,7 +33,27 @@ type RootStackParamList = {
   MainTabs: undefined;
   Login?: undefined;
 };
-type RegisterDeviceScreenNavigationProp = StackNavigationProp<RootStackParamList, 'MainTabs'>;
+// Use the full param list so navigate('Login') is typed correctly without any casts
+type RegisterDeviceScreenNavigationProp = StackNavigationProp<RootStackParamList>;
+
+// Color constants to satisfy react-native/no-color-literals
+const COLOR_WHITE = '#FFFFFF';
+const COLOR_MUTED = '#9CA3AF';
+const COLOR_CARD = '#374151';
+const COLOR_BG = '#1F2937';
+const COLOR_BORDER = '#4B5563';
+const COLOR_ERROR = '#EF4444';
+const COLOR_SUCCESS = '#10B981';
+
+type RegisteredDeviceMaybe = RegisteredDevice & {
+  dealerId?: string | number;
+  registeredBy?: string | number;
+  serialNo?: string;
+  modelNumber?: string;
+  dealerName?: string;
+  status?: string;
+  registrationDate?: string;
+};
 
 const DevicesScreen: React.FC = () => {
   const [search, setSearch] = useState('');
@@ -42,10 +62,11 @@ const DevicesScreen: React.FC = () => {
 
   const navigation = useNavigation<RegisterDeviceScreenNavigationProp>();
 
-  // Read token from the redux auth slice (follow the same pattern used elsewhere)
-  const authTokenFromStore = useSelector(
-    (s: RootState) => (s.auth as any)?.token as string | null | undefined,
-  );
+  // Read token from the redux auth slice (narrowed without using `any`)
+  const authTokenFromStore = useSelector((s: RootState) => {
+    const auth = (s as unknown as { auth?: { token?: string | null } })?.auth;
+    return auth?.token as string | null | undefined;
+  });
 
   // If token is explicitly null, show local error and navigate to Login.
   useEffect(() => {
@@ -60,7 +81,7 @@ const DevicesScreen: React.FC = () => {
   useEffect(() => {
     if (authTokenFromStore === null) {
       // navigate to Login if there's no token
-      navigation.navigate('Login' as any);
+      navigation.navigate('Login');
     }
   }, [authTokenFromStore, navigation]);
 
@@ -78,33 +99,34 @@ const DevicesScreen: React.FC = () => {
     localError ??
     (queryIsError ? (queryError instanceof Error ? queryError.message : String(queryError)) : null);
 
-  // Map API RegisteredDevice[] to UI Device[] and generate stable unique keys.
-  // We use a composite key (dealerId + serialNo), and if duplicates still happen we append an occurrence count.
+  // Map API RegisteredDevice[] to UI Device[] with a typed intermediate to avoid `any`
   const devices: Device[] = useMemo(() => {
-    if (!apiDevices || apiDevices.length === 0) return [];
+    const apiDevicesTyped = (apiDevices ?? []) as RegisteredDeviceMaybe[];
+    if (apiDevicesTyped.length === 0) return [];
 
     const occurrences: Record<string, number> = {};
 
-    return apiDevices.map((device: RegisteredDevice) => {
+    return apiDevicesTyped.map((device) => {
       // Use dealerId (if present) + serialNo as a composite base key
-      const dealerPart =
-        (device as any).dealerId ?? (device as any).registeredBy ?? 'unknownDealer';
-      const baseKey = `${dealerPart}-${device.serialNo}`;
+      const dealerPart = device.dealerId ?? device.registeredBy ?? 'unknownDealer';
+      const baseKey = `${dealerPart}-${device.serialNo ?? ''}`;
 
       occurrences[baseKey] = (occurrences[baseKey] ?? 0) + 1;
       const uniqueKey = occurrences[baseKey] > 1 ? `${baseKey}-${occurrences[baseKey]}` : baseKey;
 
       return {
         id: uniqueKey,
-        serial: device.serialNo,
-        model: device.modelNumber,
-        dealer: device.dealerName,
+        serial: device.serialNo ?? '',
+        model: device.modelNumber ?? '',
+        dealer: device.dealerName ?? '',
         status: device.status === 'Active' ? 'Active' : 'Inactive',
-        date: new Date(device.registrationDate).toLocaleDateString('en-US', {
-          year: 'numeric',
-          month: 'long',
-          day: 'numeric',
-        }),
+        date: device.registrationDate
+          ? new Date(device.registrationDate).toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            })
+          : 'N/A',
       };
     });
   }, [apiDevices]);
@@ -123,7 +145,7 @@ const DevicesScreen: React.FC = () => {
 
   const renderContent = () => {
     if (loading) {
-      return <ActivityIndicator size="large" color="#FFFFFF" style={{ marginTop: 50 }} />;
+      return <ActivityIndicator size="large" color={COLOR_WHITE} style={styles.loadingIndicator} />;
     }
 
     if (error) {
@@ -145,7 +167,7 @@ const DevicesScreen: React.FC = () => {
               <MaterialIcons
                 name={item.status === 'Active' ? 'check-circle' : 'cancel'}
                 size={24}
-                color={item.status === 'Active' ? '#10B981' : '#EF4444'}
+                color={item.status === 'Active' ? COLOR_SUCCESS : COLOR_ERROR}
               />
               <View style={styles.cardText}>
                 <Text style={styles.serial}>{item.serial}</Text>
@@ -156,9 +178,9 @@ const DevicesScreen: React.FC = () => {
             <Text style={styles.date}>{item.date}</Text>
           </View>
         )}
-        contentContainerStyle={{ paddingBottom: 60 }}
+        contentContainerStyle={styles.listContent}
         refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#FFFFFF" />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={COLOR_WHITE} />
         }
       />
     );
@@ -184,7 +206,7 @@ const DevicesScreen: React.FC = () => {
           <TextInput
             style={styles.textInput}
             placeholder="Search by serial number"
-            placeholderTextColor="#9CA3AF"
+            placeholderTextColor={COLOR_MUTED}
             value={search}
             onChangeText={setSearch}
           />
@@ -192,11 +214,11 @@ const DevicesScreen: React.FC = () => {
 
         <View style={[styles.sectionContainer, styles.toolbar]}>
           <TouchableOpacity style={styles.toolBtn}>
-            <MaterialIcons name="filter-list" size={20} color="#FFF" />
+            <MaterialIcons name="filter-list" size={20} color={COLOR_WHITE} />
             <Text style={styles.toolText}>Filter</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.toolBtn}>
-            <MaterialIcons name="sort" size={20} color="#FFF" />
+            <MaterialIcons name="sort" size={20} color={COLOR_WHITE} />
             <Text style={styles.toolText}>Sort</Text>
           </TouchableOpacity>
           <Text style={styles.count}>{filtered.length} Devices</Text>
@@ -210,7 +232,7 @@ const DevicesScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   backArrow: {
-    color: '#FFFFFF',
+    color: COLOR_WHITE,
     fontSize: 24,
     fontWeight: '600',
   },
@@ -222,7 +244,7 @@ const styles = StyleSheet.create({
     width: 40,
   },
   card: {
-    backgroundColor: '#374151',
+    backgroundColor: COLOR_CARD,
     borderRadius: 12,
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -237,31 +259,31 @@ const styles = StyleSheet.create({
     marginLeft: 12,
   },
   container: {
-    backgroundColor: '#1F2937',
+    backgroundColor: COLOR_BG,
     flex: 1,
   },
   count: {
-    color: '#9CA3AF',
+    color: COLOR_MUTED,
     marginLeft: 'auto',
   },
   date: {
     alignSelf: 'flex-start',
-    color: '#9CA3AF',
+    color: COLOR_MUTED,
     fontSize: 12,
   },
   dealer: {
-    color: '#9CA3AF',
+    color: COLOR_MUTED,
     fontSize: 12,
     marginTop: 4,
   },
   emptyText: {
-    color: '#9CA3AF',
+    color: COLOR_MUTED,
     fontSize: 16,
     marginTop: 20,
     textAlign: 'center',
   },
   errorText: {
-    color: '#EF4444',
+    color: COLOR_ERROR,
     fontSize: 16,
     marginTop: 20,
     textAlign: 'center',
@@ -272,11 +294,11 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   headerSubtitle: {
-    color: '#9CA3AF',
+    color: COLOR_MUTED,
     fontSize: 14,
   },
   headerTitle: {
-    color: '#FFFFFF',
+    color: COLOR_WHITE,
     fontSize: 20,
     fontWeight: '600',
     marginBottom: 4,
@@ -284,8 +306,14 @@ const styles = StyleSheet.create({
   headerTitleContainer: {
     flex: 1,
   },
+  listContent: {
+    paddingBottom: 60,
+  },
+  loadingIndicator: {
+    marginTop: 50,
+  },
   model: {
-    color: '#9CA3AF',
+    color: COLOR_MUTED,
     fontSize: 14,
   },
   scrollContainer: {
@@ -298,16 +326,16 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   serial: {
-    color: '#FFFFFF',
+    color: COLOR_WHITE,
     fontSize: 16,
     fontWeight: 'bold',
   },
   textInput: {
-    backgroundColor: '#374151',
-    borderColor: '#4B5563',
+    backgroundColor: COLOR_CARD,
+    borderColor: COLOR_BORDER,
     borderRadius: 8,
     borderWidth: 1,
-    color: '#FFFFFF',
+    color: COLOR_WHITE,
     fontSize: 16,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -318,7 +346,7 @@ const styles = StyleSheet.create({
     marginRight: 24,
   },
   toolText: {
-    color: '#FFFFFF',
+    color: COLOR_WHITE,
     marginLeft: 4,
   },
   toolbar: {

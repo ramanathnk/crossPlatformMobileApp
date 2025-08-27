@@ -1,52 +1,58 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React from 'react';
 import { fireEvent, waitFor } from '@testing-library/react-native';
 import '@testing-library/jest-native/extend-expect';
 import RegisterDeviceScreen from '../RegisterDeviceScreen';
 import { renderWithProviders } from '../../test-utils';
+import CrossPlatformAlert from '../../utils/CrossPlatformAlert';
 
 // --- Mocks for Redux slices / thunks and utilities ---
-// Mock deviceRequestsSlice: registerDeviceRequest + selectors used by the component
+// Keep jest.mock factories self-contained and do not reference out-of-scope variables
+// (use require inside the factory) to avoid "module factory cannot reference out-of-scope variables".
+
 jest.mock('../../store/deviceRequestsSlice', () => {
   return {
     registerDeviceRequest: jest.fn((data) => ({ type: 'REGISTER_DEVICE', meta: { data } })),
-    selectRegistering: (s: any) => false,
-    selectRegisterError: (s: any) => null,
+    selectRegistering: () => false,
+    selectRegisterError: () => null,
   };
 });
 
-// Mock dealerSlice
 jest.mock('../../store/dealerSlice', () => {
   return {
     fetchDealers: jest.fn(),
-    selectDealers: (s: any) => [
+    selectDealers: () => [
       { dealerId: 1, name: 'Dealer One' },
       { dealerId: 2, name: 'Dealer Two' },
     ],
-    selectDealersLoading: (s: any) => false,
-    selectDealersError: (s: any) => null,
+    selectDealersLoading: () => false,
+    selectDealersError: () => null,
   };
 });
 
-// Mock deviceTypeSlice
 jest.mock('../../store/deviceTypeSlice', () => {
   return {
     fetchDeviceTypes: jest.fn(),
-    selectDeviceTypes: (s: any) => [{ deviceTypeId: 10, modelNumber: 'Model X' }],
-    selectDeviceTypesLoading: (s: any) => false,
-    selectDeviceTypesError: (s: any) => null,
+    selectDeviceTypes: () => [{ deviceTypeId: 10, modelNumber: 'Model X' }],
+    selectDeviceTypesLoading: () => false,
+    selectDeviceTypesError: () => null,
   };
 });
 
-// Mock CrossPlatformDropdownGen (adjusted path: ../../components from test file)
+// Mock CrossPlatformDropdownGen without referencing outer-scope variables.
+// Use require inside factory so Jest does not complain about out-of-scope access.
 jest.mock('../../components/CrossPlatformDropdownGen', () => {
   const React = require('react');
   const { TouchableOpacity, Text } = require('react-native');
-  return (props: any) => {
+
+  // annotate props with any to satisfy TypeScript here (tests/mocks are allowed to be looser)
+  return function MockDropdown(props: any) {
     const placeholder = props.placeholder || 'dropdown';
     return React.createElement(
       TouchableOpacity,
       {
-        testID: `dropdown-${placeholder.replace(/\s+/g, '-').toLowerCase()}`,
+        testID: `dropdown-${String(placeholder).replace(/\s+/g, '-').toLowerCase()}`,
         onPress: () => {
           const first = props.options && props.options.length > 0 ? props.options[0].value : null;
           if (props.multiSelect) {
@@ -61,20 +67,23 @@ jest.mock('../../components/CrossPlatformDropdownGen', () => {
   };
 });
 
-// Mock CrossPlatformAlert (adjusted path: ../../utils)
+// Mock CrossPlatformAlert as ES module default { alert: jest.fn() }
 jest.mock('../../utils/CrossPlatformAlert', () => ({
-  alert: jest.fn(),
+  __esModule: true,
+  default: { alert: jest.fn() },
 }));
 
-// Mock react-native-paper Provider to just render children (so we don't depend on native paper behavior)
+// Mock react-native-paper Provider using require inside factory (no external React reference)
+// annotate children as any to satisfy TypeScript
 jest.mock('react-native-paper', () => {
   const React = require('react');
   return {
-    Provider: ({ children }: any) => React.createElement(React.Fragment, null, children),
+    Provider: ({ children }: { children: any }) =>
+      React.createElement(React.Fragment, null, children),
   };
 });
 
-// Ensure any svg/icon imports (if present) do not break tests
+// Prevent icon SVG from breaking tests
 jest.mock('../../icons/SnapTrackerLogo', () => () => null);
 
 describe('RegisterDeviceScreen', () => {
@@ -141,11 +150,10 @@ describe('RegisterDeviceScreen', () => {
       expect(store.dispatch).toHaveBeenCalled();
     });
 
-    const CrossPlatformAlert = require('../../utils/CrossPlatformAlert');
     await waitFor(() => {
-      expect(CrossPlatformAlert.alert).toHaveBeenCalled();
-      // First argument is the title 'Registration Results'
-      expect(CrossPlatformAlert.alert.mock.calls[0][0]).toMatch(/Registration Results/);
+      const alertModule = CrossPlatformAlert as unknown as { alert: jest.Mock };
+      expect(alertModule.alert).toHaveBeenCalled();
+      expect(alertModule.alert.mock.calls[0][0]).toMatch(/Registration Results/);
     });
   });
 });

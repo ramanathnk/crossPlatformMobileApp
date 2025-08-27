@@ -33,14 +33,19 @@ const initialState: DealersState = {
  * Normalize server / thrown error into a string message.
  * Looks for structured fields commonly set by apiRequest.
  */
-function extractErrorMessage(err: any, fallback: string) {
-  // apiRequest now throws objects that may contain: message, description, error, rawText, code
+function extractErrorMessage(err: unknown, fallback: string): string {
   if (!err) return fallback;
   if (typeof err === 'string') return err;
-  if (err?.description) return err.description;
-  if (err?.message) return err.message;
-  if (err?.error) return String(err.error);
-  if (err?.rawText) return String(err.rawText);
+  if (err instanceof Error && err.message) return err.message;
+
+  if (typeof err === 'object' && err !== null) {
+    const e = err as Record<string, unknown>;
+    if (typeof e.description === 'string') return e.description;
+    if (typeof e.message === 'string') return e.message;
+    if (e.error !== undefined) return String(e.error);
+    if (typeof e.rawText === 'string') return e.rawText;
+  }
+
   return fallback;
 }
 
@@ -59,7 +64,7 @@ export const fetchDealers = createAsyncThunk<Dealer[], void, { rejectValue: stri
       }
       const res = await getAllDealers(token);
       return res;
-    } catch (err: any) {
+    } catch (err: unknown) {
       //console.error('fetchDealers error:', err);
       return thunkAPI.rejectWithValue(extractErrorMessage(err, 'Failed to fetch dealers'));
     }
@@ -79,7 +84,7 @@ export const createDealerRequest = createAsyncThunk<
     }
     const res = await createDealer(token, payload);
     return res;
-  } catch (err: any) {
+  } catch (err: unknown) {
     //console.error('createDealerRequest error:', err);
     return thunkAPI.rejectWithValue(extractErrorMessage(err, 'Failed to create dealer'));
   }
@@ -98,7 +103,7 @@ export const updateDealerRequest = createAsyncThunk<
     }
     const res = await updateDealer(token, payload.dealerId, payload.dealer);
     return res;
-  } catch (err: any) {
+  } catch (err: unknown) {
     //console.error('updateDealerRequest error:', err);
     return thunkAPI.rejectWithValue(extractErrorMessage(err, 'Failed to update dealer'));
   }
@@ -119,7 +124,7 @@ export const deleteDealerRequest = createAsyncThunk<
     await deleteDealer(token, payload.dealerId);
     // return the id so reducer can remove it
     return payload.dealerId;
-  } catch (err: any) {
+  } catch (err: unknown) {
     //console.error('deleteDealerRequest error:', err);
     return thunkAPI.rejectWithValue(extractErrorMessage(err, 'Failed to delete dealer'));
   }
@@ -147,7 +152,7 @@ const dealersSlice = createSlice({
     builder.addCase(fetchDealers.rejected, (state, action) => {
       state.loading = false;
       state.error =
-        (action.payload as string) || action.error?.message || 'Failed to fetch dealers';
+        (action.payload as string | undefined) || action.error?.message || 'Failed to fetch dealers';
     });
 
     // createDealerRequest
@@ -166,7 +171,7 @@ const dealersSlice = createSlice({
     builder.addCase(createDealerRequest.rejected, (state, action) => {
       state.creating = false;
       state.error =
-        (action.payload as string) || action.error?.message || 'Failed to create dealer';
+        (action.payload as string | undefined) || action.error?.message || 'Failed to create dealer';
     });
 
     // updateDealerRequest
@@ -185,7 +190,7 @@ const dealersSlice = createSlice({
     builder.addCase(updateDealerRequest.rejected, (state, action) => {
       state.submittingId = null;
       state.error =
-        (action.payload as string) || action.error?.message || 'Failed to update dealer';
+        (action.payload as string | undefined) || action.error?.message || 'Failed to update dealer';
     });
 
     // deleteDealerRequest
@@ -202,19 +207,24 @@ const dealersSlice = createSlice({
     builder.addCase(deleteDealerRequest.rejected, (state, action) => {
       state.submittingId = null;
       state.error =
-        (action.payload as string) || action.error?.message || 'Failed to delete dealer';
+        (action.payload as string | undefined) || action.error?.message || 'Failed to delete dealer';
     });
   },
 });
 
 export const { clearDealersError } = dealersSlice.actions;
 
+// Local RootState type for selector typing. Replace/import your app RootState if available.
+type RootState = {
+  dealers: DealersState;
+};
+
 // Selectors
-export const selectDealersState = (state: any) => state.dealers as DealersState;
-export const selectDealers = (state: any) => selectDealersState(state).items;
-export const selectDealersLoading = (state: any) => selectDealersState(state).loading;
-export const selectDealersCreating = (state: any) => selectDealersState(state).creating;
-export const selectDealersSubmittingId = (state: any) => selectDealersState(state).submittingId;
-export const selectDealersError = (state: any) => selectDealersState(state).error;
+export const selectDealersState = (state: RootState) => state.dealers;
+export const selectDealers = (state: RootState) => selectDealersState(state).items;
+export const selectDealersLoading = (state: RootState) => selectDealersState(state).loading;
+export const selectDealersCreating = (state: RootState) => selectDealersState(state).creating;
+export const selectDealersSubmittingId = (state: RootState) => selectDealersState(state).submittingId;
+export const selectDealersError = (state: RootState) => selectDealersState(state).error;
 
 export default dealersSlice.reducer;

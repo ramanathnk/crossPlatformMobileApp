@@ -22,7 +22,7 @@ import EyeIcon from '../icons/EyeIcon';
 import * as SecureStore from 'expo-secure-store';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../store';
-import { loginThunk, clearError } from '../store/authSlice';
+import { loginThunk } from '../store/authSlice';
 
 type RootStackParamList = {
   MainTabs: undefined;
@@ -65,14 +65,35 @@ const LoginScreen: React.FC = () => {
     setLocalError(null);
 
     try {
-      const response = await dispatch(loginThunk({ username, password })).unwrap();
-      // Store token centrally (you can move this into the thunk if preferred)
-      if (response.accessToken) {
-        await SecureStore.setItemAsync('accessToken', response.accessToken);
+      const responseUnknown = await dispatch(loginThunk({ username, password })).unwrap();
+
+      // Avoid direct cast from a typed API response to Record<string, unknown>.
+      // Instead inspect the runtime shape and read accessToken safely.
+      if (responseUnknown && typeof responseUnknown === 'object') {
+        // narrow using `any` just for runtime property access (keeps the type-conversion warning away)
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const maybeAccessToken = (responseUnknown as any).accessToken;
+        if (typeof maybeAccessToken === 'string' && maybeAccessToken.length > 0) {
+          await SecureStore.setItemAsync('accessToken', maybeAccessToken);
+        }
       }
+
       navigation.navigate('MainTabs');
-    } catch (err: any) {
-      setLocalError(err?.description || err?.message || 'Login failed');
+    } catch (err: unknown) {
+      let message = 'Login failed';
+      if (typeof err === 'string') {
+        message = err;
+      } else if (err instanceof Error && err.message) {
+        message = err.message;
+      } else if (err && typeof err === 'object') {
+        const e = err as Record<string, unknown>;
+        if (typeof e['description'] === 'string') {
+          message = e['description'] as string;
+        } else if (typeof e['message'] === 'string') {
+          message = e['message'] as string;
+        }
+      }
+      setLocalError(message);
     }
   };
 
@@ -187,70 +208,19 @@ const LoginScreen: React.FC = () => {
   );
 };
 const styles = StyleSheet.create({
+  appName: {
+    color: colors.text,
+    fontSize: fontSizes.xxlarge,
+    fontWeight: '600',
+    lineHeight: fontSizes.xxlarge + 4,
+    marginLeft: 6,
+  },
   container: {
     backgroundColor: colors.background,
     flex: 1,
   },
-  keyboardAvoidingView: {
-    flex: 1,
-  },
-  scrollContainer: {
-    flexGrow: 1,
-    minHeight: '100%',
-    paddingBottom: 60,
-    paddingHorizontal: spacing.lg,
-    paddingTop: 60,
-  },
-  headerContainer: {
-    // center the header group horizontally
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 40,
-  },
-  // logoContainer positions icon and name tightly as a centered unit
-  logoContainer: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'center',
-  },
-  appName: {
-    fontSize: fontSizes.xxlarge,
-    fontWeight: '600',
-    color: colors.text,
-    marginLeft: 6, // reduce gap so text sits closer to the logo
-    // slightly adjust lineHeight to vertically center text with the icon
-    lineHeight: fontSizes.xxlarge + 4,
-  },
-  titleSection: {
-    alignItems: 'center',
-    marginBottom: 40,
-  },
-  title: {
-    color: colors.text,
-    fontSize: fontSizes.xlarge,
-    fontWeight: '600',
-    marginBottom: 8,
-    textAlign: 'center',
-  },
-  subtitle: {
-    color: colors.muted,
-    fontSize: fontSizes.medium,
-    lineHeight: 20,
-    textAlign: 'center',
-  },
-  formContainer: {
-    flex: 0,
-    minHeight: 200,
-  },
-  inputContainer: {
-    marginBottom: spacing.lg,
-  },
-  passwordContainer: {
-    position: 'relative',
-  },
-  passwordInput: {
-    ...inputStyles.textInput,
-    paddingRight: 50,
+  error: {
+    ...errorStyles.error,
   },
   eyeIcon: {
     alignItems: 'center',
@@ -259,6 +229,47 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 16,
     top: 14,
+  },
+  forgotPasswordText: {
+    color: colors.primary,
+    fontSize: fontSizes.medium,
+    paddingVertical: spacing.sm,
+    textAlign: 'center',
+    textDecorationLine: 'underline',
+  },
+  formContainer: {
+    flex: 0,
+    minHeight: 200,
+  },
+  headerContainer: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 40,
+  },
+  inputContainer: {
+    marginBottom: spacing.lg,
+  },
+  keyboardAvoidingView: {
+    flex: 1,
+  },
+  logoContainer: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  passwordContainer: {
+    position: 'relative',
+  },
+  passwordInput: {
+    ...inputStyles.textInput,
+    paddingRight: 50,
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    minHeight: '100%',
+    paddingBottom: 60,
+    paddingHorizontal: spacing.lg,
+    paddingTop: 60,
   },
   signInButton: {
     ...buttonStyles.primary,
@@ -272,15 +283,22 @@ const styles = StyleSheet.create({
   signInButtonTextDisabled: {
     ...buttonStyles.textDisabled,
   },
-  forgotPasswordText: {
-    color: colors.primary,
+  subtitle: {
+    color: colors.muted,
     fontSize: fontSizes.medium,
-    paddingVertical: spacing.sm,
+    lineHeight: 20,
     textAlign: 'center',
-    textDecorationLine: 'underline',
   },
-  error: {
-    ...errorStyles.error,
+  title: {
+    color: colors.text,
+    fontSize: fontSizes.xlarge,
+    fontWeight: '600',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  titleSection: {
+    alignItems: 'center',
+    marginBottom: 40,
   },
 });
 

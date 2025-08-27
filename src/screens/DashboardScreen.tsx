@@ -7,7 +7,6 @@ import { useNavigation } from '@react-navigation/native';
 import type { StackNavigationProp } from '@react-navigation/stack';
 import type { RootStackParamList } from '../../App';
 import MaterialIconComponent from '../icons/MaterialIconComponent';
-import RecordsScreen from '../screens/RecordsScreen';
 import TableEditIcon from '../../assets/material-icons/table_edit.svg';
 import AddBoxIcon from '../../assets/material-icons/add_box.svg';
 import MobileCheckIcon from '../../assets/material-icons/mobile_check.svg';
@@ -15,6 +14,10 @@ import ConciergeIcon from '../../assets/material-icons/concierge.svg';
 import PendingActionsIcon from '../../assets/material-icons/pending_actions.svg';
 
 import { colors, spacing, fontSizes, borderRadius, fontWeights } from '../styles/theme';
+
+const STAT_CARD_BG = '#2D3748';
+const STAT_REGISTERED_BG = '#10B981';
+const SHADOW_COLOR = '#000';
 
 const DashboardScreen: React.FC = () => {
   const navigation = useNavigation<StackNavigationProp<RootStackParamList, 'RegisterDevice'>>();
@@ -44,14 +47,14 @@ const DashboardScreen: React.FC = () => {
 
         {/* Statistics Cards */}
         <View style={styles.statsRow}>
-          <View style={styles.statCard}>
+          <View style={[styles.statCard, styles.statCardBg]}>
             <View style={[styles.statIconContainer, styles.statIconPending]}>
               <MaterialIconComponent Icon={PendingActionsIcon} size={28} color="#fff" />
             </View>
             <Text style={styles.statNumber}>12</Text>
             <Text style={styles.statLabel}>Pending Requests</Text>
           </View>
-          <View style={styles.statCard}>
+          <View style={[styles.statCard, styles.statCardBgRegistered]}>
             <View style={[styles.statIconContainer, styles.statIconRegistered]}>
               <MaterialIconComponent Icon={MobileCheckIcon} size={28} color="#fff" />
             </View>
@@ -140,14 +143,6 @@ const styles = StyleSheet.create({
     fontWeight: fontWeights.semibold,
     marginLeft: spacing.sm,
   },
-  bottomNav: {
-    backgroundColor: colors.card,
-    borderRadius: borderRadius.lg,
-    flexDirection: 'row',
-    marginTop: 'auto',
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.md,
-  },
   container: {
     backgroundColor: colors.background,
     flex: 1,
@@ -224,18 +219,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
     textAlign: 'center',
   },
-  navItem: {
-    alignItems: 'center',
-    flex: 1,
-    paddingVertical: spacing.sm,
-  },
-  navLabel: {
-    color: colors.muted,
-    fontSize: fontSizes.small,
-  },
-  navLabelActive: {
-    color: colors.primary,
-  },
   noActivityText: {
     color: colors.muted,
     fontSize: fontSizes.medium,
@@ -263,15 +246,21 @@ const styles = StyleSheet.create({
   },
   statCard: {
     alignItems: 'center',
-    backgroundColor: '#2D3748',
     borderRadius: borderRadius.lg,
     elevation: 2,
     flex: 1,
     marginHorizontal: spacing.xs,
     padding: spacing.lg,
-    shadowColor: '#000',
     shadowOpacity: 0.08,
     shadowRadius: 8,
+  },
+  statCardBg: {
+    backgroundColor: STAT_CARD_BG,
+    shadowColor: SHADOW_COLOR,
+  },
+  statCardBgRegistered: {
+    backgroundColor: STAT_CARD_BG,
+    shadowColor: SHADOW_COLOR,
   },
   statIconContainer: {
     alignItems: 'center',
@@ -285,7 +274,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accent,
   },
   statIconRegistered: {
-    backgroundColor: '#10B981',
+    backgroundColor: STAT_REGISTERED_BG,
   },
   statLabel: {
     color: colors.muted,

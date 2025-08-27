@@ -1,6 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
-// Use a constant for dropdown vertical padding
-const DROPDOWN_VERTICAL_PADDING = 16;
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -12,6 +10,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Dimensions,
+  Keyboard,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import CrossPlatformAlert from '../utils/CrossPlatformAlert';
@@ -54,19 +53,63 @@ interface DealerResult {
   dealerName?: string;
 }
 
+/**
+ * Small helpers to safely read string/number properties and extract messages from unknown values.
+ */
+function getStringProp(obj: unknown, key: string): string | null {
+  if (obj && typeof obj === 'object') {
+    const v = (obj as Record<string, unknown>)[key];
+    return typeof v === 'string' ? v : null;
+  }
+  return null;
+}
+function getNumberProp(obj: unknown, key: string): number | null {
+  if (obj && typeof obj === 'object') {
+    const v = (obj as Record<string, unknown>)[key];
+    if (typeof v === 'number') return v;
+    if (typeof v === 'string' && v.trim() !== '' && !Number.isNaN(Number(v))) return Number(v);
+  }
+  return null;
+}
+function extractMessage(obj: unknown, fallback = 'An error occurred'): string {
+  if (!obj) return fallback;
+  if (typeof obj === 'string') return obj;
+  if (obj instanceof Error && obj.message) return obj.message;
+  return getStringProp(obj, 'message') ?? getStringProp(obj, 'description') ?? fallback;
+}
+
+/**
+ * Color tokens to avoid color literal lint errors.
+ */
+const COLORS = {
+  bg: '#1F2937',
+  inputBg: '#374151',
+  inputBorder: '#4B5563',
+  muted: '#9CA3AF',
+  textMuted: '#D1D5DB',
+  white: '#FFFFFF',
+  primary: '#3B82F6',
+  disabled: '#6B7280',
+  success: '#10B981',
+  danger: '#FF3B30',
+  resultsBg: '#262f37',
+  resultsBorder: '#2f3a42',
+  fail: '#EF4444',
+  resultError: '#FCA5A5',
+};
+
 const RegisterDeviceScreen: React.FC = () => {
   const navigation = useNavigation<RegisterDeviceScreenNavigationProp>();
   const dispatch = useDispatch<AppDispatch>();
   const scrollViewRef = useRef<ScrollView>(null);
 
   // Form state
-  // allow multiple dealers: use array of dealerIds
   const [selectedDealers, setSelectedDealers] = useState<number[]>([]);
   const [serialNumber, setSerialNumber] = useState('');
   const [selectedDeviceType, setSelectedDeviceType] = useState<number | null>(null);
   const [selectedStatus, setSelectedStatus] = useState<number | null>(1);
 
-  // Dropdown layout / behavior state (unchanged)
+  // Dropdown layout / behavior state
   const [dealerDropdownY, setDealerDropdownY] = useState<number | null>(null);
   const [deviceTypeDropdownY, setDeviceTypeDropdownY] = useState<number | null>(null);
   const [statusDropdownY, setStatusDropdownY] = useState<number | null>(null);
@@ -96,14 +139,26 @@ const RegisterDeviceScreen: React.FC = () => {
   // Local: registration summary results returned by API
   const [registrationResults, setRegistrationResults] = useState<DealerResult[] | null>(null);
 
-  // Derived dropdown options from Redux data
+  // Types for selector data
+  type Dealer = { dealerId: number; name: string };
+  type DeviceType = { deviceTypeId: number; modelNumber: string };
+
+  // Derived dropdown options from Redux data (typed)
   const dealerOptions: DropdownOption<number>[] = useMemo(
-    () => (dealers ?? []).map((d) => ({ label: d.name, value: d.dealerId })),
+    () =>
+      (Array.isArray(dealers) ? (dealers as Dealer[]) : []).map((d) => ({
+        label: d.name,
+        value: d.dealerId,
+      })),
     [dealers],
   );
 
   const deviceTypeOptions: DropdownOption<number>[] = useMemo(
-    () => (deviceTypes ?? []).map((t) => ({ label: t.modelNumber, value: t.deviceTypeId })),
+    () =>
+      (Array.isArray(deviceTypes) ? (deviceTypes as DeviceType[]) : []).map((t) => ({
+        label: t.modelNumber,
+        value: t.deviceTypeId,
+      })),
     [deviceTypes],
   );
 
@@ -118,31 +173,26 @@ const RegisterDeviceScreen: React.FC = () => {
     dispatch(fetchDeviceTypes());
   }, [dispatch]);
 
-  // Scroll-into-view helpers (kept same logic)
+  // Scroll-into-view helpers
   const scrollDropdownIntoView1 = useCallback(
     (dropdown: 'dealer' | 'deviceType' | 'status') => {
       if (Platform.OS !== 'web') {
-        // @ts-ignore
-        const { Keyboard } = require('react-native');
         Keyboard.dismiss();
       }
       let y: number | null = null;
       let setShowDropdown: ((v: boolean) => void) | null = null;
-      let options: DropdownOption[] = [];
+
       if (dropdown === 'dealer') {
         y = dealerDropdownY;
         setShowDropdown = setShowDealerDropdown;
-        options = dealerOptions;
       }
       if (dropdown === 'deviceType') {
         y = deviceTypeDropdownY;
         setShowDropdown = setShowDeviceTypeDropdown;
-        options = deviceTypeOptions;
       }
       if (dropdown === 'status') {
         y = statusDropdownY;
         setShowDropdown = setShowStatusDropdown;
-        options = statusOptions;
       }
       if (y == null || !scrollViewRef.current) {
         return;
@@ -174,16 +224,13 @@ const RegisterDeviceScreen: React.FC = () => {
         scrollViewRef.current.scrollTo({ y: Math.max(0, buttonTop - margin), animated: true });
         return;
       }
-      setShowDropdown && setShowDropdown(true);
+      if (setShowDropdown) setShowDropdown(true);
     },
     [
       dealerDropdownY,
       deviceTypeDropdownY,
       statusDropdownY,
       scrollY,
-      dealerOptions,
-      deviceTypeOptions,
-      statusOptions,
       dealerDropdownHeight,
       deviceTypeDropdownHeight,
       statusDropdownHeight,
@@ -223,25 +270,46 @@ const RegisterDeviceScreen: React.FC = () => {
 
     try {
       const requestData = {
-        dealerIds: selectedDealers, // now multiple dealer ids
+        dealerIds: selectedDealers,
         serialNo: serialNumber,
         deviceTypeId: selectedDeviceType!,
         status: selectedStatus!,
       };
 
       // Dispatch the Redux thunk; thunk reads token internally.
-      const response: any = await dispatch(registerDeviceRequest(requestData)).unwrap();
+      const responseUnknown: unknown = await dispatch(registerDeviceRequest(requestData)).unwrap();
 
-      // Response is expected to contain dealerResults array even on success.
-      // Normalize and map dealer names where available.
+      // Safely extract dealerResults and serialNo
+      const responseRecord =
+        responseUnknown && typeof responseUnknown === 'object'
+          ? (responseUnknown as Record<string, unknown>)
+          : undefined;
+
+      const maybeDealerResults = responseRecord?.dealerResults;
+      const rawDealerResults: unknown[] = Array.isArray(maybeDealerResults)
+        ? (maybeDealerResults as unknown[])
+        : [];
+
       const apiDealerResults: Array<{
         dealerId: number;
         success: boolean;
         errorMessage?: string | null;
-      }> = Array.isArray(response?.dealerResults) ? response.dealerResults : [];
+      }> = rawDealerResults.map((item) => {
+        const dealerId = getNumberProp(item, 'dealerId') ?? 0;
+        const successVal =
+          item && typeof item === 'object'
+            ? (item as Record<string, unknown>)['success']
+            : undefined;
+        const success = typeof successVal === 'boolean' ? successVal : Boolean(successVal);
+        const errorMessage = getStringProp(item, 'errorMessage');
+        return { dealerId, success, errorMessage: errorMessage ?? null };
+      });
+
+      // dealers from selector are expected to be objects with dealerId/name
+      const dealersArr = Array.isArray(dealers) ? (dealers as Dealer[]) : [];
 
       const mappedResults: DealerResult[] = apiDealerResults.map((r) => {
-        const dealerRecord = (dealers ?? []).find((d: any) => d.dealerId === r.dealerId);
+        const dealerRecord = dealersArr.find((d) => d.dealerId === r.dealerId);
         return {
           dealerId: r.dealerId,
           dealerName: dealerRecord ? dealerRecord.name : `Dealer ${r.dealerId}`,
@@ -259,10 +327,15 @@ const RegisterDeviceScreen: React.FC = () => {
         .map((r) => `• ${r.dealerName}: ${r.errorMessage ?? 'Unknown error'}`);
 
       const lines: string[] = [];
-      lines.push(`Serial: ${response?.serialNo ?? serialNumber}`);
+      lines.push(
+        `Serial: ${
+          responseRecord && typeof responseRecord['serialNo'] === 'string'
+            ? (responseRecord['serialNo'] as string)
+            : serialNumber
+        }`,
+      );
       lines.push('');
 
-      // Successes (explicit)
       lines.push(`Successful registrations (${successList.length}):`);
       if (successList.length > 0) {
         lines.push(...successList);
@@ -271,7 +344,6 @@ const RegisterDeviceScreen: React.FC = () => {
       }
       lines.push('');
 
-      // Failures (explicit)
       lines.push(`Failed registrations (${failedList.length}):`);
       if (failedList.length > 0) {
         lines.push(...failedList);
@@ -286,11 +358,14 @@ const RegisterDeviceScreen: React.FC = () => {
           onPress: () => navigation.navigate('MainTabs'),
         },
       ]);
-    } catch (err: any) {
+    } catch (err: unknown) {
+      // Log and normalize error
+      // console logging is purposeful here for debugging API failures
       console.log('Device registration failed:', err);
-      // Try to show the server-provided message first
-      const message =
-        err?.description ?? err?.message ?? registerError ?? 'Failed to register device.';
+      const message = extractMessage(
+        err,
+        typeof registerError === 'string' ? registerError : 'Failed to register device.',
+      );
       setLocalError(message);
     }
   };
@@ -350,9 +425,9 @@ const RegisterDeviceScreen: React.FC = () => {
               >
                 <Text style={styles.inputLabel}>Dealer * (select one or more)</Text>
                 {dealersLoading ? (
-                  <Text style={{ color: '#9CA3AF', marginBottom: 8 }}>Loading dealers...</Text>
+                  <Text style={styles.loadingText}>Loading dealers...</Text>
                 ) : dealerLoadError ? (
-                  <Text style={{ color: 'red', marginBottom: 8 }}>{dealerLoadError}</Text>
+                  <Text style={styles.loadErrorText}>{dealerLoadError}</Text>
                 ) : (
                   <CrossPlatformDropdownGen<number>
                     options={dealerOptions}
@@ -386,7 +461,7 @@ const RegisterDeviceScreen: React.FC = () => {
                 <TextInput
                   style={styles.textInput}
                   placeholder="Enter device serial number"
-                  placeholderTextColor="#6B7280"
+                  placeholderTextColor={COLORS.muted}
                   value={serialNumber}
                   onChangeText={handleSerialNumberChange}
                   autoCapitalize="characters"
@@ -404,9 +479,9 @@ const RegisterDeviceScreen: React.FC = () => {
               >
                 <Text style={styles.inputLabel}>Device Type *</Text>
                 {deviceTypesLoading ? (
-                  <Text style={{ color: '#9CA3AF', marginBottom: 8 }}>Loading device types...</Text>
+                  <Text style={styles.loadingText}>Loading device types...</Text>
                 ) : deviceTypeLoadError ? (
-                  <Text style={{ color: 'red', marginBottom: 8 }}>{deviceTypeLoadError}</Text>
+                  <Text style={styles.loadErrorText}>{deviceTypeLoadError}</Text>
                 ) : (
                   <CrossPlatformDropdownGen<number | null>
                     options={deviceTypeOptions}
@@ -487,9 +562,7 @@ const RegisterDeviceScreen: React.FC = () => {
             </View>
 
             {/* show error (from reducer or local) */}
-            {localError ? (
-              <Text style={{ color: 'red', textAlign: 'center', marginTop: 12 }}>{localError}</Text>
-            ) : null}
+            {localError ? <Text style={styles.localErrorText}>{localError}</Text> : null}
 
             {/* registration results summary */}
             {registrationResults && registrationResults.length > 0 ? (
@@ -523,29 +596,10 @@ const RegisterDeviceScreen: React.FC = () => {
 };
 
 const styles = StyleSheet.create({
-  dropdownMenu: {
-    backgroundColor: '#374151',
-    borderColor: '#4B5563',
-    borderRadius: 8,
-    borderWidth: 1,
-  },
-  container: {
-    backgroundColor: '#1F2937',
-    flex: 1,
-  },
-  keyboardAvoidingView: {
-    flex: 1,
-  },
-  scrollContainer: {
-    flexGrow: 1,
-    paddingBottom: 60,
-    paddingHorizontal: 24,
-    paddingTop: 20, // Consistent with other screens
-  },
-  header: {
-    alignItems: 'flex-start',
-    flexDirection: 'row',
-    marginBottom: 32,
+  backArrow: {
+    color: COLORS.white,
+    fontSize: 24,
+    fontWeight: '600',
   },
   backButton: {
     alignItems: 'center',
@@ -554,82 +608,69 @@ const styles = StyleSheet.create({
     marginRight: 16,
     width: 40,
   },
-  backArrow: {
-    color: '#FFFFFF',
-    fontSize: 24,
-    fontWeight: '600',
-  },
-  headerTitleContainer: {
-    flex: 1,
-  },
-  headerTitle: {
-    color: '#FFFFFF',
-    fontSize: 20,
-    fontWeight: '600',
-    marginBottom: 4,
-  },
-  headerSubtitle: {
-    color: '#9CA3AF',
-    fontSize: 14,
-  },
-  sectionContainer: {
-    marginBottom: 32,
-  },
-  sectionTitle: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 20,
-  },
-  inputContainer: {
-    marginBottom: 20,
-  },
-  inputLabel: {
-    color: '#D1D5DB',
-    fontSize: 14,
-    fontWeight: '500',
-    marginBottom: 8,
-  },
-  textInput: {
-    backgroundColor: '#374151',
-    borderColor: '#4B5563',
-    borderRadius: 8,
-    borderWidth: 1,
-    color: '#FFFFFF',
-    fontSize: 16,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-  },
-  inputHint: {
-    color: '#9CA3AF',
-    fontSize: 12,
-    marginTop: 4,
-  },
-  systemInfoContainer: {
-    backgroundColor: '#374151',
-    borderRadius: 12,
-    padding: 16,
-  },
-  systemInfoItem: {
-    marginBottom: 12,
-  },
-  systemInfoLabel: {
-    color: '#9CA3AF',
-    fontSize: 12,
-    marginBottom: 4,
-  },
-  systemInfoValue: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '500',
-  },
   buttonContainer: {
     marginTop: 24,
     paddingTop: 16,
   },
+  container: {
+    backgroundColor: COLORS.bg,
+    flex: 1,
+  },
+  failText: {
+    color: COLORS.fail,
+  },
+
+  header: {
+    alignItems: 'flex-start',
+    flexDirection: 'row',
+    marginBottom: 32,
+  },
+  headerSubtitle: {
+    color: COLORS.muted,
+    fontSize: 14,
+  },
+  headerTitle: {
+    color: COLORS.white,
+    fontSize: 20,
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  headerTitleContainer: {
+    flex: 1,
+  },
+  inputContainer: {
+    marginBottom: 20,
+  },
+  inputHint: {
+    color: COLORS.muted,
+    fontSize: 12,
+    marginTop: 4,
+  },
+  inputLabel: {
+    color: COLORS.textMuted,
+    fontSize: 14,
+    fontWeight: '500',
+    marginBottom: 8,
+  },
+  keyboardAvoidingView: {
+    flex: 1,
+  },
+  loadErrorText: {
+    color: COLORS.danger,
+    marginBottom: 8,
+  },
+  loadingText: {
+    color: COLORS.muted,
+    marginBottom: 8,
+  },
+  localErrorText: {
+    color: COLORS.danger,
+    marginTop: 12,
+    textAlign: 'center',
+  },
   registerButton: {
     alignItems: 'center',
-    backgroundColor: '#3B82F6',
+    backgroundColor: COLORS.primary,
     borderRadius: 12,
     flexDirection: 'row',
     justifyContent: 'center',
@@ -637,58 +678,96 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   registerButtonDisabled: {
-    backgroundColor: '#6B7280',
+    backgroundColor: COLORS.disabled,
     opacity: 0.6,
   },
   registerButtonIcon: {
-    color: '#FFFFFF',
+    color: COLORS.white,
     fontSize: 20,
     fontWeight: '600',
     marginRight: 8,
   },
   registerButtonText: {
-    color: '#FFFFFF',
+    color: COLORS.white,
     fontSize: 16,
     fontWeight: '600',
   },
   registerButtonTextDisabled: {
-    color: '#D1D5DB',
+    color: COLORS.textMuted,
   },
-
-  // results summary
+  resultDealerName: {
+    color: COLORS.white,
+    fontWeight: '600',
+  },
+  resultError: {
+    color: COLORS.resultError,
+    marginTop: 4,
+  },
+  resultRow: {
+    marginBottom: 8,
+  },
+  resultStatus: {
+    fontWeight: '600',
+    marginTop: 2,
+  },
   resultsContainer: {
-    backgroundColor: '#262f37',
-    borderColor: '#2f3a42',
+    backgroundColor: COLORS.resultsBg,
+    borderColor: COLORS.resultsBorder,
     borderRadius: 8,
     borderWidth: 1,
     marginTop: 20,
     padding: 12,
   },
   resultsTitle: {
-    color: '#D1D5DB',
+    color: COLORS.textMuted,
     fontWeight: '700',
     marginBottom: 8,
   },
-  resultRow: {
-    marginBottom: 8,
+  scrollContainer: {
+    flexGrow: 1,
+    paddingBottom: 60,
+    paddingHorizontal: 24,
+    paddingTop: 20, // Consistent with other screens
   },
-  resultDealerName: {
-    color: '#FFFFFF',
-    fontWeight: '600',
+  sectionContainer: {
+    marginBottom: 32,
   },
-  resultStatus: {
+  sectionTitle: {
+    color: COLORS.white,
+    fontSize: 16,
     fontWeight: '600',
-    marginTop: 2,
+    marginBottom: 20,
   },
   successText: {
-    color: '#10B981',
+    color: COLORS.success,
   },
-  failText: {
-    color: '#EF4444',
+  systemInfoContainer: {
+    backgroundColor: COLORS.inputBg,
+    borderRadius: 12,
+    padding: 16,
   },
-  resultError: {
-    color: '#FCA5A5',
-    marginTop: 4,
+  systemInfoItem: {
+    marginBottom: 12,
+  },
+  systemInfoLabel: {
+    color: COLORS.muted,
+    fontSize: 12,
+    marginBottom: 4,
+  },
+  systemInfoValue: {
+    color: COLORS.white,
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  textInput: {
+    backgroundColor: COLORS.inputBg,
+    borderColor: COLORS.inputBorder,
+    borderRadius: 8,
+    borderWidth: 1,
+    color: COLORS.white,
+    fontSize: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
   },
 });
 

@@ -23,6 +23,28 @@ type RootStackParamList = {
 };
 type ForgotPasswordScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Reset'>;
 
+type ForgotPasswordResponse = {
+  token?: string;
+  message?: string;
+  expiresAt?: string;
+};
+
+const isForgotPasswordResponse = (obj: unknown): obj is ForgotPasswordResponse =>
+  !!obj && typeof obj === 'object' && ('token' in obj || 'message' in obj || 'expiresAt' in obj);
+
+// Color tokens to avoid inline color literals in JSX/styles
+const COLORS = {
+  bg: '#1F2937',
+  panel: '#374151',
+  panelBorder: '#4B5563',
+  text: '#FFFFFF',
+  muted: '#6B7280',
+  label: '#D1D5DB',
+  danger: '#FF3B30',
+  success: '#10B981',
+  primary: '#3B82F6',
+};
+
 const ForgotPasswordScreen: React.FC = () => {
   const navigation = useNavigation<ForgotPasswordScreenNavigationProp>();
   const [email, setEmail] = useState('');
@@ -50,18 +72,15 @@ const ForgotPasswordScreen: React.FC = () => {
       { email },
       {
         onSuccess: (response) => {
-          // If server didn't return a token, show a clear error and don't proceed.
-          if (!response || !response.token) {
-            // Don't set any server message when token is missing.
+          // Ensure response is a shape we expect and has a token property
+          if (!isForgotPasswordResponse(response) || !response.token) {
             setMessage(null);
             setError('Unable to proceed further');
             return;
           }
 
-          // response.token is guaranteed to exist here; help TypeScript by asserting non-null.
-          const tokenStr = response.token!;
+          const tokenStr = response.token;
 
-          // If token is present, allow the user to proceed to Reset screen.
           CrossPlatformAlert.alert('Reset Link Sent', 'You can now reset your password.', [
             {
               text: 'OK',
@@ -74,14 +93,22 @@ const ForgotPasswordScreen: React.FC = () => {
             },
           ]);
 
-          // Only set the server message when a token is present.
           setMessage(response.message || 'Reset link sent! Check your email.');
           setError(null);
         },
-        onError: (err: any) => {
-          // On error, show the error and clear any success message.
+        onError: (err: unknown) => {
+          // Narrow unknown error safely
           setMessage(null);
-          setError(err?.message || 'Failed to send reset link.');
+          let msg = 'Failed to send reset link.';
+          if (typeof err === 'string') {
+            msg = err;
+          } else if (err instanceof Error && err.message) {
+            msg = err.message;
+          } else if (err && typeof err === 'object') {
+            const e = err as Record<string, unknown>;
+            if (typeof e['message'] === 'string') msg = e['message'] as string;
+          }
+          setError(msg);
         },
       },
     );
@@ -92,11 +119,15 @@ const ForgotPasswordScreen: React.FC = () => {
   };
 
   // Show error from mutation if not already set locally
-  const displayError = error || (isError && (mutationError as Error)?.message);
-  // Show message only if we set it locally OR if mutationData includes a token (defensive),
-  // otherwise don't show the server message when token is missing.
+  const displayError =
+    error || (isError && mutationError instanceof Error ? mutationError.message : null);
+
+  // Show message only if we set it locally OR if mutationData includes a token (defensive)
   const displayMessage =
-    message ?? (mutationData && (mutationData as any).token ? (mutationData as any).message : null);
+    message ??
+    (isForgotPasswordResponse(mutationData) && mutationData.token
+      ? (mutationData.message ?? null)
+      : null);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -132,7 +163,7 @@ const ForgotPasswordScreen: React.FC = () => {
               <TextInput
                 style={styles.textInput}
                 placeholder="your@example.com"
-                placeholderTextColor="#6B7280"
+                placeholderTextColor={COLORS.muted}
                 value={email}
                 onChangeText={setEmail}
                 autoCorrect={false}
@@ -142,20 +173,12 @@ const ForgotPasswordScreen: React.FC = () => {
             </View>
 
             {/* Error or Backend Message */}
-            {displayError && (
-              <Text style={{ color: '#FF3B30', fontWeight: 'bold', marginBottom: 12 }}>
-                {displayError}
-              </Text>
-            )}
-            {displayMessage && (
-              <Text style={{ color: '#10B981', fontWeight: 'bold', marginBottom: 12 }}>
-                {displayMessage}
-              </Text>
-            )}
+            {displayError ? <Text style={styles.errorText}>{displayError}</Text> : null}
+            {displayMessage ? <Text style={styles.successText}>{displayMessage}</Text> : null}
 
             {/* Send Reset Link Button */}
             <TouchableOpacity
-              style={[styles.resetButton, loading && { opacity: 0.6 }]}
+              style={[styles.resetButton, loading && styles.resetButtonLoading]}
               onPress={handleSendResetLink}
               disabled={loading}
             >
@@ -177,21 +200,26 @@ const ForgotPasswordScreen: React.FC = () => {
 
 const styles = StyleSheet.create({
   appName: {
-    color: '#FFFFFF',
+    color: COLORS.text,
     fontSize: 24,
     fontWeight: '600',
     marginTop: 8,
   },
   backToLoginText: {
-    color: '#3B82F6',
+    color: COLORS.primary,
     fontSize: 14,
     paddingVertical: 8,
     textAlign: 'center',
     textDecorationLine: 'underline',
   },
   container: {
-    backgroundColor: '#1F2937',
+    backgroundColor: COLORS.bg,
     flex: 1,
+  },
+  errorText: {
+    color: COLORS.danger,
+    fontWeight: 'bold',
+    marginBottom: 12,
   },
   formContainer: {
     flex: 0,
@@ -205,7 +233,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   inputLabel: {
-    color: '#D1D5DB',
+    color: COLORS.label,
     fontSize: 14,
     fontWeight: '500',
     marginBottom: 8,
@@ -218,14 +246,17 @@ const styles = StyleSheet.create({
   },
   resetButton: {
     alignItems: 'center',
-    backgroundColor: '#3B82F6',
+    backgroundColor: COLORS.primary,
     borderRadius: 8,
     marginBottom: 32,
     marginTop: 8,
     paddingVertical: 16,
   },
+  resetButtonLoading: {
+    opacity: 0.6,
+  },
   resetButtonText: {
-    color: '#FFFFFF',
+    color: COLORS.text,
     fontSize: 16,
     fontWeight: '600',
   },
@@ -237,23 +268,28 @@ const styles = StyleSheet.create({
     paddingTop: 60,
   },
   subtitle: {
-    color: '#9CA3AF',
+    color: COLORS.muted,
     fontSize: 14,
     lineHeight: 20,
     textAlign: 'center',
   },
+  successText: {
+    color: COLORS.success,
+    fontWeight: 'bold',
+    marginBottom: 12,
+  },
   textInput: {
-    backgroundColor: '#374151',
-    borderColor: '#4B5563',
+    backgroundColor: COLORS.panel,
+    borderColor: COLORS.panelBorder,
     borderRadius: 8,
     borderWidth: 1,
-    color: '#FFFFFF',
+    color: COLORS.text,
     fontSize: 16,
     paddingHorizontal: 16,
     paddingVertical: 14,
   },
   title: {
-    color: '#FFFFFF',
+    color: COLORS.text,
     fontSize: 20,
     fontWeight: '600',
     marginBottom: 8,

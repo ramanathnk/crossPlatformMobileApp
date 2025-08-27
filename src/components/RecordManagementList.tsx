@@ -20,6 +20,12 @@ interface RecordManagementListProps<T> {
   renderItem: ListRenderItem<T>;
 }
 
+// Color constants to avoid inline color literals
+const COLOR_PRIMARY = '#3B82F6';
+const COLOR_WHITE = '#FFFFFF';
+const COLOR_MUTED = '#A3A3A3';
+const COLOR_INPUT_BG = '#19213A';
+
 const RecordManagementList = <T,>({
   data,
   loading,
@@ -36,7 +42,7 @@ const RecordManagementList = <T,>({
         placeholder={`Search ${itemLabel.toLowerCase()}`}
         value={search}
         onChangeText={onSearchChange}
-        placeholderTextColor="#A3A3A3"
+        placeholderTextColor={COLOR_MUTED}
       />
 
       <View style={styles.header}>
@@ -49,14 +55,14 @@ const RecordManagementList = <T,>({
       </View>
 
       {loading ? (
-        <ActivityIndicator color="#3B82F6" style={{ marginTop: 16 }} />
+        <ActivityIndicator color={COLOR_PRIMARY} style={styles.activityIndicator} />
       ) : (
         <FlatList
           data={data}
-          keyExtractor={(item, index) => String(index)}
+          keyExtractor={(_item, index) => String(index)}
           renderItem={renderItem}
           scrollEnabled={false}
-          contentContainerStyle={{ paddingBottom: 16 }}
+          contentContainerStyle={styles.listContent}
         />
       )}
     </View>
@@ -64,14 +70,17 @@ const RecordManagementList = <T,>({
 };
 
 const styles = StyleSheet.create({
+  activityIndicator: {
+    marginTop: 16,
+  },
   addButton: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: COLOR_PRIMARY,
     borderRadius: 8,
     paddingHorizontal: 16,
     paddingVertical: 8,
   },
   addButtonText: {
-    color: '#FFF',
+    color: COLOR_WHITE,
     fontSize: 15,
     fontWeight: 'bold',
   },
@@ -80,7 +89,7 @@ const styles = StyleSheet.create({
     paddingTop: 16,
   },
   count: {
-    color: '#A3A3A3',
+    color: COLOR_MUTED,
     fontSize: 15,
   },
   header: {
@@ -89,10 +98,13 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     marginBottom: 12,
   },
+  listContent: {
+    paddingBottom: 16,
+  },
   searchInput: {
-    backgroundColor: '#19213A',
+    backgroundColor: COLOR_INPUT_BG,
     borderRadius: 8,
-    color: '#FFF',
+    color: COLOR_WHITE,
     fontSize: 15,
     marginBottom: 16,
     paddingHorizontal: 16,

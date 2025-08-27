@@ -16,6 +16,20 @@ export const initialState: AuthState = {
 };
 
 /**
+ * Small helper to extract a message from an unknown error value.
+ */
+function getErrorMessage(err: unknown): string | undefined {
+  if (!err) return undefined;
+  if (typeof err === 'string') return err;
+  if (err instanceof Error && err.message) return err.message;
+  if (typeof err === 'object' && err !== null) {
+    const e = err as Record<string, unknown>;
+    if (typeof e.message === 'string') return e.message;
+  }
+  return undefined;
+}
+
+/**
  * Small factory that creates createAsyncThunk wrappers around apiRequest.
  *
  * By default the payload is sent as the request body. If `useAuthToken` is true,
@@ -34,8 +48,9 @@ export function createApiThunk<Res, Req>(
         ? await apiRequest<Res>(url, method, defaultError, payload as unknown as string)
         : await apiRequest<Res>(url, method, defaultError, undefined, payload as unknown as object);
       return res;
-    } catch (err: any) {
-      return thunkAPI.rejectWithValue(err?.message || defaultError);
+    } catch (err: unknown) {
+      const msg = getErrorMessage(err) ?? defaultError;
+      return thunkAPI.rejectWithValue(msg);
     }
   });
 }
@@ -45,14 +60,14 @@ export function createApiThunk<Res, Req>(
  * Options allow customizing token/message extraction and whether to clear the token.
  *
  * The builder is typed as ActionReducerMapBuilder<AuthState> for stronger typing.
- * The thunk parameter is typed as AsyncThunk<any, any, any> which matches createAsyncThunk return type.
+ * The thunk parameter is a generic AsyncThunk so we can preserve payload types and avoid `any`.
  */
-export function attachThunkHandlers(
+export function attachThunkHandlers<TRes = unknown, TReq = unknown>(
   builder: ActionReducerMapBuilder<AuthState>,
-  thunk: AsyncThunk<any, any, any>,
+  thunk: AsyncThunk<TRes, TReq, { rejectValue?: string }>,
   options?: {
-    getToken?: (payload: any) => string | null;
-    getMessage?: (payload: any) => string | null;
+    getToken?: (payload: TRes | null | undefined) => string | null;
+    getMessage?: (payload: TRes | null | undefined) => string | null;
     clearTokenOnFulfilled?: boolean;
     defaultRejectedMessage?: string;
   },
@@ -67,7 +82,7 @@ export function attachThunkHandlers(
   });
 
   // fulfilled
-  builder.addCase(thunk.fulfilled, (state: AuthState, action: any) => {
+  builder.addCase(thunk.fulfilled, (state: AuthState, action: { payload: TRes | undefined }) => {
     state.loading = false;
     state.error = null;
 
@@ -83,14 +98,28 @@ export function attachThunkHandlers(
     if (options?.getMessage) {
       state.message = options.getMessage(action.payload) ?? null;
     } else {
-      // safe any-cast: some responses may not have a message property
-      state.message = (action.payload && (action.payload as any).message) ?? null;
+      // Safe fallback: try to read message property if payload is an object
+      const payload = action.payload as unknown;
+      if (typeof payload === 'object' && payload !== null) {
+        const p = payload as Record<string, unknown>;
+        const maybeMessage = p.message;
+        state.message = typeof maybeMessage === 'string' ? maybeMessage : null;
+      } else {
+        state.message = null;
+      }
     }
   });
 
   // rejected
-  builder.addCase(thunk.rejected, (state: AuthState, action: any) => {
-    state.loading = false;
-    state.error = (action.payload as string) || defaultRejectedMessage;
-  });
+  builder.addCase(
+    thunk.rejected,
+    (state: AuthState, action: { payload?: unknown; error?: { message?: string } }) => {
+      state.loading = false;
+      const rejectedMessage =
+        typeof action.payload === 'string'
+          ? action.payload
+          : (action.error?.message ?? defaultRejectedMessage);
+      state.error = rejectedMessage;
+    },
+  );
 }

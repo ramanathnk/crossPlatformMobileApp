@@ -19,6 +19,16 @@ interface GenericModalProps {
   children: React.ReactNode;
 }
 
+// Local color constants to avoid color literals in styles
+const COLOR_PRIMARY = '#3B82F6';
+const COLOR_WHITE = '#FFFFFF';
+const COLOR_BORDER = '#334155';
+const COLOR_SECONDARY_TEXT = '#E2E8F0';
+const COLOR_BACKDROP = 'rgba(0,0,0,0.6)';
+const COLOR_CARD_BG = '#0F172A';
+const COLOR_CARD_BORDER = '#23304D';
+const COLOR_TRANSPARENT = 'transparent';
+
 const GenericModal = ({
   visible,
   title,
@@ -44,12 +54,12 @@ const GenericModal = ({
                 <Text style={styles.btnSecondaryText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.btn, styles.btnPrimary, !canSave && { opacity: 0.5 }]}
+                style={[styles.btn, styles.btnPrimary, !canSave && styles.btnDisabled]}
                 onPress={onSave}
                 disabled={!canSave || submitting}
               >
                 {submitting ? (
-                  <ActivityIndicator color="#FFF" />
+                  <ActivityIndicator color={COLOR_WHITE} />
                 ) : (
                   <Text style={styles.btnPrimaryText}>Save</Text>
                 )}
@@ -69,20 +79,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
   },
+  btnDisabled: {
+    opacity: 0.5,
+  },
   btnPrimary: {
-    backgroundColor: '#3B82F6',
+    backgroundColor: COLOR_PRIMARY,
   },
   btnPrimaryText: {
-    color: '#FFF',
+    color: COLOR_WHITE,
     fontWeight: 'bold',
   },
   btnSecondary: {
-    backgroundColor: 'transparent',
-    borderColor: '#334155',
+    backgroundColor: COLOR_TRANSPARENT,
+    borderColor: COLOR_BORDER,
     borderWidth: 1,
   },
   btnSecondaryText: {
-    color: '#E2E8F0',
+    color: COLOR_SECONDARY_TEXT,
   },
   modalActions: {
     flexDirection: 'row',
@@ -90,20 +103,20 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   modalBackdrop: {
-    backgroundColor: 'rgba(0,0,0,0.6)',
+    backgroundColor: COLOR_BACKDROP,
     flex: 1,
     justifyContent: 'center',
     padding: 20,
   },
   modalCard: {
-    backgroundColor: '#0F172A',
-    borderColor: '#23304D',
+    backgroundColor: COLOR_CARD_BG,
+    borderColor: COLOR_CARD_BORDER,
     borderRadius: 12,
     borderWidth: 1,
     padding: 16,
   },
   modalTitle: {
-    color: '#FFF',
+    color: COLOR_WHITE,
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 12,

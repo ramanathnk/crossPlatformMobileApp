@@ -34,13 +34,19 @@ const initialState: DeviceRequestsState = {
 /**
  * Normalize server / thrown error into a string message.
  */
-function extractErrorMessage(err: any, fallback: string) {
+function extractErrorMessage(err: unknown, fallback: string) {
   if (!err) return fallback;
   if (typeof err === 'string') return err;
-  if (err?.description) return err.description;
-  if (err?.message) return err.message;
-  if (err?.error) return String(err.error);
-  if (err?.rawText) return String(err.rawText);
+  if (err instanceof Error && err.message) return err.message;
+
+  if (typeof err === 'object' && err !== null) {
+    const e = err as Record<string, unknown>;
+    if (typeof e.description === 'string') return e.description;
+    if (typeof e.message === 'string') return e.message;
+    if (e.error !== undefined) return String(e.error);
+    if (typeof e.rawText === 'string') return e.rawText;
+  }
+
   return fallback;
 }
 
@@ -60,7 +66,7 @@ export const fetchPendingRequests = createAsyncThunk<
     if (!token) throw new Error('No access token found. Please log in again.');
     const res = await getPendingRegistrationRequests(token);
     return res;
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.warn('fetchPendingRequests error:', err);
     return thunkAPI.rejectWithValue(extractErrorMessage(err, 'Failed to fetch pending requests'));
   }
@@ -79,7 +85,7 @@ export const approveRequest = createAsyncThunk<
     // call API; some implementations may return the updated request, some may return void
     const res = await approveRegistrationRequest(token, payload.requestId, payload.notes);
     return res;
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.warn('approveRequest error:', err);
     return thunkAPI.rejectWithValue(extractErrorMessage(err, 'Failed to approve request'));
   }
@@ -101,7 +107,7 @@ export const rejectRequest = createAsyncThunk<
       payload.notes,
     );
     return res;
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.warn('rejectRequest error:', err);
     return thunkAPI.rejectWithValue(extractErrorMessage(err, 'Failed to reject request'));
   }
@@ -123,7 +129,7 @@ export const registerDeviceRequest = createAsyncThunk<
     // and the token as the second argument. Swap the order to match the function signature.
     const res = await registerDevice(payload, token);
     return res;
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.warn('registerDeviceRequest error:', err);
     return thunkAPI.rejectWithValue(extractErrorMessage(err, 'Failed to register device'));
   }
@@ -154,8 +160,11 @@ const deviceRequestsSlice = createSlice({
     );
     builder.addCase(fetchPendingRequests.rejected, (state, action) => {
       state.loading = false;
+      // action.payload is rejectValue (string) when provided, otherwise undefined
       state.error =
-        (action.payload as string) || action.error?.message || 'Failed to load pending requests';
+        (action.payload as string | undefined) ||
+        action.error?.message ||
+        'Failed to load pending requests';
     });
 
     // approveRequest
@@ -166,7 +175,10 @@ const deviceRequestsSlice = createSlice({
     builder.addCase(approveRequest.fulfilled, (state, action) => {
       // Use the requestId from the thunk arg (meta.arg) which is always present.
       // If API returned an updated request, action.payload may exist; but do not rely on it.
-      const requestId = action.meta?.arg?.requestId ?? (action.payload as any)?.requestId;
+      const payloadRequestId = action.meta?.arg?.requestId;
+      const returned = action.payload as DeviceRegistrationRequest | void;
+      const returnedRequestId = returned?.requestId;
+      const requestId = typeof payloadRequestId === 'number' ? payloadRequestId : returnedRequestId;
       if (typeof requestId === 'number') {
         state.items = state.items.filter((r) => r.requestId !== requestId);
       }
@@ -176,7 +188,9 @@ const deviceRequestsSlice = createSlice({
     builder.addCase(approveRequest.rejected, (state, action) => {
       state.submittingRequestId = null;
       state.error =
-        (action.payload as string) || action.error?.message || 'Failed to approve request';
+        (action.payload as string | undefined) ||
+        action.error?.message ||
+        'Failed to approve request';
     });
 
     // rejectRequest
@@ -185,7 +199,10 @@ const deviceRequestsSlice = createSlice({
       state.submittingRequestId = action.meta.arg.requestId;
     });
     builder.addCase(rejectRequest.fulfilled, (state, action) => {
-      const requestId = action.meta?.arg?.requestId ?? (action.payload as any)?.requestId;
+      const payloadRequestId = action.meta?.arg?.requestId;
+      const returned = action.payload as DeviceRegistrationRequest | void;
+      const returnedRequestId = returned?.requestId;
+      const requestId = typeof payloadRequestId === 'number' ? payloadRequestId : returnedRequestId;
       if (typeof requestId === 'number') {
         state.items = state.items.filter((r) => r.requestId !== requestId);
       }
@@ -195,7 +212,9 @@ const deviceRequestsSlice = createSlice({
     builder.addCase(rejectRequest.rejected, (state, action) => {
       state.submittingRequestId = null;
       state.error =
-        (action.payload as string) || action.error?.message || 'Failed to reject request';
+        (action.payload as string | undefined) ||
+        action.error?.message ||
+        'Failed to reject request';
     });
 
     // registerDeviceRequest
@@ -212,22 +231,31 @@ const deviceRequestsSlice = createSlice({
     builder.addCase(registerDeviceRequest.rejected, (state, action) => {
       state.registering = false;
       state.registerError =
-        (action.payload as string) || action.error?.message || 'Failed to register device';
+        (action.payload as string | undefined) ||
+        action.error?.message ||
+        'Failed to register device';
     });
   },
 });
 
 export const { clearError } = deviceRequestsSlice.actions;
 
+// Local RootState type for selector typing.
+type RootState = {
+  deviceRequests: DeviceRequestsState;
+};
+
 // Selectors
-export const selectDeviceRequestsState = (state: any) =>
-  state.deviceRequests as DeviceRequestsState;
-export const selectPendingRequests = (state: any) => selectDeviceRequestsState(state).items;
-export const selectDeviceRequestsLoading = (state: any) => selectDeviceRequestsState(state).loading;
-export const selectDeviceRequestsError = (state: any) => selectDeviceRequestsState(state).error;
-export const selectSubmittingRequestId = (state: any) =>
+export const selectDeviceRequestsState = (state: RootState) => state.deviceRequests;
+export const selectPendingRequests = (state: RootState) => selectDeviceRequestsState(state).items;
+export const selectDeviceRequestsLoading = (state: RootState) =>
+  selectDeviceRequestsState(state).loading;
+export const selectDeviceRequestsError = (state: RootState) =>
+  selectDeviceRequestsState(state).error;
+export const selectSubmittingRequestId = (state: RootState) =>
   selectDeviceRequestsState(state).submittingRequestId;
-export const selectRegistering = (state: any) => selectDeviceRequestsState(state).registering;
-export const selectRegisterError = (state: any) => selectDeviceRequestsState(state).registerError;
+export const selectRegistering = (state: RootState) => selectDeviceRequestsState(state).registering;
+export const selectRegisterError = (state: RootState) =>
+  selectDeviceRequestsState(state).registerError;
 
 export default deviceRequestsSlice.reducer;
